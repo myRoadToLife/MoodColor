@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "790585451904",
+    "project_id": "moodcolor-3ac59",
+    "storage_bucket": "moodcolor-3ac59.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:790585451904:android:044bba08398e87ee5b4d65",
+        "android_client_info": {
+          "package_name": "com.AAIProject.MoodColor"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCO0cvM7w36ia6B2VO4ZrLS7bCqXvq8n2E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
