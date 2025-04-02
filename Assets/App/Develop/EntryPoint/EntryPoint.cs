@@ -1,6 +1,7 @@
 using App.Develop.CommonServices.AssetManagment;
 using App.Develop.CommonServices.CoroutinePerformer;
 using App.Develop.CommonServices.LoadingScreen;
+using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
 using UnityEngine;
 
@@ -22,10 +23,11 @@ namespace App.Develop.EntryPoint
             RegisterResourcesAssetLoader(projectContainer);
             RegisterCoroutinePerformer(projectContainer);
             RegisterLoadingScreen(projectContainer);
+            RegisterSceneLoader(projectContainer);
+            RegisterSceneSwitcher(projectContainer);
 
             projectContainer.Resolve<ICoroutinePerformer>().StartPerformCoroutine(_appBootstrap.Run(projectContainer));
         }
-
 
         private void SetupAppSettings()
         {
@@ -33,28 +35,41 @@ namespace App.Develop.EntryPoint
             Application.targetFrameRate = 60;
         }
 
+        private void RegisterSceneLoader(DIContainer container) =>
+            container.RegisterAsSingle<ISceneLoader>(diContainer => new SceneLoader());
+
         private void RegisterResourcesAssetLoader(DIContainer container)
             => container.RegisterAsSingle(diContainer => new ResourcesAssetLoader());
+
+        private void RegisterSceneSwitcher(DIContainer container)
+            => container.RegisterAsSingle(diContainer
+                => new SceneSwitcher(
+                    diContainer.Resolve<ICoroutinePerformer>(),
+                    diContainer.Resolve<ILoadingScreen>(),
+                    diContainer.Resolve<ISceneLoader>(),
+                    diContainer));
 
         private void RegisterCoroutinePerformer(DIContainer container)
         {
             container.RegisterAsSingle<ICoroutinePerformer>(diContainer =>
             {
                 ResourcesAssetLoader resourcesAssetLoader = diContainer.Resolve<ResourcesAssetLoader>();
+
                 CoroutinePerformer coroutinePerformerPrefab =
-                    resourcesAssetLoader.LoadResource<CoroutinePerformer>("Infrastructure/CoroutinePerformer");
+                    resourcesAssetLoader.LoadResource<CoroutinePerformer>(AssetPaths.CoroutinePerformer);
 
                 return Instantiate(coroutinePerformerPrefab);
             });
         }
-        
+
         private void RegisterLoadingScreen(DIContainer container)
         {
             container.RegisterAsSingle<ILoadingScreen>(diContainer =>
             {
                 ResourcesAssetLoader resourcesAssetLoader = diContainer.Resolve<ResourcesAssetLoader>();
+
                 LoadingScreen loadingScreenPrefab =
-                    resourcesAssetLoader.LoadResource<LoadingScreen>("Infrastructure/LoadingScreen");
+                    resourcesAssetLoader.LoadResource<LoadingScreen>(AssetPaths.LoadingScreen);
 
                 return Instantiate(loadingScreenPrefab);
             });
