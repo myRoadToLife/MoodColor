@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Application.Develop.DI
+namespace App.Develop.DI
 {
-    public class DIContainer : MonoBehaviour
+    public class DIContainer
     {
         private readonly Dictionary<Type, Registration> _container = new Dictionary<Type, Registration>();
 
@@ -24,8 +24,7 @@ namespace Application.Develop.DI
                 throw new InvalidOperationException($"The type {typeof(T)} is already registered.");
 
             Registration registration = new Registration(container => factory(container));
-
-            _container.Add(typeof(T), registration);
+            _container[typeof(T)] = registration;
         }
 
         public T Resolve <T>()
