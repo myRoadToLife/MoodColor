@@ -1,4 +1,5 @@
 using System.Collections;
+using App.Develop.CommonServices.DataManagement.DataProviders;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
 using UnityEngine;
@@ -34,6 +35,28 @@ namespace App.Develop.MainScreenScene.Infrastructure
             {
                 _container.Resolve<SceneSwitcher>()
                     .ProcessSwitchSceneFor(new OutputMainScreenArgs(new PersonalAreaInputArgs()));
+            }
+
+            if (Input.GetKeyDown(KeyCode.S))
+            {
+                ISaveLoadService saveLoadService = _container.Resolve<ISaveLoadService>();
+
+                if (saveLoadService.TryLoad(out PlayerData playerData))
+                {
+                    playerData.CurrentEmotion++;
+
+                    saveLoadService.Save(playerData);
+                }
+                else
+                {
+                    PlayerData originPlayerData = new PlayerData()
+                    {
+                        CurrentEmotion = 0,
+                        LastEmotion = 0,
+                    };
+
+                    saveLoadService.Save(originPlayerData);
+                }
             }
         }
     }

@@ -1,5 +1,7 @@
 using App.Develop.CommonServices.AssetManagment;
 using App.Develop.CommonServices.CoroutinePerformer;
+using App.Develop.CommonServices.DataManagement;
+using App.Develop.CommonServices.DataManagement.DataProviders;
 using App.Develop.CommonServices.LoadingScreen;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
@@ -25,10 +27,11 @@ namespace App.Develop.EntryPoint
             RegisterLoadingScreen(projectContainer);
             RegisterSceneLoader(projectContainer);
             RegisterSceneSwitcher(projectContainer);
+            RegisterSaveLoadService(projectContainer);
 
             projectContainer.Resolve<ICoroutinePerformer>().StartPerformCoroutine(_appBootstrap.Run(projectContainer));
         }
-
+        
         private void SetupAppSettings()
         {
             QualitySettings.vSyncCount = 0;
@@ -40,6 +43,12 @@ namespace App.Develop.EntryPoint
 
         private void RegisterResourcesAssetLoader(DIContainer container)
             => container.RegisterAsSingle(diContainer => new ResourcesAssetLoader());
+
+        private void RegisterSaveLoadService(DIContainer projectContainer)
+            => projectContainer.RegisterAsSingle<ISaveLoadService>(diContainer 
+                => new SaveLoadService(new JsonSerializer(), new LocalDataRepository()));
+        
+        
 
         private void RegisterSceneSwitcher(DIContainer container)
             => container.RegisterAsSingle(diContainer
