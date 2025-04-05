@@ -1,5 +1,5 @@
 using Newtonsoft.Json;
-
+ 
 namespace App.Develop.CommonServices.DataManagement
 {
     public class JsonSerializer : IDataSerializer
@@ -13,7 +13,7 @@ namespace App.Develop.CommonServices.DataManagement
                 TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple,
             });
         }
-
+ 
         public TData Deserialize <TData>(string serializedData)
         {
             return JsonConvert.DeserializeObject<TData>(serializedData, new JsonSerializerSettings

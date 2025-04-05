@@ -5,7 +5,9 @@ using App.Develop.CommonServices.DataManagement.DataProviders;
 using App.Develop.CommonServices.LoadingScreen;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
+using Newtonsoft.Json;
 using UnityEngine;
+using JsonSerializer = App.Develop.CommonServices.DataManagement.JsonSerializer;
 
 namespace App.Develop.EntryPoint
 {

@@ -1,0 +1,69 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Custom_LiveGradientCloudNoise
+  m_Shader: {fileID: 4800000, guid: 2a6c409d6e6a3b34a8d91138fe8bcb13, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _GlowMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 5.85, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _AlphaFadeSpeed: 1
+    - _AlphaFadeStrength: 0
+    - _ColorBreathScale: 10
+    - _ColorBreathSpeed: 2
+    - _ColorBreathStrength: 0.2
+    - _ColorCount: 3
+    - _ColorVibeScale: 2.5
+    - _ColorVibeSpeed: 0.85
+    - _ColorVibeStrength: 0.1
+    - _GlowIntensity: 0.59
+    - _GlowOuterIntensity: 1.01
+    - _GlowOuterWidth: -12.6
+    - _GlowSpeed: 0.49
+    - _GlowWidth: 0.061
+    - _HSVStrength: 0
+    - _HSV_Vibration: 0
+    - _NoiseScale: 2.18
+    - _NoiseSpeed: 0.32
+    - _NoiseStrength: 3.45
+    - _PulseNoiseScale: 0.1
+    - _PulseSpeed: 3.19
+    - _PulseStrength: 0.306
+    - _Speed: 0.87
+    - _UseHSVVibration: 0
+    m_Colors:
+    - _Color1: {r: 0.4352941, g: 0.18039212, b: 0.043137237, a: 1}
+    - _Color2: {r: 0.58431375, g: 0.23921569, b: 0.050980393, a: 1}
+    - _Color3: {r: 0.7882353, g: 0.36078432, b: 0.13333334, a: 1}
+    - _Color4: {r: 1, g: 1, b: 0, a: 1}
+    - _Color5: {r: 0, g: 1, b: 1, a: 1}
+    - _GlowColor: {r: 0, g: 0, b: 0, a: 1}
+    - _GlowOuterColor: {r: 0.97735846, g: 0.97735846, b: 0.97735846, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
