@@ -1,5 +1,6 @@
 using System.Collections;
 using App.Develop.CommonServices.DataManagement.DataProviders;
+using App.Develop.CommonServices.Emotion;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
 using UnityEngine;
@@ -27,20 +28,13 @@ namespace App.Develop.MainScreenScene.Infrastructure
         private void ProcessRegistration()
         {
             //Делаем регистрации для сцены главного экрана приложения
+            
+            _container.Initialize();
         }
 
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Z))
-            {
-                _container.Resolve<SceneSwitcher>()
-                    .ProcessSwitchSceneFor(new OutputMainScreenArgs(new PersonalAreaInputArgs()));
-            }
-
-            if (Input.GetKeyDown(KeyCode.S))
-            {
-                _container.Resolve<PlayerDataProvider>().Save();
-            }
+            
         }
     }
 }

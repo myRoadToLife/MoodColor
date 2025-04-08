@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using App.Develop.CommonServices.Emotion;
 
 namespace App.Develop.CommonServices.DataManagement.DataProviders
 {
@@ -6,7 +8,6 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
     public class PlayerData : ISaveData
     {
         //Поля должны быть публичные, а класс с аргументом Serializable для корректного сохранения
-        public int LastEmotion;
-        public int CurrentEmotion;
+        public Dictionary<EmotionTypes, int> EmotionData;
     }
 }

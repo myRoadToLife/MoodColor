@@ -2,6 +2,7 @@ using App.Develop.CommonServices.AssetManagment;
 using App.Develop.CommonServices.CoroutinePerformer;
 using App.Develop.CommonServices.DataManagement;
 using App.Develop.CommonServices.DataManagement.DataProviders;
+using App.Develop.CommonServices.Emotion;
 using App.Develop.CommonServices.LoadingScreen;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
@@ -24,12 +25,18 @@ namespace App.Develop.EntryPoint
             //Самый родительский контейнер
             RegisterResourcesAssetLoader(projectContainer);
             RegisterCoroutinePerformer(projectContainer);
+
             RegisterLoadingScreen(projectContainer);
             RegisterSceneLoader(projectContainer);
             RegisterSceneSwitcher(projectContainer);
-            RegisterSaveLoadService(projectContainer);
 
+            RegisterSaveLoadService(projectContainer);
             RegisterPlayerDataProvider(projectContainer);
+
+            RegisterEmotionService(projectContainer);
+
+
+            projectContainer.Initialize();
 
             projectContainer.Resolve<ICoroutinePerformer>().StartPerformCoroutine(_appBootstrap.Run(projectContainer));
         }
@@ -41,8 +48,13 @@ namespace App.Develop.EntryPoint
             Application.targetFrameRate = 60;
         }
 
+        private void RegisterEmotionService(DIContainer container)
+            => container.RegisterAsSingle(diContainer
+                => new EmotionService(diContainer.Resolve<PlayerDataProvider>())).NonLazy();
+
+
         private void RegisterPlayerDataProvider(DIContainer container)
-            => container.RegisterAsSingle(diContainer 
+            => container.RegisterAsSingle(diContainer
                 => new PlayerDataProvider(diContainer.Resolve<ISaveLoadService>()));
 
         private void RegisterSceneLoader(DIContainer container) =>

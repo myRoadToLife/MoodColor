@@ -15,7 +15,7 @@ namespace App.Develop.CommonServices.SceneManagement
         private readonly ICoroutinePerformer _coroutinePerformer;
         private readonly ILoadingScreen _loadingScreen;
         private readonly ISceneLoader _sceneLoader;
-        
+
         private DIContainer _sceneContainer;
 
         public SceneSwitcher(ICoroutinePerformer coroutinePerformer,
@@ -87,6 +87,8 @@ namespace App.Develop.CommonServices.SceneManagement
         {
             _loadingScreen.Show();
 
+            _sceneContainer?.Dispose();
+
             yield return _sceneLoader.LoadAsync(SceneID.Empty);
             yield return _sceneLoader.LoadAsync(SceneID.PersonalArea);
 
@@ -94,8 +96,8 @@ namespace App.Develop.CommonServices.SceneManagement
 
             if (personalAreaBootstrap == null)
                 throw new NullReferenceException(nameof(personalAreaBootstrap));
-            
-            _sceneContainer = new DIContainer(_projectContainer); 
+
+            _sceneContainer = new DIContainer(_projectContainer);
 
             yield return personalAreaBootstrap.Run(_sceneContainer, personalAreaInputArgs);
 
@@ -106,6 +108,8 @@ namespace App.Develop.CommonServices.SceneManagement
         {
             _loadingScreen.Show();
 
+            _sceneContainer?.Dispose();
+
             yield return _sceneLoader.LoadAsync(SceneID.Empty);
             yield return _sceneLoader.LoadAsync(SceneID.MainScreen);
 
@@ -113,9 +117,9 @@ namespace App.Develop.CommonServices.SceneManagement
 
             if (mainScreenBootstrap == null)
                 throw new NullReferenceException(nameof(mainScreenBootstrap));
-            
-            _sceneContainer = new DIContainer(_projectContainer); 
-            
+
+            _sceneContainer = new DIContainer(_projectContainer);
+
             yield return mainScreenBootstrap.Run(_sceneContainer, mainSceneInputArgs);
 
             _loadingScreen.Hide();
