@@ -24,6 +24,7 @@ namespace App.Develop.EntryPoint
 
             loadingScreen.Hide();
             Debug.Log("Завершается инициализация сервисов");
+            Debug.Log("BootstrapScene");
 
             //Скрываем штору 
             //Переход на следующую сцену с помощью сервисов смены сцен
