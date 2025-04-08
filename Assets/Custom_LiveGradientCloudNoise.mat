@@ -26,7 +26,7 @@ Material:
     - _GlowMask:
         m_Texture: {fileID: 0}
         m_Scale: {x: 5.85, y: 1}
-        m_Offset: {x: 0, y: 0}
+        m_Offset: {x: 0.71, y: 0}
     - _MainTex:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -35,35 +35,57 @@ Material:
     m_Floats:
     - _AlphaFadeSpeed: 1
     - _AlphaFadeStrength: 0
-    - _ColorBreathScale: 10
-    - _ColorBreathSpeed: 2
+    - _AreaScale: 1
+    - _BackgroundGlow: 0.1
+    - _BaseGlow: 0.245
+    - _BaseGlowIntensity: 0.2
+    - _ColorBreathScale: 2.5
+    - _ColorBreathSpeed: 0.38
     - _ColorBreathStrength: 0.2
     - _ColorCount: 3
     - _ColorVibeScale: 2.5
     - _ColorVibeSpeed: 0.85
     - _ColorVibeStrength: 0.1
-    - _GlowIntensity: 0.59
+    - _GlowIntensity: 0
     - _GlowOuterIntensity: 1.01
     - _GlowOuterWidth: -12.6
     - _GlowSpeed: 0.49
     - _GlowWidth: 0.061
-    - _HSVStrength: 0
+    - _HSVStrength: 0.013
     - _HSV_Vibration: 0
-    - _NoiseScale: 2.18
-    - _NoiseSpeed: 0.32
-    - _NoiseStrength: 3.45
-    - _PulseNoiseScale: 0.1
-    - _PulseSpeed: 3.19
-    - _PulseStrength: 0.306
-    - _Speed: 0.87
+    - _LightEdgeOffset: 0
+    - _LightIntensity: 1
+    - _LightMoveSpeed: 1
+    - _LightRadius: 0.2
+    - _LightSize: 0.5
+    - _LightSpeed: 1
+    - _MoveSpeed: 1
+    - _NoiseScale: 2.52
+    - _NoiseSpeed: 1.12
+    - _NoiseStrength: 1.75
+    - _PauseChance: 0.2
+    - _PauseDuration: 1
+    - _PulseNoiseScale: 2
+    - _PulseSpeed: 5.71
+    - _PulseStrength: 0.001
+    - _ShadowSize: 0.511
+    - _ShadowThreshold: 0.09
+    - _Speed: 0.39
     - _UseHSVVibration: 0
     m_Colors:
-    - _Color1: {r: 0.4352941, g: 0.18039212, b: 0.043137237, a: 1}
-    - _Color2: {r: 0.58431375, g: 0.23921569, b: 0.050980393, a: 1}
-    - _Color3: {r: 0.7882353, g: 0.36078432, b: 0.13333334, a: 1}
+    - _BackgroundColor: {r: 0, g: 0, b: 0, a: 1}
+    - _BaseColor: {r: 0.9245283, g: 0.44482017, b: 0.44482017, a: 1}
+    - _Color1: {r: 0, g: 0.8352941, b: 1, a: 1}
+    - _Color2: {r: 0.42745098, g: 0.67058825, b: 0.6117647, a: 1}
+    - _Color3: {r: 0.039215688, g: 1, b: 0.105882354, a: 1}
     - _Color4: {r: 1, g: 1, b: 0, a: 1}
     - _Color5: {r: 0, g: 1, b: 1, a: 1}
-    - _GlowColor: {r: 0, g: 0, b: 0, a: 1}
+    - _GlowColor: {r: 1, g: 1, b: 1, a: 1}
     - _GlowOuterColor: {r: 0.97735846, g: 0.97735846, b: 0.97735846, a: 1}
+    - _LightColor: {r: 1, g: 0.035848916, b: 0.035848916, a: 1}
+    - _LightDir: {r: -0.3, g: 3.19, b: 0.1, a: -0.35}
+    - _NoiseOffset: {r: 0, g: 0, b: 0, a: 0}
+    - _ShadowColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
+    - _ShadowOffset: {r: -0.59, g: 0, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
