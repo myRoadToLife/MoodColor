@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using App.Develop.CommonServices.DataManagement.DataProviders;
 using App.Develop.CommonServices.LoadingScreen;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
@@ -19,6 +20,8 @@ namespace App.Develop.EntryPoint
             Debug.Log("Начинается инициализация сервисов");
 
             //Инициализация всех сервисов(данных пользователей, конфигов, инит сервисов рекламы, аналитики)
+
+            container.Resolve<PlayerDataProvider>().Load();
 
             yield return new WaitForSeconds(1.5f);
 

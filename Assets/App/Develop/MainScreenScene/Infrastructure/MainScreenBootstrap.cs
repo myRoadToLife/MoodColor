@@ -39,24 +39,7 @@ namespace App.Develop.MainScreenScene.Infrastructure
 
             if (Input.GetKeyDown(KeyCode.S))
             {
-                ISaveLoadService saveLoadService = _container.Resolve<ISaveLoadService>();
-
-                if (saveLoadService.TryLoad(out PlayerData playerData))
-                {
-                    playerData.CurrentEmotion++;
-
-                    saveLoadService.Save(playerData);
-                }
-                else
-                {
-                    PlayerData originPlayerData = new PlayerData()
-                    {
-                        CurrentEmotion = 0,
-                        LastEmotion = 0,
-                    };
-
-                    saveLoadService.Save(originPlayerData);
-                }
+                _container.Resolve<PlayerDataProvider>().Save();
             }
         }
     }

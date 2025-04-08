@@ -29,14 +29,21 @@ namespace App.Develop.EntryPoint
             RegisterSceneSwitcher(projectContainer);
             RegisterSaveLoadService(projectContainer);
 
+            RegisterPlayerDataProvider(projectContainer);
+
             projectContainer.Resolve<ICoroutinePerformer>().StartPerformCoroutine(_appBootstrap.Run(projectContainer));
         }
-        
+
+
         private void SetupAppSettings()
         {
             QualitySettings.vSyncCount = 0;
             Application.targetFrameRate = 60;
         }
+
+        private void RegisterPlayerDataProvider(DIContainer container)
+            => container.RegisterAsSingle(diContainer 
+                => new PlayerDataProvider(diContainer.Resolve<ISaveLoadService>()));
 
         private void RegisterSceneLoader(DIContainer container) =>
             container.RegisterAsSingle<ISceneLoader>(diContainer => new SceneLoader());
@@ -45,10 +52,9 @@ namespace App.Develop.EntryPoint
             => container.RegisterAsSingle(diContainer => new ResourcesAssetLoader());
 
         private void RegisterSaveLoadService(DIContainer projectContainer)
-            => projectContainer.RegisterAsSingle<ISaveLoadService>(diContainer 
+            => projectContainer.RegisterAsSingle<ISaveLoadService>(diContainer
                 => new SaveLoadService(new JsonSerializer(), new LocalDataRepository()));
-        
-        
+
 
         private void RegisterSceneSwitcher(DIContainer container)
             => container.RegisterAsSingle(diContainer
