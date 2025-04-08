@@ -31,12 +31,17 @@ Shader "Custom/GradientWithMovingLight"
 
         [Header(Floating Circle Area)]
         _BaseColor("Background Color", Color) = (0.2,0.2,0.2,1)
+        _BaseGlow("Background Glow", Range(0, 1)) = 0.2
 
         [Header(Moving Light Circle)]
         _LightColor("Light Circle Color", Color) = (1,1,1,1)
         _LightSize("Light Circle Size", Range(0.01, 0.5)) = 0.15
         _LightIntensity("Light Intensity", Range(0, 1)) = 0.5
         _LightMoveSpeed("Light Move Speed", Range(0, 3)) = 1
+
+        [Header(Wave Effect)]
+        _WaveFrequency("Wave Frequency", Range(0.1, 10)) = 2
+        _WaveAmplitude("Wave Amplitude", Range(0, 1)) = 0.2
     }
 
     SubShader
@@ -58,26 +63,30 @@ Shader "Custom/GradientWithMovingLight"
 
             sampler2D _MainTex;
             sampler2D _GlowMask;
-            float4    _MainTex_ST;
+            float4 _MainTex_ST;
 
             float4 _Color1, _Color2, _Color3;
-            float  _Speed;
+            float _Speed;
 
-            float  _NoiseScale, _NoiseSpeed, _NoiseStrength;
+            float _NoiseScale, _NoiseSpeed, _NoiseStrength;
             float4 _NoiseOffset;
 
             float _PulseStrength, _PulseSpeed, _PulseNoiseScale;
             float _AlphaFadeStrength;
 
             float4 _GlowColor;
-            float  _GlowIntensity;
+            float _GlowIntensity;
 
             float4 _BaseColor;
+            float _BaseGlow;
 
             float4 _LightColor;
-            float  _LightSize;
-            float  _LightIntensity;
-            float  _LightMoveSpeed;
+            float _LightSize;
+            float _LightIntensity;
+            float _LightMoveSpeed;
+
+            float _WaveFrequency;
+            float _WaveAmplitude;
 
             struct appdata_t {
                 float4 vertex : POSITION;
@@ -140,24 +149,29 @@ Shader "Custom/GradientWithMovingLight"
             fixed4 frag(v2f i) : SV_Target
             {
                 float2 uv = i.uv;
-                float  time = _Time.y;
+                float time = _Time.y;
+
+                // Волновое смещение
+                float wave = sin(uv.y * _WaveFrequency + time);
+                float2 waveOffset = float2(wave, wave) * _WaveAmplitude;
+                float2 uvWave = uv + waveOffset;
 
                 float2 center = movingLightCenter(time);
-                float  d = distance(uv, center);
-                float  insideLight = smoothstep(_LightSize, _LightSize * 0.85, d);
+                float d = distance(uv, center);
+                float insideLight = smoothstep(_LightSize, _LightSize * 0.85, d);
 
-                float4 finalColor = _BaseColor;
+                float4 finalColor = _BaseColor + _BaseGlow;
 
                 if (insideLight > 0.001)
                 {
-                    float2 noiseUV = uv * _NoiseScale + time * _NoiseSpeed + _NoiseOffset.xy;
-                    float  n = noise(noiseUV);
-                    float  t = (time + n * _NoiseStrength) * _Speed;
-                    float  cycle = frac(t * 0.2);
-                    float  scaledTime = cycle * 3;
-                    uint   indexA = (uint)floor(scaledTime) % 3;
-                    uint   indexB = (indexA + 1) % 3;
-                    float  lerpFactor = frac(scaledTime);
+                    float2 noiseUV = uvWave * _NoiseScale + time * _NoiseSpeed + _NoiseOffset.xy;
+                    float n = noise(noiseUV);
+                    float t = (time + n * _NoiseStrength) * _Speed;
+                    float cycle = frac(t * 0.2);
+                    float scaledTime = cycle * 3;
+                    uint indexA = (uint)floor(scaledTime) % 3;
+                    uint indexB = (indexA + 1) % 3;
+                    float lerpFactor = frac(scaledTime);
 
                     float4 colorA = (indexA == 0) ? _Color1 : (indexA == 1) ? _Color2 : _Color3;
                     float4 colorB = (indexB == 0) ? _Color1 : (indexB == 1) ? _Color2 : _Color3;
@@ -168,11 +182,11 @@ Shader "Custom/GradientWithMovingLight"
                     float pulse = 1.0 + sin((time + pulseNoise) * _PulseSpeed) * _PulseStrength;
                     colorIn.rgb *= pulse;
 
-                    // Учет _LightIntensity
-                    colorIn.rgb *= _LightIntensity;
-
                     finalColor.rgb = lerp(finalColor.rgb, colorIn.rgb, insideLight);
                 }
+
+                float lightMask = smoothstep(_LightSize, _LightSize * 0.8, d);
+                finalColor.rgb += _LightColor.rgb * (1.0 - lightMask) * _LightIntensity;
 
                 float glowMask = tex2D(_GlowMask, uv).r;
                 finalColor.rgb += glowMask * _GlowColor.rgb * _GlowIntensity;
