@@ -11,6 +11,7 @@ namespace App.Develop.CommonServices.DataManagement
                 Formatting = Formatting.Indented,
                 TypeNameHandling = TypeNameHandling.Auto,
                 TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple,
+                Converters = { new ColorHexConverter() }
             });
         }
 

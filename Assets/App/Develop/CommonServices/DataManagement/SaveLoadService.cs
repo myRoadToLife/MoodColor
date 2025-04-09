@@ -19,18 +19,18 @@ namespace App.Develop.CommonServices.DataManagement
             _dataRepository.Write(SaveDataKeys.GetSaveDataKey<TDada>(), serializeData);
         }
 
-        public bool TryLoad <TDada>(out TDada data) where TDada : ISaveData
+        public bool TryLoad <TData>(out TData data) where TData : ISaveData
         {
-            string key = SaveDataKeys.GetSaveDataKey<TDada>();
+            string key = SaveDataKeys.GetSaveDataKey<TData>();
 
             if (_dataRepository.Exists(key) == false)
             {
-                data = default(TDada);
+                data = default(TData);
                 return false;
             }
 
             string serializeData = _dataRepository.Read(key);
-            data = _dataSerializer.Deserialize<TDada>(serializeData);
+            data = _dataSerializer.Deserialize<TData>(serializeData);
 
             return true;
         }

@@ -1,4 +1,4 @@
-namespace App.Develop.CommonServices.AssetManagment
+namespace App.Develop.CommonServices.AssetManagement
 {
     public class AssetPaths
     {

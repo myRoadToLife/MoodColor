@@ -45,11 +45,11 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
                 reader.ReadFrom(Data);
         }
 
-        protected abstract TData GetOrigenData();
+        protected abstract TData GetOriginData();
 
         private void Reset()
         {
-            Data = GetOrigenData();
+            Data = GetOriginData();
             Save();
         }
 

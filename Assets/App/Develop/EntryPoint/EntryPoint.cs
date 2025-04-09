@@ -1,4 +1,5 @@
-using App.Develop.CommonServices.AssetManagment;
+using App.Develop.CommonServices.AssetManagement;
+using App.Develop.CommonServices.ConfigsManagement;
 using App.Develop.CommonServices.CoroutinePerformer;
 using App.Develop.CommonServices.DataManagement;
 using App.Develop.CommonServices.DataManagement.DataProviders;
@@ -34,6 +35,7 @@ namespace App.Develop.EntryPoint
             RegisterPlayerDataProvider(projectContainer);
 
             RegisterEmotionService(projectContainer);
+            RegisterConfigsProviderService(projectContainer);
 
 
             projectContainer.Initialize();
@@ -41,12 +43,15 @@ namespace App.Develop.EntryPoint
             projectContainer.Resolve<ICoroutinePerformer>().StartPerformCoroutine(_appBootstrap.Run(projectContainer));
         }
 
-
         private void SetupAppSettings()
         {
             QualitySettings.vSyncCount = 0;
             Application.targetFrameRate = 60;
         }
+
+        private void RegisterConfigsProviderService(DIContainer container)
+            => container.RegisterAsSingle(diContainer
+                => new ConfigsProviderService(diContainer.Resolve<ResourcesAssetLoader>()));
 
         private void RegisterEmotionService(DIContainer container)
             => container.RegisterAsSingle(diContainer
@@ -55,7 +60,8 @@ namespace App.Develop.EntryPoint
 
         private void RegisterPlayerDataProvider(DIContainer container)
             => container.RegisterAsSingle(diContainer
-                => new PlayerDataProvider(diContainer.Resolve<ISaveLoadService>()));
+                => new PlayerDataProvider(diContainer.Resolve<ISaveLoadService>(),
+                    diContainer.Resolve<ConfigsProviderService>()));
 
         private void RegisterSceneLoader(DIContainer container) =>
             container.RegisterAsSingle<ISceneLoader>(diContainer => new SceneLoader());

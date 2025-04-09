@@ -12,7 +12,7 @@ namespace App.Develop.CommonServices.DataManagement
             { typeof(PlayerData), "PlayerData" },
         };
 
-        public static string GetSaveDataKey <TDada>() where TDada: ISaveData
-            => Keys[typeof(TDada)];
+        public static string GetSaveDataKey <TData>() where TData: ISaveData
+            => Keys[typeof(TData)];
     }
 }

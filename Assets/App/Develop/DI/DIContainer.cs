@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace App.Develop.DI
 {
@@ -20,12 +19,23 @@ namespace App.Develop.DI
 
         public Registration RegisterAsSingle <T>(Func<DIContainer, T> factory)
         {
-            if (_container.ContainsKey(typeof(T)))
+            if (IsAlreadyRegistered<T>())
                 throw new InvalidOperationException($"The type {typeof(T)} is already registered.");
 
             Registration registration = new Registration(container => factory(container));
             _container[typeof(T)] = registration;
             return registration;
+        }
+
+        private bool IsAlreadyRegistered <T>()
+        {
+            if (_container.ContainsKey(typeof(T)))
+                return true;
+
+            if (_parent != null)
+                return _parent.IsAlreadyRegistered<T>();
+
+            return false;
         }
 
         public T Resolve <T>()

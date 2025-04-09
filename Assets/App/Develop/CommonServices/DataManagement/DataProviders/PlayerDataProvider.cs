@@ -1,17 +1,21 @@
 using System;
 using System.Collections.Generic;
+using App.Develop.CommonServices.ConfigsManagement;
 using App.Develop.CommonServices.Emotion;
 
 namespace App.Develop.CommonServices.DataManagement.DataProviders
 {
     public class PlayerDataProvider : DataProvider<PlayerData>
     {
-        //Тут будем передавать сервис конфигов
-        public PlayerDataProvider(ISaveLoadService saveLoadService) : base(saveLoadService)
+        private ConfigsProviderService _configsProvider;
+
+        public PlayerDataProvider(ISaveLoadService saveLoadService,
+            ConfigsProviderService configsProviderService) : base(saveLoadService)
         {
+            _configsProvider = configsProviderService;
         }
 
-        protected override PlayerData GetOrigenData()
+        protected override PlayerData GetOriginData()
         {
             return new PlayerData()
             {
@@ -19,12 +23,19 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
             };
         }
 
-        private Dictionary<EmotionTypes, int> InitEmotionData()
+        private Dictionary<EmotionTypes, EmotionData> InitEmotionData()
         {
-            Dictionary<EmotionTypes, int> emotionData = new();
+            var emotionData = new Dictionary<EmotionTypes, EmotionData>();
 
             foreach (EmotionTypes emotionType in Enum.GetValues(typeof(EmotionTypes)))
-                emotionData.Add(emotionType, 0);
+            {
+                var (value, color) = _configsProvider.StartEmotionConfig.GetStartValueFor(emotionType);
+                emotionData.Add(emotionType, new EmotionData
+                {
+                    Value = value,
+                    Color = color
+                });
+            }
 
             return emotionData;
         }
