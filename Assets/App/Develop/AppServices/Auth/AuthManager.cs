@@ -4,39 +4,27 @@ using TMPro;
 using UnityEngine;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
-using App.Develop.AppServices.Firebase;
-using App.Develop.AuthScene;
 
 namespace App.Develop.AppServices.Auth
 {
-    public class AuthManager : MonoBehaviour
+    public class AuthManager : MonoBehaviour, IInjectable
     {
         [Header("UI Elements")]
         [SerializeField] private TMP_InputField _emailInput;
+
         [SerializeField] private TMP_InputField _passwordInput;
-        [SerializeField] private TMP_Text _popupMessageText;
+        [SerializeField] private GameObject _authPanel;
         [SerializeField] private GameObject _popupPanel;
+        [SerializeField] private TMP_Text _popupText;
+        [SerializeField] private GameObject _profilePanel;
 
-        private FirebaseAuth _auth;
         private SceneSwitcher _sceneSwitcher;
-        private FirestoreManager _firestoreManager;
-        private DIContainer _container;
+        private FirebaseAuth _auth;
 
-        private void Start()
+        public void Inject(DIContainer container)
         {
+            _sceneSwitcher = container.Resolve<SceneSwitcher>();
             _auth = FirebaseAuth.DefaultInstance;
-            _popupPanel.SetActive(false);
-
-            _container = FindFirstObjectByType<DIContainerHolder>()?.Container;
-
-            if (_container == null)
-            {
-                Debug.LogError("DIContainerHolder не найден в сцене.");
-                return;
-            }
-
-            _sceneSwitcher = _container.Resolve<SceneSwitcher>();
-            _firestoreManager = _container.Resolve<FirestoreManager>();
         }
 
         public void RegisterUser()
@@ -52,15 +40,10 @@ namespace App.Develop.AppServices.Auth
                     return;
                 }
 
-                FirebaseUser newUser = task.Result.User;
                 ShowPopup("Регистрация успешна!");
 
-                _firestoreManager.CreateNewUserDocument(
-                    newUser.UserId,
-                    newUser.Email,
-                    onSuccess: GoToPersonalArea,
-                    onFailure: error => ShowPopup("Ошибка Firestore: " + error)
-                );
+                _authPanel.SetActive(false);
+                _profilePanel.SetActive(true);
             });
         }
 
@@ -78,20 +61,14 @@ namespace App.Develop.AppServices.Auth
                 }
 
                 ShowPopup("Вход выполнен!");
-                GoToPersonalArea();
+                _sceneSwitcher.ProcessSwitchSceneFor(new OutputAuthSceneArgs(new PersonalAreaInputArgs()));
             });
-        }
-
-        private void GoToPersonalArea()
-        {
-            _container.Resolve<SceneSwitcher>()
-                .ProcessSwitchSceneFor(new OutputAuthSceneArgs(new PersonalAreaInputArgs()));
         }
 
         private void ShowPopup(string message)
         {
             _popupPanel.SetActive(true);
-            _popupMessageText.text = message;
+            _popupText.text = message;
 
             CancelInvoke(nameof(HidePopup));
             Invoke(nameof(HidePopup), 3f);

@@ -6,6 +6,7 @@ using App.Develop.CommonServices.LoadingScreen;
 using App.Develop.DI;
 using App.Develop.MainScreenScene.Infrastructure;
 using App.Develop.PersonalAreaScene.Infrastructure;
+using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace App.Develop.CommonServices.SceneManagement
@@ -69,12 +70,17 @@ namespace App.Develop.CommonServices.SceneManagement
 
         private IEnumerator ProcessSwitchFromAuthScene(OutputAuthSceneArgs authSceneArgs)
         {
+            Debug.Log("🛣 [SceneSwitcher] Переход из AuthScene...");
+
             switch (authSceneArgs.NextSceneInputArgs)
             {
                 case PersonalAreaInputArgs personalAreaInputArgs:
+                    Debug.Log("➡️ [SceneSwitcher] Переключаем сцену на PersonalArea из AuthScene");
                     yield return ProcessSwitchToPersonalAreaScene(personalAreaInputArgs);
                     break;
+
                 default:
+                    Debug.LogError("❌ [SceneSwitcher] Неизвестный маршрут из AuthScene");
                     throw new ArgumentException("Данный переход невозможен из Auth сцены!");
             }
         }
@@ -103,25 +109,29 @@ namespace App.Develop.CommonServices.SceneManagement
             }
         }
 
-        private IEnumerator ProcessSwitchToAuthScene(AuthSceneInputArgs authSceneInputArgs)
+        private IEnumerator ProcessSwitchToAuthScene(AuthSceneInputArgs inputArgs)
         {
-            _loadingScreen.Show();
+            Debug.Log("🧭 [SceneSwitcher] Загружаем сцену Auth");
 
+            _loadingScreen.Show();
             _sceneContainer?.Dispose();
 
             yield return _sceneLoader.LoadAsync(SceneID.Empty);
             yield return _sceneLoader.LoadAsync(SceneID.Auth);
 
-            var authBootstrap = Object.FindFirstObjectByType<AuthSceneBootstrap>();
-
-            if (authBootstrap == null)
-                throw new NullReferenceException(nameof(authBootstrap));
+            var bootstrap = Object.FindFirstObjectByType<AuthSceneBootstrap>();
+            if (bootstrap == null)
+            {
+                Debug.LogError("❌ [SceneSwitcher] AuthSceneBootstrap не найден!");
+                yield break;
+            }
 
             _sceneContainer = new DIContainer(_projectContainer);
-            yield return authBootstrap.Run(_sceneContainer, authSceneInputArgs);
+            yield return bootstrap.Run(_sceneContainer, inputArgs);
 
             _loadingScreen.Hide();
         }
+
 
         private IEnumerator ProcessSwitchToPersonalAreaScene(PersonalAreaInputArgs personalAreaInputArgs)
         {

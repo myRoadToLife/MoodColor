@@ -1,4 +1,6 @@
 using System.Collections;
+using App.Develop.AppServices.Auth;
+using App.Develop.CommonServices.AssetManagement;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
 using UnityEngine;
@@ -9,33 +11,32 @@ namespace App.Develop.AuthScene
     {
         private DIContainer _container;
 
-        public IEnumerator Run(DIContainer container, AuthSceneInputArgs authSceneInputArgs)
+        public IEnumerator Run(DIContainer container, AuthSceneInputArgs inputArgs)
         {
             _container = container;
-
-            ProcessRegistration();
-
-            Debug.Log("Auth сцена загружена");
-
-            var holder = new GameObject("DIContainerHolder").AddComponent<DIContainerHolder>();
-            holder.SetContainer(container);
-            DontDestroyOnLoad(holder.gameObject);
-
-            yield return new WaitForSeconds(1f);
-        }
-
-        private void ProcessRegistration()
-        {
-            // Здесь можно регистрировать сервисы авторизации, если появятся
             _container.Initialize();
+
+            Debug.Log("✅ [AuthSceneBootstrap] сцена загружена");
+
+            ResourcesAssetLoader assetLoader = _container.Resolve<ResourcesAssetLoader>();
+            MonoFactory factory = new MonoFactory(_container);
+
+            // Загружаем один AuthPanel, где уже есть оба компонента
+            var authPanelPrefab = assetLoader.LoadResource<GameObject>("UI/AuthPanel");
+            if (authPanelPrefab == null)
+            {
+                Debug.LogError("❌ Не найден префаб AuthPanel в Resources/UI/AuthPanel");
+                yield break;
+            }
+
+            GameObject authPanelInstance = Object.Instantiate(authPanelPrefab);
+    
+            // Внедряем зависимости
+            factory.CreateOn<AuthManager>(authPanelInstance);
+            factory.CreateOn<ProfileSetupUI>(authPanelInstance);
+
+            yield return null;
         }
 
-        private void Update()
-        {
-            if (Input.GetKeyDown(KeyCode.L)) // временно — для перехода в личный кабинет
-            {
-                
-            }
-        }
     }
 }

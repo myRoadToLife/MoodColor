@@ -2,6 +2,7 @@ using System.Collections;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
 using Firebase.Auth;
+using Firebase.Extensions;
 using UnityEngine;
 
 namespace App.Develop.EntryPoint
@@ -10,25 +11,41 @@ namespace App.Develop.EntryPoint
     {
         public IEnumerator Run(DIContainer container)
         {
-            Debug.Log("Запуск Bootstrap сцены");
-
             var sceneSwitcher = container.Resolve<SceneSwitcher>();
-            FirebaseAuth auth = FirebaseAuth.DefaultInstance;
+            var auth = FirebaseAuth.DefaultInstance;
+
+            Debug.Log("Запуск Bootstrap...");
 
             if (auth.CurrentUser != null)
             {
-                Debug.Log($"Пользователь уже авторизован: {auth.CurrentUser.Email}");
-                sceneSwitcher.ProcessSwitchSceneFor(
-                    new OutputBootstrapArgs(new PersonalAreaInputArgs()));
+                Debug.Log($"Найден пользователь: {auth.CurrentUser.Email}. Проверяем валидность...");
+
+                var reloadTask = auth.CurrentUser.ReloadAsync();
+
+                // Ждём окончания асинхронной перезагрузки
+                yield return new WaitUntil(() => reloadTask.IsCompleted);
+
+                if (reloadTask.IsFaulted || reloadTask.IsCanceled)
+                {
+                    Debug.LogWarning("Сессия пользователя недействительна. Выполняем SignOut и возвращаемся в AuthScene.");
+                    auth.SignOut();
+
+                    sceneSwitcher.ProcessSwitchSceneFor(
+                        new OutputBootstrapArgs(new AuthSceneInputArgs()));
+                }
+                else
+                {
+                    Debug.Log("Сессия пользователя действительна. Переход в PersonalArea.");
+                    sceneSwitcher.ProcessSwitchSceneFor(
+                        new OutputBootstrapArgs(new PersonalAreaInputArgs()));
+                }
             }
             else
             {
-                Debug.Log("Нет авторизованного пользователя. Загружаем сцену авторизации.");
+                Debug.Log("Пользователь не авторизован. Переход в AuthScene.");
                 sceneSwitcher.ProcessSwitchSceneFor(
                     new OutputBootstrapArgs(new AuthSceneInputArgs()));
             }
-
-            yield return null;
         }
     }
 }
