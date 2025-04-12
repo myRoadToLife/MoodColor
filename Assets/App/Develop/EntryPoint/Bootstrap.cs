@@ -17,6 +17,7 @@ namespace App.Develop.EntryPoint
             SceneSwitcher sceneSwitcher = container.Resolve<SceneSwitcher>();
 
             loadingScreen.Show();
+
             Debug.Log("Начинается инициализация сервисов");
 
             //Инициализация всех сервисов(данных пользователей, конфигов, инит сервисов рекламы, аналитики)
@@ -31,7 +32,17 @@ namespace App.Develop.EntryPoint
 
             //Скрываем штору 
             //Переход на следующую сцену с помощью сервисов смены сцен
-            sceneSwitcher.ProcessSwitchSceneFor(new OutputBootstrapArgs(new PersonalAreaInputArgs()));
+            Firebase.Auth.FirebaseAuth auth = Firebase.Auth.FirebaseAuth.DefaultInstance;
+
+            if (auth.CurrentUser != null)
+            {
+                sceneSwitcher.ProcessSwitchSceneFor(new OutputBootstrapArgs(new PersonalAreaInputArgs()));
+            }
+            else
+            {
+                sceneSwitcher.ProcessSwitchSceneFor(new OutputBootstrapArgs(new AuthSceneInputArgs()));
+            }
+
         }
     }
 }

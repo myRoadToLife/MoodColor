@@ -1,3 +1,5 @@
+using System;
+using System.Threading.Tasks;
 using App.Develop.CommonServices.AssetManagement;
 using App.Develop.CommonServices.ConfigsManagement;
 using App.Develop.CommonServices.CoroutinePerformer;
@@ -8,39 +10,62 @@ using App.Develop.CommonServices.LoadingScreen;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
 using UnityEngine;
+using Firebase;
+using Firebase.Extensions;
 
 namespace App.Develop.EntryPoint
 {
-    //Тут проводим все глобальные регистрации для старта работы приложения
     public class EntryPoint : MonoBehaviour
     {
         [SerializeField] private Bootstrap _appBootstrap;
 
-        private void Awake()
+        private DIContainer _projectContainer;
+
+        private async void Start()
         {
             SetupAppSettings();
 
-            DIContainer projectContainer = new DIContainer();
-            //Регистрация сервисов на целый проект
-            //Аналог global context из популярных DI
-            //Самый родительский контейнер
-            RegisterResourcesAssetLoader(projectContainer);
-            RegisterCoroutinePerformer(projectContainer);
+            _projectContainer = new DIContainer();
 
-            RegisterLoadingScreen(projectContainer);
-            RegisterSceneLoader(projectContainer);
-            RegisterSceneSwitcher(projectContainer);
+            RegisterResourcesAssetLoader(_projectContainer);
+            RegisterCoroutinePerformer(_projectContainer);
+            RegisterLoadingScreen(_projectContainer);
+            RegisterSceneLoader(_projectContainer);
+            RegisterSceneSwitcher(_projectContainer);
+            RegisterSaveLoadService(_projectContainer);
+            RegisterPlayerDataProvider(_projectContainer);
+            RegisterEmotionService(_projectContainer);
+            RegisterConfigsProviderService(_projectContainer);
 
-            RegisterSaveLoadService(projectContainer);
-            RegisterPlayerDataProvider(projectContainer);
+            _projectContainer.Initialize();
 
-            RegisterEmotionService(projectContainer);
-            RegisterConfigsProviderService(projectContainer);
+            bool firebaseReady = await InitFirebaseAsync();
 
+            if (firebaseReady)
+            {
+                Debug.Log("Запускаем Bootstrap после инициализации Firebase");
+                _projectContainer.Resolve<ICoroutinePerformer>()
+                    .StartPerformCoroutine(_appBootstrap.Run(_projectContainer));
+            }
+            else
+            {
+                Debug.LogError("Firebase не готов. Приложение не может продолжить работу.");
+            }
+        }
 
-            projectContainer.Initialize();
+        private async Task<bool> InitFirebaseAsync()
+        {
+            var task = FirebaseApp.CheckAndFixDependenciesAsync();
+            await task;
 
-            projectContainer.Resolve<ICoroutinePerformer>().StartPerformCoroutine(_appBootstrap.Run(projectContainer));
+            if (task.Result == DependencyStatus.Available)
+            {
+                Debug.Log("Firebase готов к работе!");
+                return true;
+            }
+
+            Debug.LogError("Ошибка инициализации Firebase: " + task.Result);
+            return false;
         }
 
         private void SetupAppSettings()
@@ -57,14 +82,13 @@ namespace App.Develop.EntryPoint
             => container.RegisterAsSingle(diContainer
                 => new EmotionService(diContainer.Resolve<PlayerDataProvider>())).NonLazy();
 
-
         private void RegisterPlayerDataProvider(DIContainer container)
             => container.RegisterAsSingle(diContainer
                 => new PlayerDataProvider(diContainer.Resolve<ISaveLoadService>(),
                     diContainer.Resolve<ConfigsProviderService>()));
 
-        private void RegisterSceneLoader(DIContainer container) =>
-            container.RegisterAsSingle<ISceneLoader>(diContainer => new SceneLoader());
+        private void RegisterSceneLoader(DIContainer container)
+            => container.RegisterAsSingle<ISceneLoader>(diContainer => new SceneLoader());
 
         private void RegisterResourcesAssetLoader(DIContainer container)
             => container.RegisterAsSingle(diContainer => new ResourcesAssetLoader());
@@ -72,7 +96,6 @@ namespace App.Develop.EntryPoint
         private void RegisterSaveLoadService(DIContainer projectContainer)
             => projectContainer.RegisterAsSingle<ISaveLoadService>(diContainer
                 => new SaveLoadService(new JsonSerializer(), new LocalDataRepository()));
-
 
         private void RegisterSceneSwitcher(DIContainer container)
             => container.RegisterAsSingle(diContainer

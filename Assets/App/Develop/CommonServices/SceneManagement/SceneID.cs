@@ -7,5 +7,6 @@ namespace App.Develop.CommonServices.SceneManagement
         PersonalArea = 2,
         MainScreen = 3,
         Empty = 4,
+        Auth = 5,
     }
 }

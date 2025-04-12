@@ -1,6 +1,4 @@
 using System.Collections;
-using App.Develop.CommonServices.DataManagement.DataProviders;
-using App.Develop.CommonServices.Emotion;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
 using UnityEngine;
@@ -9,6 +7,7 @@ namespace App.Develop.MainScreenScene.Infrastructure
 {
     public class MainScreenBootstrap : MonoBehaviour
     {
+        //Это будет сцена где будут общие эмоции района или города
         private DIContainer _container;
 
         public IEnumerator Run(DIContainer container, MainSceneInputArgs mainSceneInputArgs)

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using App.Develop.CommonServices.Emotion;
+using Newtonsoft.Json;
 using UnityEngine;
 
 namespace App.Develop.CommonServices.DataManagement.DataProviders
@@ -8,8 +9,10 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
     [Serializable]
     public class EmotionData : IEquatable<EmotionData>
     {
-        public int Value;
+        [JsonConverter(typeof(ColorHexConverter))]
         public Color Color;
+
+        public int Value;
 
         public bool Equals(EmotionData other)
         {
@@ -18,7 +21,7 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
         }
 
         public override bool Equals(object obj) => Equals(obj as EmotionData);
-        
+
         public override int GetHashCode()
         {
             unchecked
@@ -27,10 +30,10 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
             }
         }
 
-        public static bool operator ==(EmotionData left, EmotionData right) => 
+        public static bool operator ==(EmotionData left, EmotionData right) =>
             ReferenceEquals(left, right) || (left?.Equals(right) ?? false);
-            
-        public static bool operator !=(EmotionData left, EmotionData right) => 
+
+        public static bool operator !=(EmotionData left, EmotionData right) =>
             !(left == right);
     }
 

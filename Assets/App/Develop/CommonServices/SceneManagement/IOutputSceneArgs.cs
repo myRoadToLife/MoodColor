@@ -35,4 +35,15 @@ namespace App.Develop.CommonServices.SceneManagement
         {
         }
     }
+
+
+    public class OutputAuthSceneArgs : IOutputSceneArgs
+    {
+        public IInputSceneArgs NextSceneInputArgs { get; }
+
+        public OutputAuthSceneArgs(IInputSceneArgs nextSceneInputArgs)
+        {
+            NextSceneInputArgs = nextSceneInputArgs;
+        }
+    }
 }
