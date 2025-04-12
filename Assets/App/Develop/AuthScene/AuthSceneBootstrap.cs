@@ -17,9 +17,9 @@ namespace App.Develop.AuthScene
 
             Debug.Log("Auth сцена загружена");
 
-            var holder = new GameObject("DIContainerHolder").AddComponent<DiContainerHolder>();
+            var holder = new GameObject("DIContainerHolder").AddComponent<DIContainerHolder>();
             holder.SetContainer(container);
-
+            DontDestroyOnLoad(holder.gameObject);
 
             yield return new WaitForSeconds(1f);
         }
@@ -34,8 +34,7 @@ namespace App.Develop.AuthScene
         {
             if (Input.GetKeyDown(KeyCode.L)) // временно — для перехода в личный кабинет
             {
-                _container.Resolve<SceneSwitcher>()
-                    .ProcessSwitchSceneFor(new OutputAuthSceneArgs(new PersonalAreaInputArgs()));
+                
             }
         }
     }

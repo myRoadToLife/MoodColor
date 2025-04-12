@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace App.Develop.AuthScene
 {
-    public class DiContainerHolder : MonoBehaviour
+    public class DIContainerHolder : MonoBehaviour
     {
         public DIContainer Container { get; private set; }
 

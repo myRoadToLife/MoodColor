@@ -1,48 +1,34 @@
 using System.Collections;
-using App.Develop.CommonServices.ConfigsManagement;
-using App.Develop.CommonServices.DataManagement.DataProviders;
-using App.Develop.CommonServices.LoadingScreen;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
+using Firebase.Auth;
 using UnityEngine;
 
 namespace App.Develop.EntryPoint
 {
-    //Тут происходит инициализация начала работы
     public class Bootstrap : MonoBehaviour
     {
         public IEnumerator Run(DIContainer container)
         {
-            ILoadingScreen loadingScreen = container.Resolve<ILoadingScreen>();
-            SceneSwitcher sceneSwitcher = container.Resolve<SceneSwitcher>();
+            Debug.Log("Запуск Bootstrap сцены");
 
-            loadingScreen.Show();
-
-            Debug.Log("Начинается инициализация сервисов");
-
-            //Инициализация всех сервисов(данных пользователей, конфигов, инит сервисов рекламы, аналитики)
-
-            container.Resolve<ConfigsProviderService>().LoadAll();
-            container.Resolve<PlayerDataProvider>().Load();
-
-            yield return new WaitForSeconds(1.5f);
-
-            loadingScreen.Hide();
-            Debug.Log("Завершается инициализация сервисов");
-
-            //Скрываем штору 
-            //Переход на следующую сцену с помощью сервисов смены сцен
-            Firebase.Auth.FirebaseAuth auth = Firebase.Auth.FirebaseAuth.DefaultInstance;
+            var sceneSwitcher = container.Resolve<SceneSwitcher>();
+            FirebaseAuth auth = FirebaseAuth.DefaultInstance;
 
             if (auth.CurrentUser != null)
             {
-                sceneSwitcher.ProcessSwitchSceneFor(new OutputBootstrapArgs(new PersonalAreaInputArgs()));
+                Debug.Log($"Пользователь уже авторизован: {auth.CurrentUser.Email}");
+                sceneSwitcher.ProcessSwitchSceneFor(
+                    new OutputBootstrapArgs(new PersonalAreaInputArgs()));
             }
             else
             {
-                sceneSwitcher.ProcessSwitchSceneFor(new OutputBootstrapArgs(new AuthSceneInputArgs()));
+                Debug.Log("Нет авторизованного пользователя. Загружаем сцену авторизации.");
+                sceneSwitcher.ProcessSwitchSceneFor(
+                    new OutputBootstrapArgs(new AuthSceneInputArgs()));
             }
 
+            yield return null;
         }
     }
 }

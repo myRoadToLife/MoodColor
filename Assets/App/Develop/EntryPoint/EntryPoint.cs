@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using App.Develop.AppServices.Firebase;
 using App.Develop.CommonServices.AssetManagement;
 using App.Develop.CommonServices.ConfigsManagement;
 using App.Develop.CommonServices.CoroutinePerformer;
@@ -36,6 +37,7 @@ namespace App.Develop.EntryPoint
             RegisterPlayerDataProvider(_projectContainer);
             RegisterEmotionService(_projectContainer);
             RegisterConfigsProviderService(_projectContainer);
+            RegisterFirestoreManager(_projectContainer);
 
             _projectContainer.Initialize();
 
@@ -44,6 +46,7 @@ namespace App.Develop.EntryPoint
             if (firebaseReady)
             {
                 Debug.Log("Запускаем Bootstrap после инициализации Firebase");
+
                 _projectContainer.Resolve<ICoroutinePerformer>()
                     .StartPerformCoroutine(_appBootstrap.Run(_projectContainer));
             }
@@ -53,6 +56,12 @@ namespace App.Develop.EntryPoint
             }
         }
 
+        private void SetupAppSettings()
+        {
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = 60;
+        }
+        
         private async Task<bool> InitFirebaseAsync()
         {
             var task = FirebaseApp.CheckAndFixDependenciesAsync();
@@ -67,13 +76,10 @@ namespace App.Develop.EntryPoint
             Debug.LogError("Ошибка инициализации Firebase: " + task.Result);
             return false;
         }
-
-        private void SetupAppSettings()
-        {
-            QualitySettings.vSyncCount = 0;
-            Application.targetFrameRate = 60;
-        }
-
+        
+        private void RegisterFirestoreManager(DIContainer container) =>
+            container.RegisterAsSingle(di => new FirestoreManager()).NonLazy();
+        
         private void RegisterConfigsProviderService(DIContainer container)
             => container.RegisterAsSingle(diContainer
                 => new ConfigsProviderService(diContainer.Resolve<ResourcesAssetLoader>()));

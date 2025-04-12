@@ -1,9 +1,11 @@
-using App.Develop.AuthScene;
-using App.Develop.CommonServices.SceneManagement;
 using Firebase.Auth;
 using Firebase.Extensions;
 using TMPro;
 using UnityEngine;
+using App.Develop.CommonServices.SceneManagement;
+using App.Develop.DI;
+using App.Develop.AppServices.Firebase;
+using App.Develop.AuthScene;
 
 namespace App.Develop.AppServices.Auth
 {
@@ -11,27 +13,30 @@ namespace App.Develop.AppServices.Auth
     {
         [Header("UI Elements")]
         [SerializeField] private TMP_InputField _emailInput;
-
         [SerializeField] private TMP_InputField _passwordInput;
-        [SerializeField] private TMP_Text _statusText;
-
-        [SerializeField] private GameObject _popupMessagePanel;
         [SerializeField] private TMP_Text _popupMessageText;
+        [SerializeField] private GameObject _popupPanel;
 
         private FirebaseAuth _auth;
         private SceneSwitcher _sceneSwitcher;
+        private FirestoreManager _firestoreManager;
+        private DIContainer _container;
 
         private void Start()
         {
             _auth = FirebaseAuth.DefaultInstance;
-            _popupMessagePanel.SetActive(false);
+            _popupPanel.SetActive(false);
 
-            _sceneSwitcher = FindFirstObjectByType<DiContainerHolder>()?.Container.Resolve<SceneSwitcher>();
+            _container = FindFirstObjectByType<DIContainerHolder>()?.Container;
 
-            if (_sceneSwitcher == null)
+            if (_container == null)
             {
-                Debug.LogError("SceneSwitcher не найден через DIContainerHolder.");
+                Debug.LogError("DIContainerHolder не найден в сцене.");
+                return;
             }
+
+            _sceneSwitcher = _container.Resolve<SceneSwitcher>();
+            _firestoreManager = _container.Resolve<FirestoreManager>();
         }
 
         public void RegisterUser()
@@ -44,15 +49,18 @@ namespace App.Develop.AppServices.Auth
                 if (task.IsFaulted || task.IsCanceled)
                 {
                     ShowPopup("Ошибка регистрации: " + task.Exception?.Flatten().InnerException?.Message);
+                    return;
                 }
-                else
-                {
-                    FirebaseUser newUser = task.Result.User;
-                    ShowPopup("Регистрация успешна!");
-                    // тут можно добавить создание документа Firestore
 
-                    GoToPersonalArea();
-                }
+                FirebaseUser newUser = task.Result.User;
+                ShowPopup("Регистрация успешна!");
+
+                _firestoreManager.CreateNewUserDocument(
+                    newUser.UserId,
+                    newUser.Email,
+                    onSuccess: GoToPersonalArea,
+                    onFailure: error => ShowPopup("Ошибка Firestore: " + error)
+                );
             });
         }
 
@@ -66,41 +74,32 @@ namespace App.Develop.AppServices.Auth
                 if (task.IsFaulted || task.IsCanceled)
                 {
                     ShowPopup("Ошибка входа: " + task.Exception?.Flatten().InnerException?.Message);
+                    return;
                 }
-                else
-                {
-                    FirebaseUser user = task.Result.User;
-                    ShowPopup("Вход успешен! Добро пожаловать 😊");
 
-                    GoToPersonalArea();
-                }
+                ShowPopup("Вход выполнен!");
+                GoToPersonalArea();
             });
-        }
-
-        private void ShowPopup(string message)
-        {
-            _popupMessagePanel.SetActive(true);
-            _popupMessageText.text = message;
-
-            CancelInvoke(nameof(HidePopup));
-            Invoke(nameof(HidePopup), 2.5f);
-        }
-
-        private void HidePopup()
-        {
-            _popupMessagePanel.SetActive(false);
         }
 
         private void GoToPersonalArea()
         {
-            if (_sceneSwitcher != null)
-            {
-                _sceneSwitcher.ProcessSwitchSceneFor(new OutputAuthSceneArgs(new PersonalAreaInputArgs()));
-            }
-            else
-            {
-                Debug.LogError("SceneSwitcher не установлен!");
-            }
+            _container.Resolve<SceneSwitcher>()
+                .ProcessSwitchSceneFor(new OutputAuthSceneArgs(new PersonalAreaInputArgs()));
+        }
+
+        private void ShowPopup(string message)
+        {
+            _popupPanel.SetActive(true);
+            _popupMessageText.text = message;
+
+            CancelInvoke(nameof(HidePopup));
+            Invoke(nameof(HidePopup), 3f);
+        }
+
+        private void HidePopup()
+        {
+            _popupPanel.SetActive(false);
         }
     }
 }

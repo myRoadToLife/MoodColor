@@ -1,26 +1,25 @@
+using System;
 using System.Collections.Generic;
-using Firebase.Extensions;
 using Firebase.Firestore;
+using Firebase.Extensions;
 using UnityEngine;
 
 namespace App.Develop.AppServices.Firebase
 {
-    public class FirestoreManager : MonoBehaviour
+    public class FirestoreManager
     {
-        public static FirestoreManager Instance;
-        private FirebaseFirestore _db;
+        private readonly FirebaseFirestore _db;
 
-        private void Awake()
+        public FirestoreManager()
         {
-            Instance = this;
             _db = FirebaseFirestore.DefaultInstance;
         }
 
-        public void CreateNewUserDocument(string userId, string email)
+        public void CreateNewUserDocument(string userId, string email, Action onSuccess, Action<string> onFailure)
         {
-            DocumentReference docRef = _db.Collection("users").Document(userId);
+            var userRef = _db.Collection("users").Document(userId);
 
-            Dictionary<string, object> userData = new Dictionary<string, object>
+            Dictionary<string, object> userData = new()
             {
                 { "email", email },
                 { "created_at", Timestamp.GetCurrentTimestamp() },
@@ -29,11 +28,17 @@ namespace App.Develop.AppServices.Firebase
                 { "emotions", new List<string>() }
             };
 
-            docRef.SetAsync(userData).ContinueWithOnMainThread(task =>
+            userRef.SetAsync(userData).ContinueWithOnMainThread(task =>
             {
-                if (task.IsCompleted)
+                if (task.IsCompletedSuccessfully)
                 {
-                    Debug.Log("Профиль пользователя создан в Firestore.");
+                    Debug.Log("Профиль пользователя успешно создан в Firestore");
+                    onSuccess?.Invoke();
+                }
+                else
+                {
+                    Debug.LogError("Ошибка при создании профиля в Firestore: " + task.Exception?.Message);
+                    onFailure?.Invoke(task.Exception?.Message);
                 }
             });
         }
