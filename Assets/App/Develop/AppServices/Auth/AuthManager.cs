@@ -1,7 +1,10 @@
+using App.Develop.AppServices.Auth.UI;
 using Firebase.Auth;
 using Firebase.Extensions;
+using Firebase.Firestore;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
 
@@ -13,10 +16,18 @@ namespace App.Develop.AppServices.Auth
         [SerializeField] private TMP_InputField _emailInput;
 
         [SerializeField] private TMP_InputField _passwordInput;
-        [SerializeField] private GameObject _authPanel;
+        [SerializeField] private Toggle _rememberMeToggle;
+
+        [Header("Animators")]
+        [SerializeField] private UIAnimator _authPanelAnimator;
+
+        [SerializeField] private UIAnimator _emailVerificationAnimator;
+        [SerializeField] private UIAnimator _profilePanelAnimator;
+
+        [Header("Popup")]
         [SerializeField] private GameObject _popupPanel;
+
         [SerializeField] private TMP_Text _popupText;
-        [SerializeField] private GameObject _profilePanel;
 
         private SceneSwitcher _sceneSwitcher;
         private FirebaseAuth _auth;
@@ -25,12 +36,35 @@ namespace App.Develop.AppServices.Auth
         {
             _sceneSwitcher = container.Resolve<SceneSwitcher>();
             _auth = FirebaseAuth.DefaultInstance;
+
+            // Инициализация SecurePrefs
+            SecurePlayerPrefs.Init("UltraSecretKey!🔥");
+
+            // Состояние UI
+            _authPanelAnimator.Show();
+            _emailVerificationAnimator.Hide();
+            _profilePanelAnimator.Hide();
+            _popupPanel.SetActive(false);
+
+            LoadSavedCredentials();
         }
 
         public void RegisterUser()
         {
-            string email = _emailInput.text;
-            string password = _passwordInput.text;
+            string email = _emailInput.text.Trim();
+            string password = _passwordInput.text.Trim();
+
+            if (!IsValidEmail(email))
+            {
+                ShowPopup("Введите корректный email");
+                return;
+            }
+
+            if (!IsValidPassword(password))
+            {
+                ShowPopup("Пароль должен содержать 8–12 символов, цифры, строчные и заглавные буквы");
+                return;
+            }
 
             _auth.CreateUserWithEmailAndPasswordAsync(email, password).ContinueWithOnMainThread(task =>
             {
@@ -40,17 +74,25 @@ namespace App.Develop.AppServices.Auth
                     return;
                 }
 
-                ShowPopup("Регистрация успешна!");
+                SaveCredentials(email, password);
+                SendEmailVerification();
 
-                _authPanel.SetActive(false);
-                _profilePanel.SetActive(true);
+                ShowPopup("Регистрация успешна! Подтвердите email.");
+                _authPanelAnimator.Hide();
+                _emailVerificationAnimator.Show();
             });
         }
 
         public void LoginUser()
         {
-            string email = _emailInput.text;
-            string password = _passwordInput.text;
+            string email = _emailInput.text.Trim();
+            string password = _passwordInput.text.Trim();
+
+            if (!IsValidEmail(email))
+            {
+                ShowPopup("Введите корректный email");
+                return;
+            }
 
             _auth.SignInWithEmailAndPasswordAsync(email, password).ContinueWithOnMainThread(task =>
             {
@@ -60,9 +102,140 @@ namespace App.Develop.AppServices.Auth
                     return;
                 }
 
-                ShowPopup("Вход выполнен!");
-                _sceneSwitcher.ProcessSwitchSceneFor(new OutputAuthSceneArgs(new PersonalAreaInputArgs()));
+                var user = _auth.CurrentUser;
+
+                SaveCredentials(email, password);
+
+                if (!user.IsEmailVerified)
+                {
+                    ShowPopup("Подтвердите email перед входом. Письмо отправлено повторно.");
+                    SendEmailVerification();
+                    _authPanelAnimator.Hide();
+                    _emailVerificationAnimator.Show();
+                    return;
+                }
+
+                CheckUserProfileFilled(user.UserId);
             });
+        }
+
+        public void OnCheckEmailVerified()
+        {
+            _auth.CurrentUser.ReloadAsync().ContinueWithOnMainThread(task =>
+            {
+                if (task.IsCompletedSuccessfully && _auth.CurrentUser.IsEmailVerified)
+                {
+                    ShowPopup("Email подтверждён!");
+                    _emailVerificationAnimator.Hide();
+                    _profilePanelAnimator.Show();
+                }
+                else
+                {
+                    ShowPopup("Email пока не подтверждён.");
+                }
+            });
+        }
+
+        private void CheckUserProfileFilled(string uid)
+        {
+            FirebaseFirestore.DefaultInstance
+                .Collection("users")
+                .Document(uid)
+                .GetSnapshotAsync().ContinueWithOnMainThread(task =>
+                {
+                    if (!task.Result.Exists ||
+                        !task.Result.ContainsField("nickname") ||
+                        !task.Result.ContainsField("gender"))
+                    {
+                        ShowPopup("Пожалуйста, заполните профиль.");
+                        _authPanelAnimator.Hide();
+                        _profilePanelAnimator.Show();
+                    }
+                    else
+                    {
+                        ShowPopup("Вход выполнен!");
+                        _sceneSwitcher.ProcessSwitchSceneFor(new OutputAuthSceneArgs(new PersonalAreaInputArgs()));
+                    }
+                });
+        }
+
+        public void SendEmailVerification()
+        {
+            var user = _auth.CurrentUser;
+            if (user == null) return;
+
+            user.SendEmailVerificationAsync().ContinueWithOnMainThread(task =>
+            {
+                if (task.IsCompletedSuccessfully)
+                {
+                    Debug.Log("📨 Email подтверждение отправлено.");
+                    ShowPopup("Письмо отправлено. Проверьте почту.");
+                }
+                else
+                {
+                    Debug.LogError("❌ Ошибка отправки письма: " + task.Exception?.Message);
+                    ShowPopup("Ошибка при отправке письма.");
+                }
+            });
+        }
+
+        private void SaveCredentials(string email, string password)
+        {
+            SecurePlayerPrefs.SetString("email", email);
+
+            if (_rememberMeToggle != null && _rememberMeToggle.isOn)
+            {
+                SecurePlayerPrefs.SetString("password", password);
+                SecurePlayerPrefs.SetInt("remember_me", 1);
+            }
+            else
+            {
+                SecurePlayerPrefs.DeleteKey("password");
+                SecurePlayerPrefs.SetInt("remember_me", 0);
+            }
+
+            SecurePlayerPrefs.Save();
+        }
+
+        private void LoadSavedCredentials()
+        {
+            string savedEmail = SecurePlayerPrefs.GetString("email", "");
+            string savedPassword = SecurePlayerPrefs.GetString("password", "");
+            bool remember = SecurePlayerPrefs.GetInt("remember_me", 0) == 1;
+
+            _emailInput.text = savedEmail;
+            _passwordInput.text = remember ? savedPassword : "";
+            _rememberMeToggle.isOn = remember;
+        }
+
+        private bool IsValidEmail(string email)
+        {
+            try
+            {
+                var addr = new System.Net.Mail.MailAddress(email);
+                return addr.Address == email;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private bool IsValidPassword(string password)
+        {
+            if (password.Length < 8 || password.Length > 12)
+                return false;
+
+            bool hasUpper = false, hasLower = false, hasDigit = false;
+
+            foreach (char c in password)
+            {
+                if (char.IsUpper(c)) hasUpper = true;
+                if (char.IsLower(c)) hasLower = true;
+                if (char.IsDigit(c)) hasDigit = true;
+            }
+
+            return hasUpper && hasLower && hasDigit;
         }
 
         private void ShowPopup(string message)

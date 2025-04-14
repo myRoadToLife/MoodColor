@@ -13,7 +13,6 @@ namespace App.Develop.AppServices.Auth
     {
         [Header("UI")]
         [SerializeField] private TMP_InputField _nicknameInput;
-
         [SerializeField] private TMP_Dropdown _genderDropdown;
         [SerializeField] private GameObject _popupPanel;
         [SerializeField] private TMP_Text _popupText;
@@ -22,32 +21,21 @@ namespace App.Develop.AppServices.Auth
         private FirebaseFirestore _db;
         private SceneSwitcher _sceneSwitcher;
 
-        private bool _initialized = false;
-
         public void Inject(DIContainer container)
         {
+            _sceneSwitcher = container.Resolve<SceneSwitcher>();
             _auth = FirebaseAuth.DefaultInstance;
             _db = FirebaseFirestore.DefaultInstance;
-            _sceneSwitcher = container.Resolve<SceneSwitcher>();
-            _initialized = true;
-
-            Debug.Log("✅ ProfileSetupUI успешно инициализирован через Inject()");
         }
 
         public void OnContinueProfile()
         {
-            if (!_initialized)
-            {
-                Debug.LogWarning("⚠️ ProfileSetupUI не инициализирован");
-                return;
-            }
-
             string nickname = _nicknameInput.text.Trim();
             string gender = _genderDropdown.options[_genderDropdown.value].text.ToLower();
 
-            if (string.IsNullOrEmpty(nickname))
+            if (!IsValidNickname(nickname))
             {
-                ShowPopup("Введите никнейм!");
+                ShowPopup("Никнейм должен содержать только латинские буквы без пробелов");
                 return;
             }
 
@@ -56,19 +44,25 @@ namespace App.Develop.AppServices.Auth
 
         public void OnSkipProfile()
         {
-            if (!_initialized)
+            GoToPersonalArea();
+        }
+
+        private bool IsValidNickname(string nickname)
+        {
+            if (string.IsNullOrWhiteSpace(nickname)) return false;
+
+            foreach (char c in nickname)
             {
-                Debug.LogWarning("⚠️ ProfileSetupUI не инициализирован");
-                return;
+                if (!char.IsLetter(c) || c > 127) // латиница, без юникода/кириллицы
+                    return false;
             }
 
-            GoToPersonalArea();
+            return true;
         }
 
         private void SaveProfileAndGo(string nickname, string gender)
         {
             var user = _auth.CurrentUser;
-
             if (user == null)
             {
                 ShowPopup("Пользователь не найден.");
