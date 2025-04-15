@@ -14,19 +14,16 @@ namespace App.Develop.AppServices.Auth
     {
         [Header("UI Elements")]
         [SerializeField] private TMP_InputField _emailInput;
-
         [SerializeField] private TMP_InputField _passwordInput;
         [SerializeField] private Toggle _rememberMeToggle;
 
         [Header("Animators")]
         [SerializeField] private UIAnimator _authPanelAnimator;
-
         [SerializeField] private UIAnimator _emailVerificationAnimator;
         [SerializeField] private UIAnimator _profilePanelAnimator;
 
         [Header("Popup")]
         [SerializeField] private GameObject _popupPanel;
-
         [SerializeField] private TMP_Text _popupText;
 
         private SceneSwitcher _sceneSwitcher;
@@ -37,10 +34,9 @@ namespace App.Develop.AppServices.Auth
             _sceneSwitcher = container.Resolve<SceneSwitcher>();
             _auth = FirebaseAuth.DefaultInstance;
 
-            // Инициализация SecurePrefs
             SecurePlayerPrefs.Init("UltraSecretKey!🔥");
+            Debug.Log("🔐 SecurePlayerPrefs инициализирован");
 
-            // Состояние UI
             _authPanelAnimator.Show();
             _emailVerificationAnimator.Hide();
             _profilePanelAnimator.Hide();
@@ -102,9 +98,9 @@ namespace App.Develop.AppServices.Auth
                     return;
                 }
 
-                var user = _auth.CurrentUser;
-
                 SaveCredentials(email, password);
+
+                var user = _auth.CurrentUser;
 
                 if (!user.IsEmailVerified)
                 {
@@ -182,16 +178,19 @@ namespace App.Develop.AppServices.Auth
         private void SaveCredentials(string email, string password)
         {
             SecurePlayerPrefs.SetString("email", email);
+            Debug.Log($"💾 Сохраняем email: {email}");
 
             if (_rememberMeToggle != null && _rememberMeToggle.isOn)
             {
                 SecurePlayerPrefs.SetString("password", password);
                 SecurePlayerPrefs.SetInt("remember_me", 1);
+                Debug.Log("✅ Пароль сохранён (remember_me включён)");
             }
             else
             {
                 SecurePlayerPrefs.DeleteKey("password");
                 SecurePlayerPrefs.SetInt("remember_me", 0);
+                Debug.Log("ℹ️ Пароль не сохранён (remember_me выключен)");
             }
 
             SecurePlayerPrefs.Save();
@@ -203,9 +202,25 @@ namespace App.Develop.AppServices.Auth
             string savedPassword = SecurePlayerPrefs.GetString("password", "");
             bool remember = SecurePlayerPrefs.GetInt("remember_me", 0) == 1;
 
+            Debug.Log($"📥 Загрузка: email={savedEmail}, remember={remember}");
+
             _emailInput.text = savedEmail;
             _passwordInput.text = remember ? savedPassword : "";
             _rememberMeToggle.isOn = remember;
+        }
+
+        public void ClearStoredCredentials()
+        {
+            Debug.Log("🧹 Удаление сохранённых данных авторизации (email, password, remember_me)");
+            SecurePlayerPrefs.DeleteKey("email");
+            SecurePlayerPrefs.DeleteKey("password");
+            SecurePlayerPrefs.DeleteKey("remember_me");
+            SecurePlayerPrefs.Save();
+
+            _emailInput.text = "";
+            _passwordInput.text = "";
+            if (_rememberMeToggle != null)
+                _rememberMeToggle.isOn = false;
         }
 
         private bool IsValidEmail(string email)

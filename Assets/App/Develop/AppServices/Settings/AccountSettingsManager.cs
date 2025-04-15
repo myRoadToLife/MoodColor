@@ -3,8 +3,11 @@ using Firebase.Extensions;
 using Firebase.Firestore;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
+using System.Collections;
+using App.Develop.AppServices.Auth;
 
 namespace App.Develop.AppServices.Settings
 {
@@ -18,8 +21,12 @@ namespace App.Develop.AppServices.Settings
         [Header("Delete Confirmation")]
         [SerializeField] private GameObject _confirmDeletePanel;
 
+        [Header("Password Input")]
         [SerializeField] private TMP_InputField _passwordConfirmInput;
 
+        [SerializeField] private Toggle _showPasswordToggle;
+
+        private string _originalPassword = "";
         private SceneSwitcher _sceneSwitcher;
         private FirebaseAuth _auth;
         private FirebaseFirestore _db;
@@ -30,21 +37,79 @@ namespace App.Develop.AppServices.Settings
             _auth = FirebaseAuth.DefaultInstance;
             _db = FirebaseFirestore.DefaultInstance;
 
-            _confirmDeletePanel.SetActive(false); // по умолчанию скрыта
+            _confirmDeletePanel.SetActive(false);
+
+            if (_showPasswordToggle != null)
+            {
+                _showPasswordToggle.isOn = false;
+            }
+
+            if (_passwordConfirmInput != null)
+            {
+                _passwordConfirmInput.onValueChanged.AddListener(OnPasswordInputChanged);
+                _passwordConfirmInput.contentType = TMP_InputField.ContentType.Password;
+                _passwordConfirmInput.ForceLabelUpdate();
+            }
+
+            SetPasswordVisibility(false);
+        }
+
+        public void OnPasswordInputChanged(string newText)
+        {
+            _originalPassword = newText;
+            Debug.Log($"[DEBUG] OnPasswordInputChanged: новый ввод = '{newText}'");
+        }
+
+        public void OnToggleShowPassword(bool isVisible)
+        {
+            Debug.Log($"[DEBUG] OnToggleShowPassword: isVisible = {isVisible}. Текущий _originalPassword = '{_originalPassword}'");
+            SetPasswordVisibility(isVisible);
+        }
+
+        private void SetPasswordVisibility(bool isVisible)
+        {
+            if (_passwordConfirmInput == null)
+            {
+                Debug.LogError("[DEBUG] _passwordConfirmInput == null!");
+                return;
+            }
+
+            _passwordConfirmInput.DeactivateInputField();
+
+            _passwordConfirmInput.contentType = isVisible
+                ? TMP_InputField.ContentType.Standard
+                : TMP_InputField.ContentType.Password;
+
+            StartCoroutine(DelayedRefresh());
+        }
+
+        private IEnumerator DelayedRefresh()
+        {
+            _passwordConfirmInput.text = "";
+            _passwordConfirmInput.ForceLabelUpdate();
+            Debug.Log("[DEBUG] DelayedRefresh: очистили текст.");
+
+            yield return new WaitForEndOfFrame();
+
+            _passwordConfirmInput.text = _originalPassword;
+            _passwordConfirmInput.ForceLabelUpdate();
+            Debug.Log($"[DEBUG] DelayedRefresh: восстановили текст '{_originalPassword}'");
+
+            _passwordConfirmInput.caretPosition = _passwordConfirmInput.text.Length;
+            _passwordConfirmInput.ActivateInputField();
         }
 
         public void Logout()
         {
             _auth.SignOut();
             ShowPopup("Вы вышли из аккаунта.");
-
-            _sceneSwitcher.ProcessSwitchSceneFor(
-                new OutputPersonalAreaScreenArgs(new AuthSceneInputArgs()));
+            _sceneSwitcher.ProcessSwitchSceneFor(new OutputPersonalAreaScreenArgs(new AuthSceneInputArgs()));
         }
 
         public void ShowDeleteConfirmation()
         {
             _confirmDeletePanel.SetActive(true);
+            SetPasswordVisibility(_showPasswordToggle != null && _showPasswordToggle.isOn);
         }
 
         public void CancelDelete()
@@ -54,8 +119,6 @@ namespace App.Develop.AppServices.Settings
 
         public void ConfirmDelete()
         {
-            Debug.Log("🔎 Начало ConfirmDelete");
-
             if (_passwordConfirmInput == null)
             {
                 Debug.LogError("❌ _passwordConfirmInput не привязан!");
@@ -63,38 +126,23 @@ namespace App.Develop.AppServices.Settings
             }
 
             string password = _passwordConfirmInput.text.Trim();
-            Debug.Log($"🔐 Введённый пароль: '{password}'");
+            string email = _auth.CurrentUser?.Email;
 
             if (string.IsNullOrEmpty(password))
             {
                 ShowPopup("Введите пароль для подтверждения.");
-                Debug.LogWarning("⚠️ Пароль пустой.");
                 return;
             }
 
-            if (_auth == null)
+            if (string.IsNullOrEmpty(email))
             {
-                Debug.LogError("❌ _auth (FirebaseAuth) не инициализирован!");
+                ShowPopup("Email не найден. Повторите вход.");
                 return;
             }
-
-            FirebaseUser user = _auth.CurrentUser;
-
-            if (user == null)
-            {
-                ShowPopup("Пользователь не найден. Повторите вход.");
-                Debug.LogError("❌ CurrentUser == null");
-                return;
-            }
-
-            string email = user.Email;
-            Debug.Log($"📧 Email пользователя: {email}");
 
             var credential = EmailAuthProvider.GetCredential(email, password);
 
-            Debug.Log("🔁 Начинаем повторную авторизацию...");
-
-            user.ReauthenticateAsync(credential).ContinueWithOnMainThread(reAuthTask =>
+            _auth.CurrentUser.ReauthenticateAsync(credential).ContinueWithOnMainThread(reAuthTask =>
             {
                 if (!reAuthTask.IsCompletedSuccessfully)
                 {
@@ -103,9 +151,7 @@ namespace App.Develop.AppServices.Settings
                     return;
                 }
 
-                Debug.Log("✅ Повторная авторизация успешна. Удаляем документ из Firestore...");
-
-                _db.Collection("users").Document(user.UserId)
+                _db.Collection("users").Document(_auth.CurrentUser.UserId)
                     .DeleteAsync().ContinueWithOnMainThread(docTask =>
                     {
                         if (!docTask.IsCompletedSuccessfully)
@@ -113,14 +159,17 @@ namespace App.Develop.AppServices.Settings
                             Debug.LogWarning("⚠️ Firestore delete failed: " + docTask.Exception?.Message);
                         }
 
-                        Debug.Log("🗑 Удаляем аккаунт пользователя...");
-
-                        user.DeleteAsync().ContinueWithOnMainThread(deleteTask =>
+                        _auth.CurrentUser.DeleteAsync().ContinueWithOnMainThread(deleteTask =>
                         {
                             if (deleteTask.IsCompletedSuccessfully)
                             {
                                 ShowPopup("Аккаунт удалён.");
-                                Debug.Log("✅ Аккаунт успешно удалён.");
+
+                                // 🔐 Удаляем сохранённые логин/пароль
+                                SecurePlayerPrefs.DeleteKey("email");
+                                SecurePlayerPrefs.DeleteKey("password");
+                                SecurePlayerPrefs.DeleteKey("remember_me");
+                                SecurePlayerPrefs.Save();
 
                                 _sceneSwitcher.ProcessSwitchSceneFor(
                                     new OutputPersonalAreaScreenArgs(new AuthSceneInputArgs()));
