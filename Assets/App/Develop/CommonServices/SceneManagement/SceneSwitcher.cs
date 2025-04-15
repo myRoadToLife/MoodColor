@@ -92,10 +92,14 @@ namespace App.Develop.CommonServices.SceneManagement
                 case MainSceneInputArgs mainSceneInputArgs:
                     yield return ProcessSwitchToMainScreenScene(mainSceneInputArgs);
                     break;
+                case AuthSceneInputArgs authSceneInputArgs:
+                    yield return ProcessSwitchToAuthScene(authSceneInputArgs);
+                    break;
                 default:
                     throw new ArgumentException("Данный переход невозможен из PersonalArea сцены!");
             }
         }
+
 
         private IEnumerator ProcessSwitchFromMainScreenScene(OutputMainScreenArgs mainScreenArgs)
         {
@@ -120,6 +124,7 @@ namespace App.Develop.CommonServices.SceneManagement
             yield return _sceneLoader.LoadAsync(SceneID.Auth);
 
             var bootstrap = Object.FindFirstObjectByType<AuthSceneBootstrap>();
+
             if (bootstrap == null)
             {
                 Debug.LogError("❌ [SceneSwitcher] AuthSceneBootstrap не найден!");

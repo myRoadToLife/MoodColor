@@ -1,7 +1,6 @@
-using System;
 using System.Collections;
-using App.Develop.CommonServices.DataManagement.DataProviders;
-using App.Develop.CommonServices.Emotion;
+using App.Develop.AppServices.Settings;
+using App.Develop.CommonServices.AssetManagement;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
 using UnityEngine;
@@ -15,39 +14,30 @@ namespace App.Develop.PersonalAreaScene.Infrastructure
         public IEnumerator Run(DIContainer container, PersonalAreaInputArgs personalAreaInputArgs)
         {
             _container = container;
-
-            ProcessRegistration();
-
-            yield return new WaitForSeconds(1.5f);
-        }
-
-        private void ProcessRegistration()
-        {
-            //Делаем регистрации для сцены главного экрана приложения
-
             _container.Initialize();
-        }
 
-        private void Update()
-        {
-            if (Input.GetKeyDown(KeyCode.Z))
+            Debug.Log("✅ [PersonalAreaBootstrap] сцена загружена");
+
+            ResourcesAssetLoader assetLoader = _container.Resolve<ResourcesAssetLoader>();
+            MonoFactory factory = new MonoFactory(_container);
+
+            // Загружаем префаб SettingsPanel из ресурсов
+            GameObject settingsPrefab = assetLoader.LoadResource<GameObject>("UI/SettingsPanel");
+
+            if (settingsPrefab == null)
             {
-                _container.Resolve<SceneSwitcher>()
-                    .ProcessSwitchSceneFor(new OutputMainScreenArgs(new PersonalAreaInputArgs()));
+                Debug.LogError("❌ Не найден префаб SettingsPanel в Resources/UI/SettingsPanel");
+                yield break;
             }
 
-            if (Input.GetKeyDown(KeyCode.F))
-            {
-                EmotionService emotion = _container.Resolve<EmotionService>();
-                emotion.AddEmotion(EmotionTypes.Anger, 1);
-                Debug.Log($"Я испытываю сейчас {emotion.GetEmotion(EmotionTypes.Anger).Value}");
-            }
+            // Инстанцируем под канвасом
+            GameObject settingsInstance = Instantiate(settingsPrefab);
 
+            factory.CreateOn<AccountSettingsManager>(
+                settingsInstance.GetComponentInChildren<AccountSettingsManager>().gameObject
+            );
 
-            if (Input.GetKeyDown(KeyCode.S))
-            {
-                _container.Resolve<PlayerDataProvider>().Save();
-            }
+            yield return null;
         }
     }
 }

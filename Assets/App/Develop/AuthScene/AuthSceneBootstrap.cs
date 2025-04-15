@@ -22,14 +22,14 @@ namespace App.Develop.AuthScene
             MonoFactory factory = new MonoFactory(_container);
 
             // Загружаем один AuthPanel, где уже есть оба компонента
-            var authPanelPrefab = assetLoader.LoadResource<GameObject>("UI/AuthPanel");
+            GameObject authPanelPrefab = assetLoader.LoadResource<GameObject>("UI/AuthPanel");
             if (authPanelPrefab == null)
             {
                 Debug.LogError("❌ Не найден префаб AuthPanel в Resources/UI/AuthPanel");
                 yield break;
             }
 
-            GameObject authPanelInstance = Object.Instantiate(authPanelPrefab);
+            GameObject authPanelInstance = Instantiate(authPanelPrefab);
     
             // Внедряем зависимости
             factory.CreateOn<AuthManager>(authPanelInstance);
