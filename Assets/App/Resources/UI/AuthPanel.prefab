@@ -3115,9 +3115,10 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1648565388298957510}
-        m_TargetAssemblyTypeName: App.Develop.AppServices.Auth.AuthManager, Assembly-CSharp
-        m_MethodName: RegisterUser
+      - m_Target: {fileID: 7045726197399458164}
+        m_TargetAssemblyTypeName: App.Develop.AppServices.Auth.AuthUIController,
+          Assembly-CSharp
+        m_MethodName: OnRegisterButtonClicked
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -3518,9 +3519,10 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1648565388298957510}
-        m_TargetAssemblyTypeName: App.Develop.AppServices.Auth.AuthManager, Assembly-CSharp
-        m_MethodName: LoginUser
+      - m_Target: {fileID: 7045726197399458164}
+        m_TargetAssemblyTypeName: App.Develop.AppServices.Auth.AuthUIController,
+          Assembly-CSharp
+        m_MethodName: OnLoginButtonClicked
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -4495,6 +4497,7 @@ GameObject:
   - component: {fileID: 8207799958612233434}
   - component: {fileID: 1648565388298957510}
   - component: {fileID: 3480939252005466786}
+  - component: {fileID: 7045726197399458164}
   - component: {fileID: 4074915338118852798}
   - component: {fileID: 1380241721410358312}
   - component: {fileID: 3748203334271833516}
@@ -4541,15 +4544,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 457a2ec22098959439e6b7473a40c04f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _emailInput: {fileID: 3488093149315924257}
-  _passwordInput: {fileID: 8051934485492476042}
-  _rememberMeToggle: {fileID: 1534537135326597210}
-  _showPasswordToggle: {fileID: 4302170322781975824}
-  _authPanelAnimator: {fileID: 3070758959000089062}
-  _emailVerificationAnimator: {fileID: 5706270415391690689}
-  _profilePanelAnimator: {fileID: 2902883744801220891}
-  _popupPanel: {fileID: 7575572624529561783}
-  _popupText: {fileID: 2112539877160796553}
+  _uiController: {fileID: 7045726197399458164}
 --- !u!114 &3480939252005466786
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4564,6 +4559,26 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _nicknameInput: {fileID: 102031629745053837}
   _genderDropdown: {fileID: 1595703934268985352}
+  _popupPanel: {fileID: 7575572624529561783}
+  _popupText: {fileID: 2112539877160796553}
+--- !u!114 &7045726197399458164
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8234722737086130487}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4b57b87c9804e369d8ff90b4df65369, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _emailInput: {fileID: 3488093149315924257}
+  _passwordInput: {fileID: 8051934485492476042}
+  _rememberMeToggle: {fileID: 1534537135326597210}
+  _authPanelAnimator: {fileID: 3070758959000089062}
+  _emailVerificationAnimator: {fileID: 5706270415391690689}
+  _profilePanelAnimator: {fileID: 2902883744801220891}
   _popupPanel: {fileID: 7575572624529561783}
   _popupText: {fileID: 2112539877160796553}
 --- !u!223 &4074915338118852798
