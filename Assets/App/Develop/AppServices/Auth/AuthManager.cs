@@ -17,18 +17,24 @@ namespace App.Develop.AppServices.Auth
         public void Inject(DIContainer container)
         {
             _sceneSwitcher = container.Resolve<SceneSwitcher>();
+            _authService = container.Resolve<AuthService>();
+            _profileService = container.Resolve<UserProfileService>();
+            _credentialStorage = container.Resolve<CredentialStorage>();
+            _validationService = container.Resolve<ValidationService>();
 
-            _authService = new AuthService();
-            _profileService = new UserProfileService();
-            _credentialStorage = new CredentialStorage("UltraSecretKey!🔥");
-            _validationService = new ValidationService();
+            if (_uiController == null)
+            {
+                Debug.LogError("🔴 В AuthManager._uiController не присвоен AuthUIController!");
+                return;
+            }
 
             _uiController.Initialize(this);
             _uiController.ShowAuthPanel();
 
-            _uiController.LoadSavedCredentials(_credentialStorage.GetSavedEmail(),
-                _credentialStorage.GetSavedPassword(),
-                _credentialStorage.IsRememberMeEnabled());
+            var email = _credentialStorage.GetSavedEmail();
+            var password = _credentialStorage.GetSavedPassword();
+            var remember = _credentialStorage.IsRememberMeEnabled();
+            _uiController.LoadSavedCredentials(email, password, remember);
         }
 
         public void RegisterUser(string email, string password, bool rememberMe)
@@ -41,7 +47,7 @@ namespace App.Develop.AppServices.Auth
 
             if (!_validationService.IsValidPassword(password))
             {
-                _uiController.ShowPopup("Пароль должен содержать 8--12 символов, цифры, строчные и заглавные буквы");
+                _uiController.ShowPopup("Пароль должен содержать 8–12 символов, цифры, строчные и заглавные буквы");
                 return;
             }
 
@@ -53,7 +59,7 @@ namespace App.Develop.AppServices.Auth
                     _uiController.ShowPopup("Регистрация успешна! Подтвердите email.");
                     _uiController.ShowEmailVerificationPanel();
                 },
-                onError: (errorMessage) => { _uiController.ShowPopup("Ошибка регистрации: " + errorMessage); });
+                onError: error => _uiController.ShowPopup("Ошибка регистрации: " + error));
         }
 
         public void LoginUser(string email, string password, bool rememberMe)
@@ -65,7 +71,7 @@ namespace App.Develop.AppServices.Auth
             }
 
             _authService.LoginUser(email, password,
-                onSuccess: (user) =>
+                onSuccess: user =>
                 {
                     _credentialStorage.SaveCredentials(email, password, rememberMe);
 
@@ -79,7 +85,7 @@ namespace App.Develop.AppServices.Auth
 
                     CheckUserProfileFilled(user.UserId);
                 },
-                onError: (errorMessage) => { _uiController.ShowPopup("Ошибка входа: " + errorMessage); });
+                onError: error => _uiController.ShowPopup("Ошибка входа: " + error));
         }
 
         public void CheckEmailVerification()
@@ -90,7 +96,8 @@ namespace App.Develop.AppServices.Auth
                     _uiController.ShowPopup("Email подтверждён!");
                     _uiController.ShowProfilePanel();
                 },
-                onNotVerified: () => { _uiController.ShowPopup("Email пока не подтверждён."); });
+                onNotVerified: () => _uiController.ShowPopup("Email пока не подтверждён.")
+            );
         }
 
         private void CheckUserProfileFilled(string uid)
@@ -104,15 +111,17 @@ namespace App.Develop.AppServices.Auth
                 onProfileComplete: () =>
                 {
                     _uiController.ShowPopup("Вход выполнен!");
-                    _sceneSwitcher.ProcessSwitchSceneFor(new OutputAuthSceneArgs(new PersonalAreaInputArgs()));
+
+                    _sceneSwitcher.ProcessSwitchSceneFor(
+                        new OutputAuthSceneArgs(new PersonalAreaInputArgs()));
                 });
         }
 
         public void SendEmailVerification()
         {
             _authService.SendEmailVerification(
-                onSuccess: () => { _uiController.ShowPopup("Письмо отправлено. Проверьте почту."); },
-                onError: () => { _uiController.ShowPopup("Ошибка при отправке письма."); });
+                onSuccess: () => _uiController.ShowPopup("Письмо отправлено. Проверьте почту."),
+                onError: () => _uiController.ShowPopup("Ошибка при отправке письма."));
         }
 
         public void ClearStoredCredentials()
