@@ -11,6 +11,7 @@ Library: F:\Unity\MoodColor\Temp\BurstOutput\tempburstlibs\arm64-v8a\lib_burst_g
 --float-mode=Fast
 --generate-link-xml=Temp\burst.link.xml
 --temp-folder=F:\Unity\MoodColor\Temp\Burst
+--debug=Full
 --key-folder=E:/UnityHub/6000.0.44f1/Editor/Data/PlaybackEngines/AndroidPlayer
 --decode-folder=F:\Unity\MoodColor\Library\Burst
 --output=F:\Unity\MoodColor\Temp\BurstOutput\tempburstlibs\arm64-v8a\lib_burst_generated
@@ -28,6 +29,7 @@ Library: F:\Unity\MoodColor\Temp\BurstOutput\tempburstlibs\arm64-v8a\lib_burst_g
 --target-framework=NetFramework
 --generate-link-xml=Temp\burst.link.xml
 --temp-folder=F:\Unity\MoodColor\Temp\Burst
+--debug=Full
 --key-folder=E:/UnityHub/6000.0.44f1/Editor/Data/PlaybackEngines/AndroidPlayer
 --decode-folder=F:\Unity\MoodColor\Library\Burst
 --output=F:\Unity\MoodColor\Temp\BurstOutput\tempburstlibs\arm64-v8a\lib_burst_generated

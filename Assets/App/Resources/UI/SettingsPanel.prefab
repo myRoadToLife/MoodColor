@@ -343,7 +343,7 @@ MonoBehaviour:
   onValueChanged:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 3672336579143745282}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: App.Develop.AppServices.Settings.AccountSettingsManager,
           Assembly-CSharp
         m_MethodName: OnToggleShowPassword
@@ -1075,7 +1075,6 @@ GameObject:
   m_Component:
   - component: {fileID: 8561630425211972028}
   - component: {fileID: 1119683211399869360}
-  - component: {fileID: 3672336579143745282}
   - component: {fileID: 3427113391377007498}
   m_Layer: 0
   m_Name: SettingsPanel
@@ -1119,27 +1118,6 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
---- !u!114 &3672336579143745282
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3756966698244721863}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c835e4b5a054b5d4b9f3195139ce82cb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _popupPanel: {fileID: 5685147921837913112}
-  _popupText: {fileID: 3520054206733479804}
-  _confirmDeletePanel: {fileID: 748059343739021792}
-  _logoutButton: {fileID: 7713886195294083724}
-  _showDeleteButton: {fileID: 5457350136702323698}
-  _cancelDeleteButton: {fileID: 228971165343962912}
-  _confirmDeleteButton: {fileID: 354439860826924256}
-  _showPasswordToggle: {fileID: 5999491032127932426}
-  _passwordInput: {fileID: 6718090504723052093}
 --- !u!114 &3427113391377007498
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1676,6 +1654,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8334801755082006933}
   - component: {fileID: 401184197043811920}
+  - component: {fileID: 8014719708930443887}
   - component: {fileID: 8654358769066838125}
   - component: {fileID: 1318894234894936638}
   m_Layer: 0
@@ -1698,7 +1677,6 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8561630425211972028}
-  - {fileID: 4319897913000570619}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -1729,6 +1707,27 @@ Canvas:
   m_SortingLayerID: 0
   m_SortingOrder: 0
   m_TargetDisplay: 0
+--- !u!114 &8014719708930443887
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5711355644490029493}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c835e4b5a054b5d4b9f3195139ce82cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _popupPanel: {fileID: 5685147921837913112}
+  _popupText: {fileID: 3520054206733479804}
+  _confirmDeletePanel: {fileID: 748059343739021792}
+  _logoutButton: {fileID: 7713886195294083724}
+  _showDeleteButton: {fileID: 5457350136702323698}
+  _cancelDeleteButton: {fileID: 228971165343962912}
+  _confirmDeleteButton: {fileID: 354439860826924256}
+  _showPasswordToggle: {fileID: 5999491032127932426}
+  _passwordInput: {fileID: 6718090504723052093}
 --- !u!114 &8654358769066838125
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1769,85 +1768,6 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
---- !u!1 &6166950959152243373
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 4319897913000570619}
-  - component: {fileID: 7240592105686046016}
-  - component: {fileID: 5177534946203606252}
-  m_Layer: 0
-  m_Name: EventSystem
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &4319897913000570619
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6166950959152243373}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 8334801755082006933}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &7240592105686046016
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6166950959152243373}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 76c392e42b5098c458856cdf6ecaaaa1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_FirstSelected: {fileID: 0}
-  m_sendNavigationEvents: 1
-  m_DragThreshold: 10
---- !u!114 &5177534946203606252
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6166950959152243373}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 01614664b831546d2ae94a42149d80ac, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_SendPointerHoverToParent: 1
-  m_MoveRepeatDelay: 0.5
-  m_MoveRepeatRate: 0.1
-  m_XRTrackingOrigin: {fileID: 0}
-  m_ActionsAsset: {fileID: -944628639613478452, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
-  m_PointAction: {fileID: -1654692200621890270, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
-  m_MoveAction: {fileID: -8784545083839296357, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
-  m_SubmitAction: {fileID: 392368643174621059, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
-  m_CancelAction: {fileID: 7727032971491509709, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
-  m_LeftClickAction: {fileID: 3001919216989983466, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
-  m_MiddleClickAction: {fileID: -2185481485913320682, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
-  m_RightClickAction: {fileID: -4090225696740746782, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
-  m_ScrollWheelAction: {fileID: 6240969308177333660, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
-  m_TrackedDevicePositionAction: {fileID: 6564999863303420839, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
-  m_TrackedDeviceOrientationAction: {fileID: 7970375526676320489, guid: ca9f5fa95ffab41fb9a615ab714db018, type: 3}
-  m_DeselectOnBackgroundClick: 1
-  m_PointerBehavior: 0
-  m_CursorLockBehavior: 0
-  m_ScrollDeltaPerTick: 6
 --- !u!1 &6369173376398946033
 GameObject:
   m_ObjectHideFlags: 0
