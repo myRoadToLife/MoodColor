@@ -1,11 +1,11 @@
 using System.Collections;
-using App.Develop.AppServices.Settings;
 using App.Develop.CommonServices.AssetManagement;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
+using App.Develop.Scenes.PersonalAreaScene.Settings;
 using UnityEngine;
 
-namespace App.Develop.PersonalAreaScene.Infrastructure
+namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
 {
     public class PersonalAreaBootstrap : MonoBehaviour
     {
@@ -33,8 +33,8 @@ namespace App.Develop.PersonalAreaScene.Infrastructure
             // Инстанцируем под канвасом
             GameObject settingsInstance = Instantiate(settingsPrefab);
 
-            factory.CreateOn<AccountSettingsManager>(
-                settingsInstance.GetComponentInChildren<AccountSettingsManager>().gameObject
+            factory.CreateOn<AccountDeletionManager>(
+                settingsInstance.GetComponentInChildren<AccountDeletionManager>().gameObject
             );
 
             yield return null;

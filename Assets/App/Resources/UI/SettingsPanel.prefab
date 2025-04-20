@@ -732,20 +732,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 530015579079993502}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 3672336579143745282}
-        m_TargetAssemblyTypeName: App.Develop.AppServices.Settings.AccountSettingsManager,
-          Assembly-CSharp
-        m_MethodName: ShowDeleteConfirmation
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
 --- !u!222 &2201250188309715085
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -866,20 +853,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 6907832737054749515}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 3672336579143745282}
-        m_TargetAssemblyTypeName: App.Develop.AppServices.Settings.AccountSettingsManager,
-          Assembly-CSharp
-        m_MethodName: Logout
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
 --- !u!222 &1995858212959985067
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1052,20 +1026,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 4098416105421633699}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 3672336579143745282}
-        m_TargetAssemblyTypeName: App.Develop.AppServices.Settings.AccountSettingsManager,
-          Assembly-CSharp
-        m_MethodName: ConfirmDelete
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
 --- !u!222 &8677644081509111933
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1173,8 +1134,12 @@ MonoBehaviour:
   _popupPanel: {fileID: 5685147921837913112}
   _popupText: {fileID: 3520054206733479804}
   _confirmDeletePanel: {fileID: 748059343739021792}
-  _passwordConfirmInput: {fileID: 6718090504723052093}
+  _logoutButton: {fileID: 7713886195294083724}
+  _showDeleteButton: {fileID: 5457350136702323698}
+  _cancelDeleteButton: {fileID: 228971165343962912}
+  _confirmDeleteButton: {fileID: 354439860826924256}
   _showPasswordToggle: {fileID: 5999491032127932426}
+  _passwordInput: {fileID: 6718090504723052093}
 --- !u!114 &3427113391377007498
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2373,20 +2338,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 2919478818546895843}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 3672336579143745282}
-        m_TargetAssemblyTypeName: App.Develop.AppServices.Settings.AccountSettingsManager,
-          Assembly-CSharp
-        m_MethodName: CancelDelete
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
 --- !u!222 &118762128197937035
 CanvasRenderer:
   m_ObjectHideFlags: 0
