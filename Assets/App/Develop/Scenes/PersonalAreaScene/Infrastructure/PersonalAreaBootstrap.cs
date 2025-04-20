@@ -21,6 +21,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
             var factory = new MonoFactory(_container);
 
             GameObject personalAreaPrefab = assetLoader.LoadResource<GameObject>("UI/MainCanvasArea");
+
             if (personalAreaPrefab == null)
             {
                 Debug.LogError("❌ Не найден префаб UI/MainCanvasArea в Resources");
@@ -29,9 +30,15 @@ namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
 
             GameObject instance = Instantiate(personalAreaPrefab);
 
-            // Внедрение зависимостей
-            factory.CreateOn<PersonalAreaManager>(instance.GetComponentInChildren<PersonalAreaManager>().gameObject);
-            factory.CreateOn<PersonalAreaUIController>(instance.GetComponentInChildren<PersonalAreaUIController>().gameObject);
+            // Получаем компоненты и делаем Inject с передачей factory
+            var uiController = instance.GetComponentInChildren<PersonalAreaUIController>();
+            var manager = instance.GetComponentInChildren<PersonalAreaManager>();
+
+            if (uiController != null)
+                factory.CreateOn<PersonalAreaUIController>(uiController.gameObject);
+
+            if (manager != null)
+                manager.Inject(_container, factory); // передаём factory напрямую
 
             yield return null;
         }

@@ -2,7 +2,6 @@ using System.Collections;
 using App.Develop.AppServices.Auth;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
-using App.Develop.Scenes.PersonalAreaScene.Extensions;
 using Firebase.Auth;
 using Firebase.Extensions;
 using Firebase.Firestore;
@@ -16,13 +15,11 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
     {
         [Header("Panels")]
         [SerializeField] private GameObject _popupPanel;
-
         [SerializeField] private TMP_Text _popupText;
         [SerializeField] private GameObject _confirmDeletePanel;
 
         [Header("Controls")]
         [SerializeField] private Button _logoutButton;
-
         [SerializeField] private Button _showDeleteButton;
         [SerializeField] private Button _cancelDeleteButton;
         [SerializeField] private Button _confirmDeleteButton;
@@ -36,39 +33,73 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
 
         public void Inject(DIContainer container)
         {
-            // 1) Разрешаем зависимости
             _sceneSwitcher = container.Resolve<SceneSwitcher>();
             _auth = FirebaseAuth.DefaultInstance;
             _db = FirebaseFirestore.DefaultInstance;
 
-            // 2) Подготовка UI
             InitializeUI();
         }
 
         private void InitializeUI()
         {
-            // Скрываем подтверждение по-умолчанию
+            Debug.Log("✅ InitializeUI вызван");
+
+            if (_logoutButton == null) Debug.LogError("❌ _logoutButton не установлен!");
+            if (_showDeleteButton == null) Debug.LogError("❌ _showDeleteButton не установлен!");
+            if (_confirmDeleteButton == null) Debug.LogError("❌ _confirmDeleteButton не установлен!");
+            if (_passwordInput == null) Debug.LogError("❌ _passwordInput не установлен!");
+            if (_popupPanel == null || _popupText == null) Debug.LogError("❌ Popup элементы не установлены!");
+
             _confirmDeletePanel.SetActive(false);
 
-            // Кнопки
-            _logoutButton.SetupButton(Logout);
-            _showDeleteButton.SetupButton(ShowDeleteConfirmation);
-            _cancelDeleteButton.SetupButton(() => _confirmDeletePanel.SetActive(false));
-            _confirmDeleteButton.SetupButton(ConfirmDelete);
+            SetupButtons();
+            SetupToggles();
+            SetupInputFields();
 
-            // Toggle и поле ввода
-            _showPasswordToggle.SetupToggle(OnToggleShowPassword, defaultState: false);
-            _passwordInput.SetupPasswordField(OnPasswordChanged);
-
-            // Первоначально пароль скрыт
             SetPasswordVisibility(false);
         }
 
-        private void OnPasswordChanged(string newText) =>
-            _plainPassword = newText;
+        private void SetupButtons()
+        {
+            _logoutButton.onClick.RemoveAllListeners();
+            _logoutButton.onClick.AddListener(Logout);
 
-        private void OnToggleShowPassword(bool isVisible) =>
+            _showDeleteButton.onClick.RemoveAllListeners();
+            _showDeleteButton.onClick.AddListener(ShowDeleteConfirmation);
+
+            _cancelDeleteButton.onClick.RemoveAllListeners();
+            _cancelDeleteButton.onClick.AddListener(CancelDelete);
+
+            _confirmDeleteButton.onClick.RemoveAllListeners();
+            _confirmDeleteButton.onClick.AddListener(ConfirmDelete);
+        }
+
+        private void SetupToggles()
+        {
+            _showPasswordToggle.onValueChanged.RemoveAllListeners();
+            _showPasswordToggle.isOn = false;
+            _showPasswordToggle.onValueChanged.AddListener(OnToggleShowPassword);
+        }
+
+        private void SetupInputFields()
+        {
+            _passwordInput.onValueChanged.RemoveAllListeners();
+            _passwordInput.onValueChanged.AddListener(OnPasswordChanged);
+            _passwordInput.contentType = TMP_InputField.ContentType.Password;
+            _passwordInput.ForceLabelUpdate();
+        }
+
+        private void OnPasswordChanged(string newText)
+        {
+            Debug.Log($"⌨ Введённый пароль изменён: {newText}");
+            _plainPassword = newText;
+        }
+
+        private void OnToggleShowPassword(bool isVisible)
+        {
+            Debug.Log($"🔁 Toggle пароль: {(isVisible ? "Показать" : "Скрыть")}");
             SetPasswordVisibility(isVisible);
+        }
 
         private void SetPasswordVisibility(bool isVisible)
         {
@@ -94,6 +125,8 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
 
         private void Logout()
         {
+            Debug.Log("🔘 Logout нажата");
+
             _auth.SignOut();
             ShowPopup("Вы вышли из аккаунта.");
 
@@ -103,13 +136,21 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
 
         private void ShowDeleteConfirmation()
         {
+            Debug.Log("🔘 Показать подтверждение удаления");
             _confirmDeletePanel.SetActive(true);
-            // Обновляем видимость сразу же, если toggle включён
             SetPasswordVisibility(_showPasswordToggle.isOn);
+        }
+
+        private void CancelDelete()
+        {
+            Debug.Log("🔘 Отмена удаления");
+            _confirmDeletePanel.SetActive(false);
         }
 
         private void ConfirmDelete()
         {
+            Debug.Log("🔘 Подтвердить удаление");
+
             if (string.IsNullOrWhiteSpace(_plainPassword))
             {
                 ShowPopup("Введите пароль для подтверждения.");
@@ -163,7 +204,6 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
                     }
                 });
         }
-
 
         private void DeleteFirebaseUser()
         {

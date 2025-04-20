@@ -7,53 +7,86 @@ using UnityEngine;
 
 namespace App.Develop.Scenes.PersonalAreaScene
 {
-    public class PersonalAreaManager : MonoBehaviour, IInjectable
+    public class PersonalAreaManager : MonoBehaviour
     {
         [SerializeField] private PersonalAreaUIController _ui;
 
         private PersonalAreaService _service;
         private SceneSwitcher _sceneSwitcher;
+        private MonoFactory _factory;
+        private IInjectable _injectableImplementation;
 
-        public void Inject(DIContainer container)
+        public void Inject(DIContainer container, MonoFactory factory)
         {
             _service = container.Resolve<PersonalAreaService>();
             _sceneSwitcher = container.Resolve<SceneSwitcher>();
+            _factory = factory;
 
+            InitializeUI();
+        }
+
+        private void InitializeUI()
+        {
             _ui.Initialize();
-            _ui.SetUsername("Username"); // TODO: Заменить на реальные данные
-            _ui.SetCurrentEmotion(null); // Пока нет спрайта эмоции
 
+            _ui.SetUsername("Username"); // TODO: подгрузить из профиля
+            _ui.SetCurrentEmotion(null); // TODO: или передать дефолтный Sprite
+
+            // Подписка на эмоции
             foreach (EmotionTypes type in Enum.GetValues(typeof(EmotionTypes)))
             {
-                if (type == EmotionTypes.Disgust) continue; // ❌ временно исключаем
-
                 var variable = _service.GetEmotionVariable(type);
                 _ui.SetJar(type, variable.Value.Value);
 
-                variable.Changed += (_, newData) => _ui.SetJar(type, newData.Value);
+                variable.Changed += (_, newData) =>
+                    _ui.SetJar(type, newData.Value);
             }
 
-            _ui.SetPoints(0);   // TODO: Заменить на реальные данные
-            _ui.SetEntries(0);  // TODO: Заменить на реальные данные
+            _ui.SetPoints(0); // TODO: заменить реальными данными
+            _ui.SetEntries(0); // TODO: заменить реальными данными
 
+            // Кнопки
             _ui.OnLogEmotion += () => Debug.Log("📝 Логируем эмоцию");
             _ui.OnOpenHistory += () => Debug.Log("📜 История");
             _ui.OnOpenFriends += () => Debug.Log("👥 Друзья");
-            _ui.OnOpenSettings += ShowSettingsPanel;
             _ui.OnOpenWorkshop += () => Debug.Log("🛠️ Мастерская");
+            _ui.OnOpenSettings += ShowSettingsPanel;
         }
+
+        private GameObject _settingsPanelInstance;
 
         private void ShowSettingsPanel()
         {
-            AccountDeletionManager settingsPrefab = Resources.Load<AccountDeletionManager>("UI/SettingsPanel");
-            if (settingsPrefab != null)
+            // 🔁 Если панель уже открыта — просто скрываем
+            if (_settingsPanelInstance != null)
             {
-                Instantiate(settingsPrefab);
+                bool isActive = _settingsPanelInstance.activeSelf;
+                _settingsPanelInstance.SetActive(!isActive);
+                Debug.Log(isActive ? "🔽 Панель настроек скрыта" : "🔼 Панель настроек показана");
+                return;
             }
-            else
+
+            Debug.Log("⚙️ Открываем панель настроек");
+
+            var prefab = Resources.Load<GameObject>("UI/DeletionAccountPanel");
+
+            if (prefab == null)
             {
-                Debug.LogError("❌ SettingsPanel префаб не найден в Resources/UI/SettingsPanel");
+                Debug.LogError("❌ Префаб SettingsPanel не найден в Resources/UI/DeletionAccountPanel");
+                return;
             }
+
+            _settingsPanelInstance = Instantiate(prefab);
+
+            var deletionManager = _settingsPanelInstance.GetComponentInChildren<AccountDeletionManager>();
+
+            if (deletionManager == null)
+            {
+                Debug.LogError("❌ AccountDeletionManager не найден на инстанцированном префабе");
+                return;
+            }
+
+            _factory.CreateOn<AccountDeletionManager>(deletionManager.gameObject);
         }
     }
 }

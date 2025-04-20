@@ -195,7 +195,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &8789127484849668025
 RectTransform:
   m_ObjectHideFlags: 0
@@ -215,9 +215,9 @@ RectTransform:
   - {fileID: 1470011383881891631}
   m_Father: {fileID: 8561630425211972028}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 540, y: -370}
   m_SizeDelta: {x: 600, y: 300}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &8309357425636873710
@@ -663,7 +663,7 @@ GameObject:
   - component: {fileID: 2201250188309715085}
   - component: {fileID: 530015579079993502}
   m_Layer: 0
-  m_Name: DeleteButton
+  m_Name: ShowDeleteButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -957,7 +957,7 @@ GameObject:
   - component: {fileID: 8677644081509111933}
   - component: {fileID: 4098416105421633699}
   m_Layer: 0
-  m_Name: ConfirmButton
+  m_Name: ConfirmDeleteButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1074,6 +1074,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8561630425211972028}
+  - component: {fileID: 5604839569225084360}
   - component: {fileID: 1119683211399869360}
   - component: {fileID: 3427113391377007498}
   m_Layer: 0
@@ -1106,6 +1107,27 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: -21.032959}
   m_SizeDelta: {x: 0, y: -1065.935}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &5604839569225084360
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3756966698244721863}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c835e4b5a054b5d4b9f3195139ce82cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _popupPanel: {fileID: 5685147921837913112}
+  _popupText: {fileID: 3520054206733479804}
+  _confirmDeletePanel: {fileID: 748059343739021792}
+  _logoutButton: {fileID: 7713886195294083724}
+  _showDeleteButton: {fileID: 5457350136702323698}
+  _cancelDeleteButton: {fileID: 228971165343962912}
+  _confirmDeleteButton: {fileID: 354439860826924256}
+  _showPasswordToggle: {fileID: 5999491032127932426}
+  _passwordInput: {fileID: 6718090504723052093}
 --- !u!225 &1119683211399869360
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -1603,7 +1625,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 509.50064, y: -150}
+  m_AnchoredPosition: {x: 540, y: -150}
   m_SizeDelta: {x: 600, y: 300}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &350814202122957087
@@ -1654,11 +1676,10 @@ GameObject:
   m_Component:
   - component: {fileID: 8334801755082006933}
   - component: {fileID: 401184197043811920}
-  - component: {fileID: 8014719708930443887}
   - component: {fileID: 8654358769066838125}
   - component: {fileID: 1318894234894936638}
   m_Layer: 0
-  m_Name: SettingsPanel
+  m_Name: DeletionAccountPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1707,27 +1728,6 @@ Canvas:
   m_SortingLayerID: 0
   m_SortingOrder: 0
   m_TargetDisplay: 0
---- !u!114 &8014719708930443887
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5711355644490029493}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c835e4b5a054b5d4b9f3195139ce82cb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _popupPanel: {fileID: 5685147921837913112}
-  _popupText: {fileID: 3520054206733479804}
-  _confirmDeletePanel: {fileID: 748059343739021792}
-  _logoutButton: {fileID: 7713886195294083724}
-  _showDeleteButton: {fileID: 5457350136702323698}
-  _cancelDeleteButton: {fileID: 228971165343962912}
-  _confirmDeleteButton: {fileID: 354439860826924256}
-  _showPasswordToggle: {fileID: 5999491032127932426}
-  _passwordInput: {fileID: 6718090504723052093}
 --- !u!114 &8654358769066838125
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2189,7 +2189,7 @@ GameObject:
   - component: {fileID: 118762128197937035}
   - component: {fileID: 2919478818546895843}
   m_Layer: 0
-  m_Name: CancelButton
+  m_Name: CancelDeleteButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
