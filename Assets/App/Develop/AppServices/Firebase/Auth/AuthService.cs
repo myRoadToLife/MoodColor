@@ -1,6 +1,9 @@
 using System;
 using System.Threading.Tasks;
 using Firebase.Auth;
+using Firebase.Database;
+using Firebase.Extensions;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace App.Develop.AppServices.Firebase.Auth
@@ -9,7 +12,7 @@ namespace App.Develop.AppServices.Firebase.Auth
     {
         private readonly FirebaseManager _firebaseManager;
         private FirebaseAuth _auth;
-
+        
         public AuthService(FirebaseManager firebaseManager)
         {
             _firebaseManager = firebaseManager;
@@ -31,6 +34,24 @@ namespace App.Develop.AppServices.Firebase.Auth
             {
                 Debug.LogError($"Error registering user: {e.Message}");
                 onError?.Invoke(e.Message);
+            }
+        }
+
+        private async Task CreateUserProfile(FirebaseUser user)
+        {
+            try
+            {
+                var userRef = _firebaseManager.GetUserReference(user.UserId);
+                await userRef.Child("profile").SetValueAsync(new
+                {
+                    email = user.Email,
+                    createdAt = DateTime.UtcNow.ToString("o"),
+                    isEmailVerified = false
+                });
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error creating user profile: {e.Message}");
             }
         }
 
@@ -76,24 +97,6 @@ namespace App.Develop.AppServices.Firebase.Auth
             {
                 Debug.LogError($"Error checking email verification: {e.Message}");
                 return false;
-            }
-        }
-
-        private async Task CreateUserProfile(FirebaseUser user)
-        {
-            try
-            {
-                var userRef = _firebaseManager.GetUserReference(user.UserId);
-                await userRef.Child("profile").SetValueAsync(new
-                {
-                    email = user.Email,
-                    createdAt = DateTime.UtcNow.ToString("o"),
-                    isEmailVerified = false
-                });
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Error creating user profile: {e.Message}");
             }
         }
     }
