@@ -1,4 +1,5 @@
 using App.Develop.AppServices.Auth.UI;
+using App.Develop.AppServices.Firebase.Auth;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
