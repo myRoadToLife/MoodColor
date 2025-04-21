@@ -52,10 +52,9 @@ namespace App.Develop.EntryPoint
 
         private void RegisterPersonalAreaServices(DIContainer projectContainer)
         {
-            _projectContainer.RegisterAsSingle(di =>
+            projectContainer.RegisterAsSingle<IPersonalAreaService>(di =>
                 new PersonalAreaService(di.Resolve<EmotionService>())
             ).NonLazy();
-
         }
 
         private void SetupAppSettings()
