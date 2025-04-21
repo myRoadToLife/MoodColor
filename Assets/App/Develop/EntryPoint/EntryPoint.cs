@@ -28,15 +28,16 @@ namespace App.Develop.EntryPoint
         {
             SetupAppSettings();
 
-            _projectContainer = new DIContainer();
+            var services = new ServiceCollection();
 
-            RegisterCoreServices(_projectContainer);
-            RegisterFirebase(_projectContainer);
-            RegisterAuthServices(_projectContainer);
-            RegisterPersonalAreaServices(_projectContainer);
+            RegisterCoreServices(services);
+            RegisterFirebase(services);
+            RegisterAuthServices(services);
+            RegisterPersonalAreaServices(services);
 
-            _projectContainer.Initialize();
+            _projectContainer = services.Build();
             
+            await _projectContainer.InitializeAsync();
             _projectContainer.Resolve<PlayerDataProvider>().Load();
 
             if (await InitFirebaseAsync())
@@ -50,11 +51,9 @@ namespace App.Develop.EntryPoint
             }
         }
 
-        private void RegisterPersonalAreaServices(DIContainer projectContainer)
+        private void RegisterPersonalAreaServices(ServiceCollection services)
         {
-            projectContainer.RegisterAsSingle<IPersonalAreaService>(di =>
-                new PersonalAreaService(di.Resolve<EmotionService>())
-            ).NonLazy();
+            services.AddSingleton<IPersonalAreaService, PersonalAreaService>();
         }
 
         private void SetupAppSettings()
@@ -70,21 +69,17 @@ namespace App.Develop.EntryPoint
             return task.Result == DependencyStatus.Available;
         }
 
-        private void RegisterCoreServices(DIContainer container)
+        private void RegisterCoreServices(ServiceCollection services)
         {
-            container.RegisterAsSingle(_ => new ResourcesAssetLoader());
-
-            container.RegisterAsSingle<ICoroutinePerformer>(di =>
+            services.AddSingleton<ResourcesAssetLoader>();
+            services.AddSingleton<ICoroutinePerformer>(di =>
                 Instantiate(di.Resolve<ResourcesAssetLoader>().LoadResource<CoroutinePerformer>(AssetPaths.CoroutinePerformer))
             );
-
-            container.RegisterAsSingle<ILoadingScreen>(di =>
+            services.AddSingleton<ILoadingScreen>(di =>
                 Instantiate(di.Resolve<ResourcesAssetLoader>().LoadResource<LoadingScreen>(AssetPaths.LoadingScreen))
             );
-
-            container.RegisterAsSingle<ISceneLoader>(_ => new SceneLoader());
-
-            container.RegisterAsSingle(di =>
+            services.AddSingleton<ISceneLoader, SceneLoader>();
+            services.AddSingleton(di =>
                 new SceneSwitcher(
                     di.Resolve<ICoroutinePerformer>(),
                     di.Resolve<ILoadingScreen>(),
@@ -92,54 +87,39 @@ namespace App.Develop.EntryPoint
                     di
                 )
             );
-
-            container.RegisterAsSingle<ISaveLoadService>(_ =>
+            services.AddSingleton<ISaveLoadService>(_ =>
                 new SaveLoadService(new JsonSerializer(), new LocalDataRepository()));
-
-            container.RegisterAsSingle(di =>
+            services.AddSingleton(di =>
                 new ConfigsProviderService(di.Resolve<ResourcesAssetLoader>())
             );
-
-            container.RegisterAsSingle(di =>
+            services.AddSingleton(di =>
                 new PlayerDataProvider(
                     di.Resolve<ISaveLoadService>(),
                     di.Resolve<ConfigsProviderService>()
                 )
             );
-
-            container.RegisterAsSingle(di =>
-                new EmotionService(di.Resolve<PlayerDataProvider>())
-            ).NonLazy();
-
-            container.RegisterAsSingle(_ => new FirestoreManager()).NonLazy();
-
-            container.RegisterAsSingle(di =>
+            services.AddSingleton<EmotionService>();
+            services.AddSingleton<FirestoreManager>();
+            services.AddSingleton(di =>
                 new PanelManager(
                     di.Resolve<ResourcesAssetLoader>(),
                     new MonoFactory(di)
                 )
-            ).NonLazy();
+            );
         }
 
-        private void RegisterFirebase(DIContainer container)
+        private void RegisterFirebase(ServiceCollection services)
         {
-            container.RegisterAsSingle<FirebaseAuth>(_ => FirebaseAuth.DefaultInstance).NonLazy();
-            container.RegisterAsSingle<FirebaseFirestore>(_ => FirebaseFirestore.DefaultInstance).NonLazy();
+            services.AddSingleton(_ => FirebaseAuth.DefaultInstance);
+            services.AddSingleton(_ => FirebaseFirestore.DefaultInstance);
         }
 
-        private void RegisterAuthServices(DIContainer container)
+        private void RegisterAuthServices(ServiceCollection services)
         {
-            container.RegisterAsSingle(_ => new ValidationService()).NonLazy();
-            container.RegisterAsSingle(_ => new CredentialStorage("UltraSecretKey!🔥")).NonLazy();
-
-            container.RegisterAsSingle(di =>
-                new AuthService(di.Resolve<FirebaseAuth>())
-            ).NonLazy();
-
-            container.RegisterAsSingle(di =>
-                new UserProfileService(di.Resolve<FirebaseFirestore>())
-            ).NonLazy();
+            services.AddSingleton(_ => new ValidationService());
+            services.AddSingleton(_ => new CredentialStorage("UltraSecretKey!🔥"));
+            services.AddSingleton<AuthService>();
+            services.AddSingleton<UserProfileService>();
         }
-        
     }
 }
