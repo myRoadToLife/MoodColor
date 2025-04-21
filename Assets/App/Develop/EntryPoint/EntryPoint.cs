@@ -9,6 +9,7 @@ using App.Develop.CommonServices.DataManagement.DataProviders;
 using App.Develop.CommonServices.Emotion;
 using App.Develop.CommonServices.LoadingScreen;
 using App.Develop.CommonServices.SceneManagement;
+using App.Develop.CommonServices.UI;
 using App.Develop.DI;
 using App.Develop.Scenes.PersonalAreaScene;
 using Firebase;
