@@ -1,92 +1,100 @@
-using Firebase.Auth;
-using Firebase.Database;
-using Firebase.Extensions;
 using System;
-using System.Collections.Generic;
+using System.Threading.Tasks;
+using Firebase.Auth;
 using UnityEngine;
 
-namespace App.Develop.AppServices.Auth
+namespace App.Develop.AppServices.Firebase.Auth
 {
     public class AuthService
     {
         private readonly FirebaseManager _firebaseManager;
-        
+        private FirebaseAuth _auth;
+
         public AuthService(FirebaseManager firebaseManager)
         {
             _firebaseManager = firebaseManager;
+            _auth = FirebaseAuth.DefaultInstance;
         }
 
-        public void RegisterUser(string email, string password, Action onSuccess, Action<string> onError)
+        public async Task RegisterUser(string email, string password, Action<FirebaseUser> onSuccess, Action<string> onError)
         {
-            _firebaseManager.Auth.CreateUserWithEmailAndPasswordAsync(email, password)
-                .ContinueWithOnMainThread(task =>
-                {
-                    if (task.IsFaulted || task.IsCanceled)
-                    {
-                        onError?.Invoke(task.Exception?.Flatten().InnerException?.Message);
-                        return;
-                    }
-
-                    var user = task.Result.User;
-                    CreateUserProfile(user.UserId, email);
-                    onSuccess?.Invoke();
-                });
-        }
-
-        private void CreateUserProfile(string userId, string email)
-        {
-            var userRef = _firebaseManager.GetUserReference(userId);
-            var userData = new Dictionary<string, object>
+            try
             {
-                { "email", email },
-                { "created_at", ServerValue.Timestamp },
-                { "total_points", 0 },
-                { "last_emotion", "" },
-                { "emotions", new Dictionary<string, object>() },
-                { "statistics", new Dictionary<string, object>() },
-                { "friends", new Dictionary<string, object>() },
-                { "customization", new Dictionary<string, object>() }
-            };
-
-            userRef.SetValueAsync(userData);
+                var result = await _auth.CreateUserWithEmailAndPasswordAsync(email, password);
+                if (result != null && result.User != null)
+                {
+                    await CreateUserProfile(result.User);
+                    onSuccess?.Invoke(result.User);
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error registering user: {e.Message}");
+                onError?.Invoke(e.Message);
+            }
         }
 
-        public void LoginUser(string email, string password, Action<FirebaseUser> onSuccess, Action<string> onError)
+        public async Task LoginUser(string email, string password, Action<FirebaseUser> onSuccess, Action<string> onError)
         {
-            _firebaseManager.Auth.SignInWithEmailAndPasswordAsync(email, password)
-                .ContinueWithOnMainThread(task =>
+            try
+            {
+                var result = await _auth.SignInWithEmailAndPasswordAsync(email, password);
+                if (result != null && result.User != null)
                 {
-                    if (task.IsFaulted || task.IsCanceled)
-                        onError?.Invoke(task.Exception?.Flatten().InnerException?.Message);
-                    else
-                        onSuccess?.Invoke(_firebaseManager.Auth.CurrentUser);
-                });
+                    onSuccess?.Invoke(result.User);
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error logging in: {e.Message}");
+                onError?.Invoke(e.Message);
+            }
         }
 
-        public void SendEmailVerification(Action onSuccess = null, Action onError = null)
+        public async Task SendEmailVerification(FirebaseUser user, Action onSuccess, Action<string> onError)
         {
-            var user = _firebaseManager.Auth.CurrentUser;
-            if (user == null) { onError?.Invoke(); return; }
-            user.SendEmailVerificationAsync()
-                .ContinueWithOnMainThread(task =>
-                {
-                    if (task.IsCompletedSuccessfully) onSuccess?.Invoke();
-                    else { Debug.LogError(task.Exception); onError?.Invoke(); }
-                });
+            try
+            {
+                await user.SendEmailVerificationAsync();
+                onSuccess?.Invoke();
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error sending email verification: {e.Message}");
+                onError?.Invoke(e.Message);
+            }
         }
 
-        public void CheckEmailVerified(Action onVerified, Action onNotVerified)
+        public async Task<bool> CheckEmailVerified(FirebaseUser user)
         {
-            var user = _firebaseManager.Auth.CurrentUser;
-            if (user == null) { onNotVerified?.Invoke(); return; }
-            user.ReloadAsync()
-                .ContinueWithOnMainThread(task =>
+            try
+            {
+                await user.ReloadAsync();
+                return user.IsEmailVerified;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error checking email verification: {e.Message}");
+                return false;
+            }
+        }
+
+        private async Task CreateUserProfile(FirebaseUser user)
+        {
+            try
+            {
+                var userRef = _firebaseManager.GetUserReference(user.UserId);
+                await userRef.Child("profile").SetValueAsync(new
                 {
-                    if (task.IsCompletedSuccessfully && user.IsEmailVerified)
-                        onVerified?.Invoke();
-                    else
-                        onNotVerified?.Invoke();
+                    email = user.Email,
+                    createdAt = DateTime.UtcNow.ToString("o"),
+                    isEmailVerified = false
                 });
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error creating user profile: {e.Message}");
+            }
         }
     }
 }

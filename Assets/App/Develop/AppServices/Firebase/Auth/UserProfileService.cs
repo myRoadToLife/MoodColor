@@ -1,10 +1,10 @@
-using Firebase.Database;
-using Firebase.Extensions;
 using System;
 using System.Collections.Generic;
+using Firebase.Database;
+using Firebase.Extensions;
 using UnityEngine;
 
-namespace App.Develop.AppServices.Auth
+namespace App.Develop.AppServices.Firebase.Auth
 {
     public class UserProfileService
     {
@@ -57,6 +57,37 @@ namespace App.Develop.AppServices.Auth
         }
 
         public bool IsProfileComplete() => _isProfileComplete;
+        
+        public void CheckUserProfileFilled(string userId, Action onProfileIncomplete, Action onProfileComplete)
+        {
+            var userRef = _firebaseManager.GetUserReference(userId);
+            userRef.GetValueAsync().ContinueWithOnMainThread(task =>
+            {
+                if (task.IsFaulted || task.IsCanceled)
+                {
+                    Debug.LogError("Failed to check profile: " + task.Exception?.Message);
+                    onProfileIncomplete?.Invoke();
+                    return;
+                }
+
+                var snapshot = task.Result;
+                if (!snapshot.Exists)
+                {
+                    onProfileIncomplete?.Invoke();
+                    return;
+                }
+
+                var profile = snapshot.Value as Dictionary<string, object>;
+                if (CheckProfileCompleteness(profile))
+                {
+                    onProfileComplete?.Invoke();
+                }
+                else
+                {
+                    onProfileIncomplete?.Invoke();
+                }
+            });
+        }
 
         public void UpdateProfile(string userId, Dictionary<string, object> updates, Action onSuccess, Action<string> onError)
         {

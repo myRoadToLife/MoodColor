@@ -1,8 +1,10 @@
+using App.Develop.AppServices.Auth;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
+using Firebase.Auth;
 using UnityEngine;
 
-namespace App.Develop.AppServices.Auth
+namespace App.Develop.AppServices.Firebase.Auth
 {
     public class AuthManager : MonoBehaviour, IInjectable
     {
@@ -37,7 +39,7 @@ namespace App.Develop.AppServices.Auth
             _uiController.LoadSavedCredentials(email, password, remember);
         }
 
-        public void RegisterUser(string email, string password, bool rememberMe)
+        public async void RegisterUser(string email, string password, bool rememberMe)
         {
             if (!_validationService.IsValidEmail(email))
             {
@@ -51,18 +53,23 @@ namespace App.Develop.AppServices.Auth
                 return;
             }
 
-            _authService.RegisterUser(email, password,
-                onSuccess: () =>
+            await _authService.RegisterUser(email, password,
+                onSuccess: user =>
                 {
+                    _uiController.SetCurrentUser(user);
                     _credentialStorage.SaveCredentials(email, password, rememberMe);
-                    _authService.SendEmailVerification();
-                    _uiController.ShowPopup("Регистрация успешна! Подтвердите email.");
-                    _uiController.ShowEmailVerificationPanel();
+                    _authService.SendEmailVerification(user,
+                        onSuccess: () =>
+                        {
+                            _uiController.ShowPopup("Регистрация успешна! Подтвердите email.");
+                            _uiController.ShowEmailVerificationPanel();
+                        },
+                        onError: error => _uiController.ShowPopup("Ошибка отправки письма: " + error));
                 },
                 onError: error => _uiController.ShowPopup("Ошибка регистрации: " + error));
         }
 
-        public void LoginUser(string email, string password, bool rememberMe)
+        public async void LoginUser(string email, string password, bool rememberMe)
         {
             if (!_validationService.IsValidEmail(email))
             {
@@ -70,16 +77,18 @@ namespace App.Develop.AppServices.Auth
                 return;
             }
 
-            _authService.LoginUser(email, password,
+            await _authService.LoginUser(email, password,
                 onSuccess: user =>
                 {
+                    _uiController.SetCurrentUser(user);
                     _credentialStorage.SaveCredentials(email, password, rememberMe);
 
                     if (!user.IsEmailVerified)
                     {
                         _uiController.ShowPopup("Подтвердите email перед входом. Письмо отправлено повторно.");
-                        _authService.SendEmailVerification();
-                        _uiController.ShowEmailVerificationPanel();
+                        _authService.SendEmailVerification(user,
+                            onSuccess: () => _uiController.ShowEmailVerificationPanel(),
+                            onError: error => _uiController.ShowPopup("Ошибка отправки письма: " + error));
                         return;
                     }
 
@@ -88,16 +97,18 @@ namespace App.Develop.AppServices.Auth
                 onError: error => _uiController.ShowPopup("Ошибка входа: " + error));
         }
 
-        public void CheckEmailVerification()
+        public async void CheckEmailVerification(FirebaseUser user)
         {
-            _authService.CheckEmailVerified(
-                onVerified: () =>
-                {
-                    _uiController.ShowPopup("Email подтверждён!");
-                    _uiController.ShowProfilePanel();
-                },
-                onNotVerified: () => _uiController.ShowPopup("Email пока не подтверждён.")
-            );
+            var isVerified = await _authService.CheckEmailVerified(user);
+            if (isVerified)
+            {
+                _uiController.ShowPopup("Email подтверждён!");
+                _uiController.ShowProfilePanel();
+            }
+            else
+            {
+                _uiController.ShowPopup("Email пока не подтверждён.");
+            }
         }
 
         private void CheckUserProfileFilled(string uid)
@@ -111,17 +122,9 @@ namespace App.Develop.AppServices.Auth
                 onProfileComplete: () =>
                 {
                     _uiController.ShowPopup("Вход выполнен!");
-
                     _sceneSwitcher.ProcessSwitchSceneFor(
                         new OutputAuthSceneArgs(new PersonalAreaInputArgs()));
                 });
-        }
-
-        public void SendEmailVerification()
-        {
-            _authService.SendEmailVerification(
-                onSuccess: () => _uiController.ShowPopup("Письмо отправлено. Проверьте почту."),
-                onError: () => _uiController.ShowPopup("Ошибка при отправке письма."));
         }
 
         public void ClearStoredCredentials()

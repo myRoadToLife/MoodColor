@@ -13,15 +13,43 @@ namespace App.Develop.CommonServices.Emotion
 
         public EmotionService(PlayerDataProvider playerDataProvider)
         {
+            // Инициализация всех типов эмоций
+            foreach (EmotionTypes type in Enum.GetValues(typeof(EmotionTypes)))
+            {
+                _emotions[type] = new ReactiveVariable<EmotionData>(new EmotionData
+                {
+                    Value = 0,
+                    Color = GetDefaultColorForEmotion(type)
+                });
+            }
             playerDataProvider.RegisterWriter(this);
             playerDataProvider.RegisterReader(this);
+        }
+        
+        private Color GetDefaultColorForEmotion(EmotionTypes type)
+        {
+            return type switch
+            {
+                EmotionTypes.Joy => Color.yellow,
+                EmotionTypes.Sadness => Color.blue,
+                EmotionTypes.Anger => Color.red,
+                EmotionTypes.Fear => Color.gray,
+                EmotionTypes.Disgust => Color.magenta,
+                _ => Color.white
+            };
         }
 
         public List<EmotionTypes> AvailableEmotions => _emotions.Keys.ToList();
 
         public IReadOnlyVariable<EmotionData> GetEmotion(EmotionTypes type)
-            => _emotions[type];
-
+        {
+            if (!_emotions.ContainsKey(type))
+            {
+                Debug.LogError($"Emotion type {type} not found in dictionary");
+                return null;
+            }
+            return _emotions[type];
+        }
         public bool HasEnough(EmotionTypes type, int amount)
             => _emotions[type].Value.Value >= amount;
 

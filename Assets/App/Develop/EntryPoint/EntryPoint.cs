@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using App.Develop.AppServices.Auth;
 using App.Develop.AppServices.Firebase;
+using App.Develop.AppServices.Firebase.Auth;
 using App.Develop.CommonServices.AssetManagement;
 using App.Develop.CommonServices.ConfigsManagement;
 using App.Develop.CommonServices.CoroutinePerformer;
@@ -13,9 +14,6 @@ using App.Develop.CommonServices.UI;
 using App.Develop.DI;
 using App.Develop.Scenes.PersonalAreaScene;
 using Firebase;
-using Firebase.Auth;
-using Firebase.Extensions;
-using Firebase.Firestore;
 using UnityEngine;
 
 namespace App.Develop.EntryPoint
@@ -29,16 +27,12 @@ namespace App.Develop.EntryPoint
         {
             SetupAppSettings();
 
-            var services = new ServiceCollection();
-
-            RegisterCoreServices(services);
-            RegisterFirebase(services);
-            RegisterAuthServices(services);
-            RegisterPersonalAreaServices(services);
-
-            _projectContainer = services.Build();
+            _projectContainer = new DIContainer();
             
-            await _projectContainer.InitializeAsync();
+            RegisterCoreServices();
+            RegisterPersonalAreaServices();
+
+            _projectContainer.Initialize();
             _projectContainer.Resolve<PlayerDataProvider>().Load();
 
             if (await InitFirebaseAsync())
@@ -52,9 +46,13 @@ namespace App.Develop.EntryPoint
             }
         }
 
-        private void RegisterPersonalAreaServices(ServiceCollection services)
+        private void RegisterPersonalAreaServices()
         {
-            services.AddSingleton<IPersonalAreaService, PersonalAreaService>();
+            _projectContainer.RegisterAsSingle<IPersonalAreaService>(di =>
+                new PersonalAreaService(
+                    di.Resolve<EmotionService>()
+                )
+            );
         }
 
         private void SetupAppSettings()
@@ -70,21 +68,49 @@ namespace App.Develop.EntryPoint
             return task.Result == DependencyStatus.Available;
         }
 
-        private void RegisterCoreServices(ServiceCollection services)
+        private void RegisterCoreServices()
         {
-            services.AddSingleton<ResourcesAssetLoader>();
+            // Базовые сервисы
+            _projectContainer.RegisterAsSingle<ResourcesAssetLoader>(_ => new ResourcesAssetLoader());
             
-            services.AddSingleton<ICoroutinePerformer>(di =>
+            // Сервисы для работы с данными
+            _projectContainer.RegisterAsSingle<ISaveLoadService>(_ =>
+                new SaveLoadService(new JsonSerializer(), new LocalDataRepository()));
+
+            _projectContainer.RegisterAsSingle(di =>
+                new ConfigsProviderService(di.Resolve<ResourcesAssetLoader>())
+            );
+
+            // Firebase сервисы
+            _projectContainer.RegisterAsSingle<FirebaseManager>(_ => new FirebaseManager());
+            _projectContainer.RegisterAsSingle<ValidationService>(_ => new ValidationService());
+            _projectContainer.RegisterAsSingle(_ => new CredentialStorage("UltraSecretKey!🔥"));
+            _projectContainer.RegisterAsSingle(di => new AuthService(di.Resolve<FirebaseManager>()));
+            _projectContainer.RegisterAsSingle(di => new UserProfileService(di.Resolve<FirebaseManager>()));
+
+            // Сервисы для работы с данными игрока
+            _projectContainer.RegisterAsSingle(di =>
+                new PlayerDataProvider(
+                    di.Resolve<ISaveLoadService>(),
+                    di.Resolve<ConfigsProviderService>()
+                )
+            );
+
+            _projectContainer.RegisterAsSingle(di => new EmotionService(di.Resolve<PlayerDataProvider>()));
+            _projectContainer.RegisterAsSingle(di => new PersonalAreaService(di.Resolve<EmotionService>()));
+
+            // UI и сценовые сервисы
+            _projectContainer.RegisterAsSingle<ICoroutinePerformer>(di =>
                 Instantiate(di.Resolve<ResourcesAssetLoader>().LoadResource<CoroutinePerformer>(AssetPaths.CoroutinePerformer))
             );
-            
-            services.AddSingleton<ILoadingScreen>(di =>
+
+            _projectContainer.RegisterAsSingle<ILoadingScreen>(di =>
                 Instantiate(di.Resolve<ResourcesAssetLoader>().LoadResource<LoadingScreen>(AssetPaths.LoadingScreen))
             );
-            
-            services.AddSingleton<ISceneLoader, SceneLoader>();
-            
-            services.AddSingleton(di =>
+
+            _projectContainer.RegisterAsSingle<ISceneLoader>(_ => new SceneLoader());
+
+            _projectContainer.RegisterAsSingle(di =>
                 new SceneSwitcher(
                     di.Resolve<ICoroutinePerformer>(),
                     di.Resolve<ILoadingScreen>(),
@@ -92,26 +118,8 @@ namespace App.Develop.EntryPoint
                     di
                 )
             );
-            
-            services.AddSingleton<ISaveLoadService>(_ =>
-                new SaveLoadService(new JsonSerializer(), new LocalDataRepository()));
-            
-            services.AddSingleton(di =>
-                new ConfigsProviderService(di.Resolve<ResourcesAssetLoader>())
-            );
-            
-            services.AddSingleton(di =>
-                new PlayerDataProvider(
-                    di.Resolve<ISaveLoadService>(),
-                    di.Resolve<ConfigsProviderService>()
-                )
-            );
-            
-            services.AddSingleton<EmotionService>();
-            
-            services.AddSingleton<FirestoreManager>();
-            
-            services.AddSingleton(di =>
+
+            _projectContainer.RegisterAsSingle(di =>
                 new PanelManager(
                     di.Resolve<ResourcesAssetLoader>(),
                     new MonoFactory(di)
@@ -119,20 +127,9 @@ namespace App.Develop.EntryPoint
             );
         }
 
-        private void RegisterFirebase(ServiceCollection services)
+        private void OnDestroy()
         {
-            services.AddSingleton(_ => FirebaseAuth.DefaultInstance);
-            services.AddSingleton(_ => FirebaseFirestore.DefaultInstance);
-        }
-
-        private void RegisterAuthServices(ServiceCollection services)
-        {
-            services.AddSingleton(_ => new ValidationService());
-            services.AddSingleton(_ => new CredentialStorage("UltraSecretKey!🔥"));
-            
-            services.AddSingleton<AuthService>();
-            
-            services.AddSingleton<UserProfileService>();
+            _projectContainer?.Dispose();
         }
     }
 }
