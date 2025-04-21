@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace App.Develop.DI
 {
     public class DIContainer : IDisposable
     {
-        private readonly Dictionary<Type, ServiceDescriptor> _descriptors = new Dictionary<Type, ServiceDescriptor>();
-        private readonly Dictionary<Type, object> _instances = new Dictionary<Type, object>();
+        private readonly Dictionary<Type, Registration> _container = new Dictionary<Type, Registration>();
+
         private readonly DIContainer _parent;
+
         private readonly List<Type> _request = new List<Type>();
 
         public DIContainer() : this(null)
@@ -17,115 +17,92 @@ namespace App.Develop.DI
 
         public DIContainer(DIContainer parent) => _parent = parent;
 
-        public void Register(ServiceDescriptor descriptor)
+        public Registration RegisterAsSingle <T>(Func<DIContainer, T> factory)
         {
-            if (_descriptors.ContainsKey(descriptor.ServiceType))
-                throw new InvalidOperationException($"Service {descriptor.ServiceType} is already registered.");
+            if (IsAlreadyRegistered<T>())
+                throw new InvalidOperationException($"The type {typeof(T)} is already registered.");
 
-            _descriptors[descriptor.ServiceType] = descriptor;
+            Registration registration = new Registration(container => factory(container));
+            _container[typeof(T)] = registration;
+            return registration;
         }
 
-        public T Resolve<T>()
+        private bool IsAlreadyRegistered <T>()
+        {
+            if (_container.ContainsKey(typeof(T)))
+                return true;
+
+            if (_parent != null)
+                return _parent.IsAlreadyRegistered<T>();
+
+            return false;
+        }
+
+        public T Resolve <T>()
         {
             if (_request.Contains(typeof(T)))
-                throw new InvalidOperationException($"Cycle detected while resolving {typeof(T)}");
+                throw new InvalidOperationException($"The type {typeof(T)} is cycle resolving.");
 
             _request.Add(typeof(T));
 
             try
             {
-                if (_instances.TryGetValue(typeof(T), out var instance))
-                    return (T)instance;
-
-                if (_descriptors.TryGetValue(typeof(T), out var descriptor))
-                {
-                    var resolved = CreateInstance(descriptor);
-                    if (descriptor.Lifetime == ServiceLifetime.Singleton)
-                        _instances[typeof(T)] = resolved;
-                    return (T)resolved;
-                }
+                if (_container.TryGetValue(typeof(T), out Registration registration))
+                    return CreateFrom<T>(registration);
 
                 if (_parent != null)
                     return _parent.Resolve<T>();
-
-                throw new InvalidOperationException($"Service {typeof(T)} is not registered.");
             }
             finally
             {
                 _request.Remove(typeof(T));
             }
-        }
 
-        private object CreateInstance(ServiceDescriptor descriptor)
-        {
-            if (descriptor.ImplementationInstance != null)
-                return descriptor.ImplementationInstance;
-
-            if (descriptor.ImplementationFactory != null)
-                return descriptor.ImplementationFactory(this);
-
-            var type = descriptor.ImplementationType;
-            var constructors = type.GetConstructors();
-
-            if (constructors.Length == 0)
-                throw new InvalidOperationException($"No public constructor found for {type}");
-
-            var constructor = constructors[0];
-            var parameters = constructor.GetParameters();
-            var args = new object[parameters.Length];
-
-            for (int i = 0; i < parameters.Length; i++)
-            {
-                var parameterType = parameters[i].ParameterType;
-                args[i] = Resolve(parameterType);
-            }
-
-            return constructor.Invoke(args);
-        }
-
-        private object Resolve(Type type)
-        {
-            var method = typeof(DIContainer).GetMethod(nameof(Resolve)).MakeGenericMethod(type);
-            return method.Invoke(this, null);
-        }
-
-        public async Task InitializeAsync()
-        {
-            foreach (var descriptor in _descriptors.Values)
-            {
-                if (descriptor.Lifetime == ServiceLifetime.Singleton)
-                {
-                    var instance = Resolve(descriptor.ServiceType);
-                    if (instance is IAsyncInitializable asyncInitializable)
-                        await asyncInitializable.InitializeAsync();
-                    else if (instance is IInitializable initializable)
-                        initializable.Initialize();
-                }
-            }
+            throw new InvalidOperationException($"The type {typeof(T)} is not registered.");
         }
 
         public void Initialize()
         {
-            foreach (var descriptor in _descriptors.Values)
+            foreach (Registration registration in _container.Values)
             {
-                if (descriptor.Lifetime == ServiceLifetime.Singleton)
-                {
-                    var instance = Resolve(descriptor.ServiceType);
-                    if (instance is IInitializable initializable)
+                if (registration.Instance == null && registration.IsNonLazy)
+                    registration.Instance = registration.Factory(this);
+
+                if (registration.Instance != null)
+                    if (registration.Instance is IInitializable initializable)
                         initializable.Initialize();
-                }
             }
         }
 
         public void Dispose()
         {
-            foreach (var instance in _instances.Values)
+            foreach (Registration registration in _container.Values)
             {
-                if (instance is IDisposable disposable)
-                    disposable.Dispose();
+                if (registration.Instance != null)
+                    if (registration.Instance is IDisposable disposable)
+                        disposable.Dispose();
             }
-            _instances.Clear();
-            _descriptors.Clear();
+        }
+
+        private T CreateFrom <T>(Registration registration)
+        {
+            if (registration.Instance == null && registration.Factory != null)
+                registration.Instance = registration.Factory(this);
+
+            return (T)registration.Instance;
+        }
+
+        public class Registration
+        {
+            public Func<DIContainer, object> Factory { get; }
+            public object Instance { get; set; }
+
+            public bool IsNonLazy { get; private set; }
+
+            public Registration(object instance) => Instance = instance;
+            public Registration(Func<DIContainer, object> factory) => Factory = factory;
+
+            public void NonLazy() => IsNonLazy = true;
         }
     }
 }

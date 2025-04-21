@@ -73,13 +73,17 @@ namespace App.Develop.EntryPoint
         private void RegisterCoreServices(ServiceCollection services)
         {
             services.AddSingleton<ResourcesAssetLoader>();
+            
             services.AddSingleton<ICoroutinePerformer>(di =>
                 Instantiate(di.Resolve<ResourcesAssetLoader>().LoadResource<CoroutinePerformer>(AssetPaths.CoroutinePerformer))
             );
+            
             services.AddSingleton<ILoadingScreen>(di =>
                 Instantiate(di.Resolve<ResourcesAssetLoader>().LoadResource<LoadingScreen>(AssetPaths.LoadingScreen))
             );
+            
             services.AddSingleton<ISceneLoader, SceneLoader>();
+            
             services.AddSingleton(di =>
                 new SceneSwitcher(
                     di.Resolve<ICoroutinePerformer>(),
@@ -88,19 +92,25 @@ namespace App.Develop.EntryPoint
                     di
                 )
             );
+            
             services.AddSingleton<ISaveLoadService>(_ =>
                 new SaveLoadService(new JsonSerializer(), new LocalDataRepository()));
+            
             services.AddSingleton(di =>
                 new ConfigsProviderService(di.Resolve<ResourcesAssetLoader>())
             );
+            
             services.AddSingleton(di =>
                 new PlayerDataProvider(
                     di.Resolve<ISaveLoadService>(),
                     di.Resolve<ConfigsProviderService>()
                 )
             );
+            
             services.AddSingleton<EmotionService>();
+            
             services.AddSingleton<FirestoreManager>();
+            
             services.AddSingleton(di =>
                 new PanelManager(
                     di.Resolve<ResourcesAssetLoader>(),
@@ -119,7 +129,9 @@ namespace App.Develop.EntryPoint
         {
             services.AddSingleton(_ => new ValidationService());
             services.AddSingleton(_ => new CredentialStorage("UltraSecretKey!🔥"));
+            
             services.AddSingleton<AuthService>();
+            
             services.AddSingleton<UserProfileService>();
         }
     }
