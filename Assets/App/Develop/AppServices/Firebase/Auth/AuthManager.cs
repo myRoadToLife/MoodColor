@@ -1,9 +1,8 @@
-using App.Develop.AppServices.Auth;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
 using UnityEngine;
 
-namespace App.Develop.AppServices.Firebase.Auth
+namespace App.Develop.AppServices.Auth
 {
     public class AuthManager : MonoBehaviour, IInjectable
     {
