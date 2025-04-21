@@ -1,9 +1,10 @@
-using App.Develop.AppServices.Auth.UI;
+using App.Develop.AppServices.Firebase.Auth.UI;
+using Firebase.Auth;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace App.Develop.AppServices.Auth
+namespace App.Develop.AppServices.Firebase.Auth
 {
     public class AuthUIController : MonoBehaviour
     {
@@ -22,6 +23,7 @@ namespace App.Develop.AppServices.Auth
         [SerializeField] private TMP_Text _popupText;
 
         private AuthManager _authManager;
+        private FirebaseUser _currentUser;
 
         public void Initialize(AuthManager authManager)
         {
@@ -96,17 +98,38 @@ namespace App.Develop.AppServices.Auth
 
         public void OnCheckEmailVerifiedButtonClicked()
         {
-            _authManager.CheckEmailVerification();
+            if (_currentUser != null)
+            {
+                _authManager.CheckEmailVerification(_currentUser);
+            }
+            else
+            {
+                ShowPopup("Пользователь не авторизован");
+            }
         }
 
         public void OnSendVerificationEmailButtonClicked()
         {
-            _authManager.SendEmailVerification();
+            if (_currentUser != null)
+            {
+                _authManager.SendEmailVerification(_currentUser,
+                    onSuccess: () => ShowPopup("Письмо отправлено. Проверьте почту."),
+                    onError: error => ShowPopup("Ошибка при отправке письма: " + error));
+            }
+            else
+            {
+                ShowPopup("Пользователь не авторизован");
+            }
         }
 
         public void OnClearCredentialsButtonClicked()
         {
             _authManager.ClearStoredCredentials();
+        }
+
+        public void SetCurrentUser(FirebaseUser user)
+        {
+            _currentUser = user;
         }
     }
 }

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace App.Develop.AppServices.Auth
+namespace App.Develop.AppServices.Firebase.Auth
 {
     public class CredentialStorage
     {
