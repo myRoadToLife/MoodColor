@@ -112,6 +112,13 @@ namespace App.Develop.EntryPoint
             ).NonLazy();
 
             container.RegisterAsSingle(_ => new FirestoreManager()).NonLazy();
+
+            container.RegisterAsSingle(di =>
+                new PanelManager(
+                    di.Resolve<ResourcesAssetLoader>(),
+                    new MonoFactory(di)
+                )
+            ).NonLazy();
         }
 
         private void RegisterFirebase(DIContainer container)

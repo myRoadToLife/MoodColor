@@ -1,6 +1,7 @@
 using System;
 using App.Develop.CommonServices.Emotion;
 using App.Develop.CommonServices.SceneManagement;
+using App.Develop.CommonServices.UI;
 using App.Develop.DI;
 using App.Develop.Scenes.PersonalAreaScene.Settings;
 using UnityEngine;
@@ -10,12 +11,14 @@ namespace App.Develop.Scenes.PersonalAreaScene
     public class PersonalAreaManager : MonoBehaviour
     {
         private const string DEFAULT_USERNAME = "Username";
+        private const string SETTINGS_PANEL_PATH = "UI/DeletionAccountPanel";
 
         [SerializeField] private PersonalAreaUIController _ui;
 
         private IPersonalAreaService _service;
         private SceneSwitcher _sceneSwitcher;
         private MonoFactory _factory;
+        private PanelManager _panelManager;
 
         public void Inject(DIContainer container, MonoFactory factory)
         {
@@ -26,6 +29,7 @@ namespace App.Develop.Scenes.PersonalAreaScene
             _service = container.Resolve<IPersonalAreaService>();
             _sceneSwitcher = container.Resolve<SceneSwitcher>();
             _factory = factory;
+            _panelManager = container.Resolve<PanelManager>();
 
             InitializeUI();
         }
@@ -38,12 +42,27 @@ namespace App.Develop.Scenes.PersonalAreaScene
                 SetupUserProfile();
                 SetupEmotionJars();
                 SetupStatistics();
+                SetupButtons();
             }
             catch (Exception ex)
             {
                 Debug.LogError($"Ошибка при инициализации UI: {ex.Message}");
                 throw;
             }
+        }
+
+        private void SetupButtons()
+        {
+            _ui.OnLogEmotion += () => Debug.Log("📝 Логируем эмоцию");
+            _ui.OnOpenHistory += () => Debug.Log("📜 История");
+            _ui.OnOpenFriends += () => Debug.Log("👥 Друзья");
+            _ui.OnOpenWorkshop += () => Debug.Log("🛠️ Мастерская");
+            _ui.OnOpenSettings += ShowSettingsPanel;
+        }
+
+        private void ShowSettingsPanel()
+        {
+            _panelManager.ShowPanel<AccountDeletionManager>(SETTINGS_PANEL_PATH);
         }
 
         private void SetupUserProfile()
@@ -80,6 +99,13 @@ namespace App.Develop.Scenes.PersonalAreaScene
             {
                 _ui.ClearAll();
             }
+
+            // Отписываемся от событий
+            _ui.OnLogEmotion -= () => Debug.Log("📝 Логируем эмоцию");
+            _ui.OnOpenHistory -= () => Debug.Log("📜 История");
+            _ui.OnOpenFriends -= () => Debug.Log("👥 Друзья");
+            _ui.OnOpenWorkshop -= () => Debug.Log("🛠️ Мастерская");
+            _ui.OnOpenSettings -= ShowSettingsPanel;
         }
     }
 }
