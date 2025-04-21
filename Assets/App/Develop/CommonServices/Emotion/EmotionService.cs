@@ -22,20 +22,19 @@ namespace App.Develop.CommonServices.Emotion
                     Color = GetDefaultColorForEmotion(type)
                 });
             }
-
             playerDataProvider.RegisterWriter(this);
             playerDataProvider.RegisterReader(this);
         }
-
+        
         private Color GetDefaultColorForEmotion(EmotionTypes type)
         {
             return type switch
             {
-                EmotionTypes.Happiness => Color.yellow,
+                EmotionTypes.Joy => Color.yellow,
                 EmotionTypes.Sadness => Color.blue,
                 EmotionTypes.Anger => Color.red,
                 EmotionTypes.Fear => Color.gray,
-                EmotionTypes.Surprise => Color.magenta,
+                EmotionTypes.Disgust => Color.magenta,
                 _ => Color.white
             };
         }
@@ -51,7 +50,6 @@ namespace App.Develop.CommonServices.Emotion
             }
             return _emotions[type];
         }
-
         public bool HasEnough(EmotionTypes type, int amount)
             => _emotions[type].Value.Value >= amount;
 
@@ -108,6 +106,7 @@ namespace App.Develop.CommonServices.Emotion
             }
         }
 
+        // Новый метод для получения цвета эмоции
         public Color GetEmotionColor(EmotionTypes type)
         {
             return _emotions[type].Value.Color;

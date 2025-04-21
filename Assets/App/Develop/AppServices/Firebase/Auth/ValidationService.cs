@@ -1,6 +1,6 @@
 using System;
 
-namespace App.Develop.AppServices.Firebase.Auth
+namespace App.Develop.AppServices.Auth
 {
     public class ValidationService
     {
