@@ -8,78 +8,169 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
 {
     public class PlayerDataProvider : DataProvider<PlayerData>
     {
-        private ConfigsProviderService _configsProvider;
-        private PlayerData _cachedData;
+        private readonly ConfigsProviderService _configsProvider;
+        private PlayerData _cachedData; // Добавим кэшированные данные
 
         public PlayerDataProvider(ISaveLoadService saveLoadService,
             ConfigsProviderService configsProviderService) : base(saveLoadService)
         {
-            _configsProvider = configsProviderService;
+            _configsProvider = configsProviderService ?? throw new ArgumentNullException(nameof(configsProviderService));
         }
 
         protected override PlayerData GetOriginData()
         {
-            var newData = new PlayerData
+            try
             {
-                EmotionData = InitEmotionData()
-            };
-            return newData;
+                var data = new PlayerData
+                {
+                    EmotionData = InitEmotionData()
+                };
+                _cachedData = data; // Кэшируем данные
+                return data;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Ошибка при создании начальных данных: {ex.Message}");
+                // Возвращаем данные с пустым словарем эмоций, чтобы избежать NullReferenceException
+                var data = new PlayerData
+                {
+                    EmotionData = new Dictionary<EmotionTypes, EmotionData>()
+                };
+                _cachedData = data; // Кэшируем данные
+                return data;
+            }
         }
-        
-        // Новый метод для получения эмоций
+
         public List<EmotionData> GetEmotions()
         {
-            // Загружаем данные, если еще не загружены
-            if (_cachedData == null)
+            try
             {
-                Load();
-                _cachedData = new PlayerData();
-                
-                // Для каждого читателя
-                foreach (var reader in GetDataReaders())
+                // Загрузка данных, если не загружены
+                if (_cachedData == null)
                 {
-                    if (reader is EmotionService emotionService)
+                    Load();
+                    // Если _cachedData все еще null после загрузки,
+                    // создаем новые данные через GetOriginData
+                    if (_cachedData == null)
                     {
-                        // Загружаем данные из EmotionService в _cachedData
-                        emotionService.WriteTo(_cachedData);
+                        _cachedData = GetOriginData();
                     }
                 }
-            }
-            
-            // Преобразуем словарь эмоций в список
-            var result = new List<EmotionData>();
-            if (_cachedData.EmotionData != null)
-            {
-                foreach (var emotion in _cachedData.EmotionData.Values)
+                
+                // Создаем список для результата
+                var result = new List<EmotionData>();
+                
+                if (_cachedData?.EmotionData != null)
                 {
-                    result.Add(emotion);
+                    foreach (var pair in _cachedData.EmotionData)
+                    {
+                        if (pair.Value != null)
+                        {
+                            result.Add(pair.Value);
+                        }
+                    }
                 }
+                else
+                {
+                    Debug.LogWarning("⚠️ EmotionData отсутствуют или null!");
+                }
+                
+                return result;
             }
-            else
+            catch (Exception ex)
             {
-                Debug.LogWarning("⚠️ Данные эмоций не найдены. Возвращаем пустой список.");
+                Debug.LogError($"❌ Ошибка получения эмоций: {ex.Message}");
+                return new List<EmotionData>(); // Возвращаем пустой список
             }
-            
-            return result;
         }
 
         private Dictionary<EmotionTypes, EmotionData> InitEmotionData()
         {
             var emotionData = new Dictionary<EmotionTypes, EmotionData>();
 
-            foreach (EmotionTypes emotionType in Enum.GetValues(typeof(EmotionTypes)))
+            try
             {
-                var (value, color) = _configsProvider.StartEmotionConfig.GetStartValueFor(emotionType);
-                emotionData.Add(emotionType, new EmotionData
+                if (_configsProvider == null)
                 {
-                    Type = emotionType.ToString(),
-                    Value = value,
-                    Color = color,
-                    Intensity = 0
-                });
+                    Debug.LogError("❌ ConfigsProvider is null!");
+                    throw new NullReferenceException("ConfigsProvider is null");
+                }
+
+                if (_configsProvider.StartEmotionConfig == null)
+                {
+                    Debug.LogError("❌ StartEmotionConfig is null!");
+                    throw new NullReferenceException("StartEmotionConfig is null");
+                }
+
+                foreach (EmotionTypes emotionType in Enum.GetValues(typeof(EmotionTypes)))
+                {
+                    try
+                    {
+                        var (value, color) = _configsProvider.StartEmotionConfig.GetStartValueFor(emotionType);
+                        
+                        var newEmotionData = new EmotionData
+                        {
+                            Type = emotionType.ToString(),
+                            Value = value,
+                            Intensity = 0,
+                            Color = color // Прямое присвоение цвета
+                        };
+                        
+                        emotionData.Add(emotionType, newEmotionData);
+                        
+                        Debug.Log($"✅ Эмоция {emotionType} успешно добавлена в InitEmotionData");
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogError($"❌ Ошибка при добавлении эмоции {emotionType}: {ex.Message}");
+                        
+                        // Добавляем эмоцию с дефолтными значениями
+                        var defaultEmotionData = new EmotionData
+                        {
+                            Type = emotionType.ToString(),
+                            Value = 0,
+                            Intensity = 0,
+                            Color = Color.white
+                        };
+                        
+                        emotionData.Add(emotionType, defaultEmotionData);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Критическая ошибка в InitEmotionData: {ex.Message}");
+                
+                // Создаем базовые эмоции с дефолтными значениями
+                foreach (EmotionTypes emotionType in Enum.GetValues(typeof(EmotionTypes)))
+                {
+                    var defaultEmotionData = new EmotionData
+                    {
+                        Type = emotionType.ToString(),
+                        Value = 0,
+                        Intensity = 0,
+                        Color = Color.white
+                    };
+                    
+                    emotionData.Add(emotionType, defaultEmotionData);
+                }
             }
 
             return emotionData;
+        }
+
+        // Переопределяем метод Load для обновления кэшированных данных
+        public new void Load()
+        {
+            base.Load();
+            // Здесь можно добавить код для обновления _cachedData, если есть доступ к загруженным данным
+        }
+
+        // Переопределяем метод Save для обновления кэшированных данных
+        public new void Save()
+        {
+            base.Save();
+            // Здесь можно добавить код для обновления _cachedData после сохранения
         }
     }
 }

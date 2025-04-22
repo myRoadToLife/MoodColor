@@ -1,5 +1,11 @@
 {
   "dependencies": {
+    "com.google.external-dependency-manager": "file:F:/MoodColor/Firebase/com.google.external-dependency-manager-1.2.185 (3).tgz",
+    "com.google.firebase.analytics": "file:F:/MoodColor/Firebase/com.google.firebase.analytics-12.8.0 (1).tgz",
+    "com.google.firebase.app": "file:F:/MoodColor/Firebase/com.google.firebase.app-12.8.0 (1).tgz",
+    "com.google.firebase.auth": "file:F:/MoodColor/Firebase/com.google.firebase.auth-12.8.0 (1).tgz",
+    "com.google.firebase.database": "file:F:/MoodColor/Firebase/com.google.firebase.database-12.8.0.tgz",
+    "com.google.firebase.remote-config": "file:F:/MoodColor/Firebase/com.google.firebase.remote-config-12.8.0 (1).tgz",
     "com.unity.ai.navigation": "2.0.6",
     "com.unity.collab-proxy": "2.7.1",
     "com.unity.ide.rider": "3.0.36",

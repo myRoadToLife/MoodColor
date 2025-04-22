@@ -189,7 +189,7 @@ namespace App.Develop.EntryPoint
                 // Сервис конфигураций
                 container.RegisterAsSingle(container =>
                     new ConfigsProviderService(container.Resolve<ResourcesAssetLoader>())
-                );
+                ).NonLazy();
 
                 // Провайдер данных игрока
                 container.RegisterAsSingle(container =>

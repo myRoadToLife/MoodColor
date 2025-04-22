@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using App.Develop.CommonServices.Emotion;
+using App.Develop.CommonServices.DataManagement;
 using Newtonsoft.Json;
 using UnityEngine;
 using App.Develop.CommonServices.DataManagement.DataProviders;
@@ -22,7 +23,6 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
         [JsonProperty("intensity")]
         public int Intensity { get; set; }
 
-        [JsonConverter(typeof(ColorHexConverter))]
         [JsonProperty("colorHex")]
         public string ColorHex { get; set; }
 
@@ -35,22 +35,15 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
         [JsonProperty("timestamp")]
         public long Timestamp { get; set; }
 
-        [JsonIgnore]
-        public Color Color
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(ColorHex)) return Color.clear;
-                ColorUtility.TryParseHtmlString(ColorHex, out Color color);
-                return color;
-            }
-            set => ColorHex = "#" + ColorUtility.ToHtmlStringRGBA(value);
-        }
+        [JsonProperty("color")]
+        [JsonConverter(typeof(ColorHexConverter))]
+        public Color Color { get; set; }
 
         public EmotionData()
         {
             Id = Guid.NewGuid().ToString();
             Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            Color = Color.white;
         }
 
         public EmotionData(string type, int intensity = 0, int value = 0, string note = null, Color? color = null, string regionId = null)
@@ -60,7 +53,7 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
             Intensity = intensity;
             Value = value;
             Note = note;
-            Color = color ?? Color.clear;
+            Color = color ?? Color.white;
             RegionId = regionId;
             Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         }

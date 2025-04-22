@@ -1,15 +1,37 @@
 using App.Develop.CommonServices.AssetManagement;
 using App.Develop.Configs.Common.Emotion;
+using UnityEngine;
+using System;
 
 namespace App.Develop.CommonServices.ConfigsManagement
 {
     public class ConfigsProviderService
     {
-        private ResourcesAssetLoader _resourcesAssetLoader;
+        private ResourcesAssetLoader _resourcesLoader;
 
-        public ConfigsProviderService(ResourcesAssetLoader resourcesAssetLoader)
+        public ConfigsProviderService(ResourcesAssetLoader resourcesLoader)
         {
-            _resourcesAssetLoader = resourcesAssetLoader;
+            try
+            {
+                _resourcesLoader = resourcesLoader ?? throw new ArgumentNullException(nameof(resourcesLoader));
+                
+                // Загружаем конфигурацию эмоций
+                StartEmotionConfig = _resourcesLoader.LoadResource<StartEmotionConfig>("Configs/Common/Emotion/StartEmotionConfig");
+                
+                if (StartEmotionConfig == null)
+                {
+                    Debug.LogError("❌ StartEmotionConfig не найден в ресурсах!");
+                }
+                else
+                {
+                    Debug.Log("✅ StartEmotionConfig успешно загружен");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Ошибка инициализации ConfigsProviderService: {ex.Message}");
+                throw;
+            }
         }
 
         public StartEmotionConfig StartEmotionConfig { get; private set; }
@@ -21,6 +43,6 @@ namespace App.Develop.CommonServices.ConfigsManagement
         }
 
         private void LoadStartEmotionConfig()
-            => StartEmotionConfig = _resourcesAssetLoader.LoadResource<StartEmotionConfig>("Configs/Common/Emotion/StartEmotionConfig");
+            => StartEmotionConfig = _resourcesLoader.LoadResource<StartEmotionConfig>("Configs/Common/Emotion/StartEmotionConfig");
     }
 }
