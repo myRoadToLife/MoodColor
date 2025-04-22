@@ -1,11 +1,8 @@
-// Assets/App/Develop/EntryPoint/EntryPoint.cs (полный код с исправлениями)
 using System;
 using System.Threading.Tasks;
-using App.Develop.AppServices.Auth;
 using App.Develop.AppServices.Firebase.Auth;
-using App.Develop.AppServices.Firebase.Database.Services;
 using App.Develop.AppServices.Firebase.Auth.Services;
-using App.Develop.AppServices.Firebase.Common.SecureStorage;
+using App.Develop.AppServices.Firebase.Database.Services;
 using App.Develop.CommonServices.AssetManagement;
 using App.Develop.CommonServices.ConfigsManagement;
 using App.Develop.CommonServices.CoroutinePerformer;
@@ -24,6 +21,9 @@ using UnityEngine;
 
 namespace App.Develop.EntryPoint
 {
+    /// <summary>
+    /// Точка входа в приложение. Отвечает за инициализацию всех основных сервисов.
+    /// </summary>
     public class EntryPoint : MonoBehaviour
     {
         [SerializeField] private Bootstrap _appBootstrap;
@@ -33,29 +33,7 @@ namespace App.Develop.EntryPoint
         {
             try
             {
-                SetupAppSettings();
-
-                _projectContainer = new DIContainer();
-
-                RegisterCoreServices(_projectContainer);
-                
-                // Инициализация Firebase должна быть первой
-                if (!await InitFirebaseAsync())
-                {
-                    Debug.LogError("❌ Firebase не готов. Приложение не может продолжить работу.");
-                    return;
-                }
-                
-                RegisterFirebase(_projectContainer);
-                RegisterAuthServices(_projectContainer);
-                RegisterPersonalAreaServices(_projectContainer);
-
-                _projectContainer.Initialize();
-                
-                _projectContainer.Resolve<PlayerDataProvider>().Load();
-
-                _projectContainer.Resolve<ICoroutinePerformer>()
-                    .StartPerformCoroutine(_appBootstrap.Run(_projectContainer));
+                await InitializeApplication();
             }
             catch (Exception ex)
             {
@@ -63,27 +41,41 @@ namespace App.Develop.EntryPoint
             }
         }
 
-        // Assets/App/Develop/EntryPoint/EntryPoint.cs - метод RegisterPersonalAreaServices
-
-        private void RegisterPersonalAreaServices(DIContainer projectContainer)
+        /// <summary>
+        /// Основной метод инициализации приложения
+        /// </summary>
+        private async Task InitializeApplication()
         {
-            try
+            // Настройка базовых параметров приложения
+            SetupAppSettings();
+
+            // Создание и настройка контейнера зависимостей
+            _projectContainer = new DIContainer();
+            RegisterCoreServices(_projectContainer);
+
+            // Показываем загрузочный экран сразу после инициализации
+            ShowInitialLoadingScreen();
+
+            // Инициализация Firebase
+            if (!await InitFirebaseAsync())
             {
-                projectContainer.RegisterAsSingle<IPersonalAreaService>(di =>
-                    new PersonalAreaService(
-                        di.Resolve<EmotionService>()
-                    )
-                ).NonLazy();
-        
-                Debug.Log("✅ PersonalAreaService зарегистрирован");
+                Debug.LogError("❌ Firebase не готов. Приложение не может продолжить работу.");
+                return;
             }
-            catch (Exception ex)
-            {
-                Debug.LogError($"❌ Ошибка регистрации PersonalAreaService: {ex.Message}");
-                throw;
-            }
+
+            // Регистрация сервисов, зависящих от Firebase
+            RegisterFirebaseServices();
+            
+            // Инициализация контейнера и загрузка данных
+            InitializeContainerAndLoadData();
+            
+            // Запуск основного процесса приложения
+            StartBootstrapProcess();
         }
 
+        /// <summary>
+        /// Настройка базовых параметров приложения
+        /// </summary>
         private void SetupAppSettings()
         {
             QualitySettings.vSyncCount = 0;
@@ -91,6 +83,18 @@ namespace App.Develop.EntryPoint
             Debug.Log("✅ Настройки приложения установлены");
         }
 
+        /// <summary>
+        /// Показывает загрузочный экран
+        /// </summary>
+        private void ShowInitialLoadingScreen()
+        {
+            ILoadingScreen loadingScreen = _projectContainer.Resolve<ILoadingScreen>();
+            loadingScreen.Show();
+        }
+
+        /// <summary>
+        /// Инициализирует Firebase и проверяет его доступность
+        /// </summary>
         private async Task<bool> InitFirebaseAsync()
         {
             try
@@ -98,7 +102,7 @@ namespace App.Develop.EntryPoint
                 Debug.Log("🔄 Инициализация Firebase...");
                 var task = FirebaseApp.CheckAndFixDependenciesAsync();
                 await task;
-                
+
                 var result = task.Result;
                 if (result == DependencyStatus.Available)
                 {
@@ -116,56 +120,98 @@ namespace App.Develop.EntryPoint
             }
         }
 
+        /// <summary>
+        /// Регистрирует сервисы, зависящие от Firebase
+        /// </summary>
+        private void RegisterFirebaseServices()
+        {
+            RegisterFirebase(_projectContainer);
+            RegisterAuthServices(_projectContainer);
+        }
+
+        /// <summary>
+        /// Инициализирует контейнер и загружает данные
+        /// </summary>
+        private void InitializeContainerAndLoadData()
+        {
+            RegisterPersonalAreaServices(_projectContainer);
+            _projectContainer.Initialize();
+            _projectContainer.Resolve<PlayerDataProvider>().Load();
+        }
+
+        /// <summary>
+        /// Запускает основной процесс приложения
+        /// </summary>
+        private void StartBootstrapProcess()
+        {
+            _projectContainer.Resolve<ICoroutinePerformer>()
+                .StartPerformCoroutine(_appBootstrap.Run(_projectContainer));
+        }
+
+        /// <summary>
+        /// Регистрирует основные сервисы в контейнере
+        /// </summary>
         private void RegisterCoreServices(DIContainer container)
         {
             try
             {
-                container.RegisterAsSingle(_ => new ResourcesAssetLoader());
+                // Загрузчик ресурсов
+                container.RegisterAsSingle(container => new ResourcesAssetLoader());
 
-                container.RegisterAsSingle<ICoroutinePerformer>(di =>
-                    Instantiate(di.Resolve<ResourcesAssetLoader>().LoadResource<CoroutinePerformer>(AssetPaths.CoroutinePerformer))
+                // Исполнитель корутин
+                container.RegisterAsSingle<ICoroutinePerformer>(container =>
+                    Instantiate(container.Resolve<ResourcesAssetLoader>().LoadResource<CoroutinePerformer>(AssetPaths.CoroutinePerformer))
                 );
 
-                container.RegisterAsSingle<ILoadingScreen>(di =>
-                    Instantiate(di.Resolve<ResourcesAssetLoader>().LoadResource<LoadingScreen>(AssetPaths.LoadingScreen))
+                // Загрузочный экран
+                container.RegisterAsSingle<ILoadingScreen>(container =>
+                    Instantiate(container.Resolve<ResourcesAssetLoader>().LoadResource<LoadingScreen>(AssetPaths.LoadingScreen))
                 );
 
-                container.RegisterAsSingle<ISceneLoader>(_ => new SceneLoader());
+                // Загрузчик сцен
+                container.RegisterAsSingle<ISceneLoader>(container => new SceneLoader());
 
-                container.RegisterAsSingle(di =>
+                // Переключатель сцен
+                container.RegisterAsSingle(container =>
                     new SceneSwitcher(
-                        di.Resolve<ICoroutinePerformer>(),
-                        di.Resolve<ILoadingScreen>(),
-                        di.Resolve<ISceneLoader>(),
-                        di
+                        container.Resolve<ICoroutinePerformer>(),
+                        container.Resolve<ILoadingScreen>(),
+                        container.Resolve<ISceneLoader>(),
+                        container
                     )
                 );
 
-                container.RegisterAsSingle<ISaveLoadService>(_ =>
-                    new SaveLoadService(new JsonSerializer(), new LocalDataRepository()));
-
-                container.RegisterAsSingle(di =>
-                    new ConfigsProviderService(di.Resolve<ResourcesAssetLoader>())
+                // Сервис сохранения/загрузки
+                container.RegisterAsSingle<ISaveLoadService>(container =>
+                    new SaveLoadService(new JsonSerializer(), new LocalDataRepository())
                 );
 
-                container.RegisterAsSingle(di =>
+                // Сервис конфигураций
+                container.RegisterAsSingle(container =>
+                    new ConfigsProviderService(container.Resolve<ResourcesAssetLoader>())
+                );
+
+                // Провайдер данных игрока
+                container.RegisterAsSingle(container =>
                     new PlayerDataProvider(
-                        di.Resolve<ISaveLoadService>(),
-                        di.Resolve<ConfigsProviderService>()
+                        container.Resolve<ISaveLoadService>(),
+                        container.Resolve<ConfigsProviderService>()
                     )
                 );
 
-                container.RegisterAsSingle(di =>
-                    new EmotionService(di.Resolve<PlayerDataProvider>())
+                // Сервис эмоций
+                container.RegisterAsSingle(container =>
+                    new EmotionService(container.Resolve<PlayerDataProvider>())
                 ).NonLazy();
 
-                container.RegisterAsSingle(di =>
+                // Менеджер панелей UI
+                container.RegisterAsSingle(container =>
                     new PanelManager(
-                        di.Resolve<ResourcesAssetLoader>(),
-                        new MonoFactory(di)
+                        container.Resolve<ResourcesAssetLoader>(),
+                        new MonoFactory(container)
                     )
                 ).NonLazy();
-                
+
                 Debug.Log("✅ Основные сервисы зарегистрированы");
             }
             catch (Exception ex)
@@ -175,33 +221,31 @@ namespace App.Develop.EntryPoint
             }
         }
 
-        // Assets/App/Develop/EntryPoint/EntryPoint.cs - метод RegisterFirebase
-
+        /// <summary>
+        /// Регистрирует сервисы Firebase в контейнере
+        /// </summary>
         private void RegisterFirebase(DIContainer container)
         {
             try
             {
-                // Базовые сервисы Firebase
-                container.RegisterAsSingle<FirebaseAuth>(_ => FirebaseAuth.DefaultInstance).NonLazy();
-        
-                // Исправляем регистрацию DatabaseReference, добавляя URL базы данных
-                container.RegisterAsSingle<DatabaseReference>(_ => {
-                    // Замените на URL вашей Firebase базы данных
+                // Сервис аутентификации Firebase
+                container.RegisterAsSingle<FirebaseAuth>(container => FirebaseAuth.DefaultInstance).NonLazy();
+
+                // Ссылка на базу данных Firebase
+                container.RegisterAsSingle<DatabaseReference>(container =>
+                {
                     string databaseUrl = "https://moodcolor-3ac59-default-rtdb.firebaseio.com/";
-            
-                    // Получаем экземпляр базы данных с явным указанием URL
                     var database = FirebaseDatabase.GetInstance(FirebaseApp.DefaultInstance, databaseUrl);
-            
                     return database.RootReference;
                 }).NonLazy();
 
-                // Основной сервис базы данных - без ID пользователя при инициализации
-                container.RegisterAsSingle<DatabaseService>(di =>
+                // Сервис базы данных
+                container.RegisterAsSingle<DatabaseService>(container =>
                     new DatabaseService(
-                        di.Resolve<DatabaseReference>()
+                        container.Resolve<DatabaseReference>()
                     )
                 ).NonLazy();
-        
+
                 Debug.Log("✅ Firebase сервисы зарегистрированы");
             }
             catch (Exception ex)
@@ -211,36 +255,64 @@ namespace App.Develop.EntryPoint
             }
         }
 
+        /// <summary>
+        /// Регистрирует сервисы аутентификации в контейнере
+        /// </summary>
         private void RegisterAuthServices(DIContainer container)
         {
             try
             {
-                // Исправляем регистрацию ValidationService - добавляем фабрику
-                container.RegisterAsSingle<ValidationService>(di => new ValidationService()).NonLazy();
-        
-                container.RegisterAsSingle<CredentialStorage>(_ => 
+                // Сервис валидации
+                container.RegisterAsSingle<ValidationService>(container => new ValidationService()).NonLazy();
+
+                // Хранилище учетных данных
+                container.RegisterAsSingle<CredentialStorage>(container =>
                     new CredentialStorage("UltraSecretKey!🔥")
                 ).NonLazy();
 
-                container.RegisterAsSingle<IAuthService>(di =>
+                // Сервис аутентификации
+                container.RegisterAsSingle<IAuthService>(container =>
                     new AuthService(
-                        di.Resolve<FirebaseAuth>(),
-                        di.Resolve<DatabaseService>(),
-                        di.Resolve<ValidationService>()
+                        container.Resolve<FirebaseAuth>(),
+                        container.Resolve<DatabaseService>(),
+                        container.Resolve<ValidationService>()
                     )
                 ).NonLazy();
 
-                container.RegisterAsSingle<UserProfileService>(di =>
+                // Сервис профиля пользователя
+                container.RegisterAsSingle<UserProfileService>(container =>
                     new UserProfileService(
-                        di.Resolve<DatabaseService>()
+                        container.Resolve<DatabaseService>()
                     )
                 ).NonLazy();
-        
+
                 Debug.Log("✅ Аутентификационные сервисы зарегистрированы");
             }
             catch (Exception ex)
             {
                 Debug.LogError($"❌ Ошибка регистрации аутентификационных сервисов: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Регистрирует сервисы личного кабинета в контейнере
+        /// </summary>
+        private void RegisterPersonalAreaServices(DIContainer container)
+        {
+            try
+            {
+                container.RegisterAsSingle<IPersonalAreaService>(container =>
+                    new PersonalAreaService(
+                        container.Resolve<EmotionService>()
+                    )
+                ).NonLazy();
+
+                Debug.Log("✅ PersonalAreaService зарегистрирован");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Ошибка регистрации PersonalAreaService: {ex.Message}");
                 throw;
             }
         }
