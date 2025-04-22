@@ -60,5 +60,11 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
 
             _saveLoadService.Save(Data);
         }
+
+        // Добавляем защищенный метод для получения списка ридеров
+        protected List<IDataReader<TData>> GetDataReaders()
+        {
+            return new List<IDataReader<TData>>(_readers);
+        }
     }
 }

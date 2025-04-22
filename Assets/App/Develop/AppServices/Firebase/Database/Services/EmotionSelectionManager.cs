@@ -2,6 +2,7 @@
 
 using System;
 using App.Develop.AppServices.Firebase.Database.Models;
+using App.Develop.CommonServices.DataManagement.DataProviders;
 using App.Develop.CommonServices.Emotion;
 using App.Develop.DI;
 using UnityEngine;

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using App.Develop.CommonServices.DataManagement.DataProviders;
 using Newtonsoft.Json;
 
 namespace App.Develop.AppServices.Firebase.Database.Models

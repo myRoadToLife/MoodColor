@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using App.Develop.AppServices.Firebase.Database.Models;
+using App.Develop.CommonServices.DataManagement.DataProviders;
 using App.Develop.CommonServices.Emotion; // Убедись, что EmotionTypes здесь определен
 using Firebase.Database;
 using Newtonsoft.Json; // Используется для десериализации

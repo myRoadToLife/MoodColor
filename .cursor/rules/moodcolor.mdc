@@ -1,0 +1,10 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+Try to write less code, structured and readable. Registration of all new services should be in Entry Point via container.
+- You can @ files here
+- You can use markdown but dont have to

@@ -16,7 +16,7 @@ namespace App.Develop.MoodColor.UI
         private void Start()
         {
             // Находим менеджер на сцене (или получаем через DI)
-            _selectionManager = FindObjectOfType<EmotionSelectionManager>();
+            _selectionManager = FindFirstObjectByType<EmotionSelectionManager>();
             if (_selectionManager == null)
             {
                 Debug.LogError("EmotionSelectionManager не найден!");

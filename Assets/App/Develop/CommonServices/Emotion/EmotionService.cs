@@ -9,56 +9,92 @@ namespace App.Develop.CommonServices.Emotion
 {
     public class EmotionService : IDataReader<PlayerData>, IDataWriter<PlayerData>
     {
-        private Dictionary<EmotionTypes, ReactiveVariable<EmotionData>> _emotions = new();
+        private readonly Dictionary<EmotionTypes, ReactiveVariable<EmotionData>> _emotions = new Dictionary<EmotionTypes, ReactiveVariable<EmotionData>>();
+        private readonly PlayerDataProvider _playerDataProvider;
 
         public EmotionService(PlayerDataProvider playerDataProvider)
         {
-            playerDataProvider.RegisterWriter(this);
-            playerDataProvider.RegisterReader(this);
+            _playerDataProvider = playerDataProvider;
+            
+            // Инициализируем словарь со всеми типами эмоций
+            foreach (EmotionTypes type in Enum.GetValues(typeof(EmotionTypes)))
+            {
+                _emotions[type] = new ReactiveVariable<EmotionData>(new EmotionData
+                {
+                    Type = type.ToString(),
+                    Value = 0,
+                });
+            }
+            
+            // Загружаем данные из сохранения, если есть
+            LoadEmotions();
         }
 
         public List<EmotionTypes> AvailableEmotions => _emotions.Keys.ToList();
 
-        public IReadOnlyVariable<EmotionData> GetEmotion(EmotionTypes type)
-            => _emotions[type];
+        public ReactiveVariable<EmotionData> GetEmotion(EmotionTypes type)
+        {
+            // Проверяем наличие ключа в словаре
+            if (!_emotions.ContainsKey(type))
+            {
+                Debug.LogWarning($"⚠️ Эмоция {type} не найдена в словаре. Создаем новую.");
+                
+                // Если ключа нет, создаем новую запись
+                _emotions[type] = new ReactiveVariable<EmotionData>(new EmotionData
+                {
+                    Type = type.ToString(),
+                    Value = 0,
+                });
+            }
+            
+            return _emotions[type];
+        }
 
         public bool HasEnough(EmotionTypes type, int amount)
-            => _emotions[type].Value.Value >= amount;
+            => GetEmotion(type).Value.Value >= amount;
 
         public void SpendEmotion(EmotionTypes type, int amount)
         {
             if (!HasEnough(type, amount))
                 throw new ArgumentException($"Not enough {type} emotion");
 
-            var current = _emotions[type].Value;
-            _emotions[type].Value = new EmotionData
-            {
-                Value = current.Value - amount,
-                Color = current.Color
-            };
+            var current = GetEmotion(type).Value;
+            current.Value = current.Value - amount;
         }
 
         public void AddEmotion(EmotionTypes type, int amount)
         {
-            var current = _emotions[type].Value;
-            _emotions[type].Value = new EmotionData
-            {
-                Value = current.Value + amount,
-                Color = current.Color
-            };
+            var current = GetEmotion(type).Value;
+            current.Value = current.Value + amount;
         }
 
         public void ReadFrom(PlayerData data)
         {
+            if (data?.EmotionData == null)
+            {
+                Debug.LogWarning("⚠️ EmotionData отсутствует при ReadFrom. Пропускаем.");
+                return;
+            }
+
             foreach (var emotion in data.EmotionData)
             {
                 if (_emotions.ContainsKey(emotion.Key))
-                {
-                    _emotions[emotion.Key].Value = emotion.Value;
-                }
+                    GetEmotion(emotion.Key).Value = emotion.Value;
                 else
-                {
                     _emotions.Add(emotion.Key, new ReactiveVariable<EmotionData>(emotion.Value));
+            }
+
+            // 🧩 Добавляем отсутствующие эмоции с дефолтными значениями
+            foreach (EmotionTypes type in Enum.GetValues(typeof(EmotionTypes)))
+            {
+                if (!_emotions.ContainsKey(type))
+                {
+                    Debug.LogWarning($"⚠️ Emotion {type} не был загружен. Создаём по умолчанию.");
+                    _emotions[type] = new ReactiveVariable<EmotionData>(new EmotionData
+                    {
+                        Type = type.ToString(),
+                        Value = 0,
+                    });
                 }
             }
         }
@@ -81,7 +117,43 @@ namespace App.Develop.CommonServices.Emotion
         // Новый метод для получения цвета эмоции
         public Color GetEmotionColor(EmotionTypes type)
         {
-            return _emotions[type].Value.Color;
+            return GetEmotion(type).Value.Color;
+        }
+
+        private void LoadEmotions()
+        {
+            // Загрузка эмоций из сохранения или API
+            var savedEmotions = _playerDataProvider.GetEmotions();
+            
+            if (savedEmotions != null && savedEmotions.Count > 0)
+            {
+                foreach (var emotion in savedEmotions)
+                {
+                    if (Enum.TryParse<EmotionTypes>(emotion.Type, out var type))
+                    {
+                        if (!_emotions.ContainsKey(type))
+                        {
+                            _emotions[type] = new ReactiveVariable<EmotionData>(new EmotionData());
+                        }
+                        _emotions[type].Value = emotion;
+                    }
+                }
+            }
+            
+            // Проверяем, что все типы эмоций инициализированы
+            foreach (EmotionTypes type in Enum.GetValues(typeof(EmotionTypes)))
+            {
+                if (!_emotions.ContainsKey(type))
+                {
+                    Debug.LogWarning($"⚠️ Эмоция {type} не найдена. Создаём с дефолтными значениями.");
+                    _emotions[type] = new ReactiveVariable<EmotionData>(new EmotionData
+                    {
+                        Type = type.ToString(),
+                        Value = 0,
+                        Intensity = 0
+                    });
+                }
+            }
         }
     }
 }

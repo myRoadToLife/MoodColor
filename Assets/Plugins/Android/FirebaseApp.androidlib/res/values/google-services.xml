@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@string/gcm_defaultSenderId,@string/google_storage_bucket,@string/project_id,@string/google_api_key,@string/google_crash_reporting_api_key,@string/google_app_id">
+  <string name="gcm_defaultSenderId" translatable="false">790585451904</string>
+  <string name="google_storage_bucket" translatable="false">moodcolor-3ac59.firebasestorage.app</string>
+  <string name="project_id" translatable="false">moodcolor-3ac59</string>
+  <string name="google_api_key" translatable="false">AIzaSyCO0cvM7w36ia6B2VO4ZrLS7bCqXvq8n2E</string>
+  <string name="google_crash_reporting_api_key" translatable="false">AIzaSyCO0cvM7w36ia6B2VO4ZrLS7bCqXvq8n2E</string>
+  <string name="google_app_id" translatable="false">1:790585451904:android:044bba08398e87ee5b4d65</string>
+</resources>
