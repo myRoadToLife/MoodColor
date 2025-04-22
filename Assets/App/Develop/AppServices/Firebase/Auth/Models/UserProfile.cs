@@ -1,6 +1,6 @@
-// Assets/App/Develop/AppServices/Firebase/Database/Models/UserProfile.cs
-
 using System;
+using System.Collections.Generic;
+using App.Develop.AppServices.Firebase.Database.Models;
 
 namespace App.Develop.AppServices.Firebase.Auth.Models
 {
@@ -18,13 +18,18 @@ namespace App.Develop.AppServices.Firebase.Auth.Models
         {
             Settings = new UserSettings();
         }
-    }
 
-    [Serializable]
-    public class UserSettings
-    {
-        public bool Notifications { get; set; } = true;
-        public string Theme { get; set; } = "default";
-        public bool Sound { get; set; } = true;
+        public Dictionary<string, object> ToDictionary()
+        {
+            return new Dictionary<string, object>
+            {
+                ["email"] = Email,
+                ["nickname"] = Nickname,
+                ["createdAt"] = CreatedAt,
+                ["lastActive"] = LastActive,
+                ["totalPoints"] = TotalPoints,
+                ["settings"] = Settings?.ToDictionary()
+            };
+        }
     }
 }

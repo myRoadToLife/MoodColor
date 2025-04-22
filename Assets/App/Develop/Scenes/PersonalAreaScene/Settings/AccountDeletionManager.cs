@@ -1,11 +1,10 @@
 using System.Collections;
-using App.Develop.AppServices.Auth;
 using App.Develop.AppServices.Firebase.Common.SecureStorage;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
 using Firebase.Auth;
+using Firebase.Database;
 using Firebase.Extensions;
-using Firebase.Firestore;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -29,14 +28,12 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
 
         private SceneSwitcher _sceneSwitcher;
         private FirebaseAuth _auth;
-        private FirebaseFirestore _db;
         private string _plainPassword = "";
 
         public void Inject(DIContainer container)
         {
             _sceneSwitcher = container.Resolve<SceneSwitcher>();
             _auth = FirebaseAuth.DefaultInstance;
-            _db = FirebaseFirestore.DefaultInstance;
 
             InitializeUI();
         }
@@ -181,6 +178,8 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
                 });
         }
 
+
+
         private void DeleteUserData()
         {
             var uid = _auth.CurrentUser?.UserId;
@@ -191,20 +190,34 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
                 return;
             }
 
-            _db.Collection("users").Document(uid)
-                .DeleteAsync().ContinueWithOnMainThread(_ =>
+            // Удаляем данные пользователя из Realtime Database
+            FirebaseDatabase.DefaultInstance
+                .RootReference
+                .Child("users")
+                .Child(uid)
+                .RemoveValueAsync()
+                .ContinueWithOnMainThread(task =>
                 {
-                    if (_auth.CurrentUser != null)
+                    if (task.IsCompletedSuccessfully)
                     {
-                        DeleteFirebaseUser();
+                        if (_auth.CurrentUser != null)
+                        {
+                            DeleteFirebaseUser();
+                        }
+                        else
+                        {
+                            ShowPopup("Ошибка: пользователь не авторизован при удалении.");
+                            Debug.LogError("FirebaseAuth.CurrentUser is null before DeleteFirebaseUser.");
+                        }
                     }
                     else
                     {
-                        ShowPopup("Ошибка: пользователь не авторизован при удалении.");
-                        Debug.LogError("FirebaseAuth.CurrentUser is null before DeleteFirebaseUser.");
+                        ShowPopup("Ошибка при удалении данных пользователя.");
+                        Debug.LogError(task.Exception);
                     }
                 });
         }
+
 
         private void DeleteFirebaseUser()
         {

@@ -37,13 +37,23 @@ namespace App.Develop.AppServices.Firebase.Auth.Services
                     return (false, "Неизвестная ошибка при создании пользователя");
                 }
 
-                // Обновляем ID пользователя в базе данных после успешной регистрации
                 _databaseService.UpdateUserId(result.User.UserId);
                 await _databaseService.CreateNewUser(result.User.UserId, email);
 
+                try
+                {
+                    await result.User.SendEmailVerificationAsync();
+                    Debug.Log("📧 Письмо с подтверждением отправлено!");
+                }
+                catch (Exception emailEx)
+                {
+                    Debug.LogError($"❌ Не удалось отправить письмо: {emailEx.Message}");
+                    return (false, "Не удалось отправить письмо с подтверждением email");
+                }
+
                 return (true, null);
             }
-            catch (FirebaseException ex) // Заменяем FirebaseAuthException на FirebaseException или Exception
+            catch (FirebaseException ex)
             {
                 Debug.LogError($"❌ Ошибка регистрации: {ex.Message}");
                 return (false, GetFriendlyErrorMessage(ex));
@@ -54,6 +64,7 @@ namespace App.Develop.AppServices.Firebase.Auth.Services
                 return (false, "Произошла неожиданная ошибка");
             }
         }
+
 
         public async Task<(bool success, string error)> LoginUser(string email, string password)
         {

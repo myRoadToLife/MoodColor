@@ -56,15 +56,21 @@ namespace App.Develop.AppServices.Firebase.Database.Models
     [Serializable]
     public class UserSettings
     {
-        [JsonProperty("notifications")]
-        public bool NotificationsEnabled { get; set; } = true;
-
-        [JsonProperty("theme")]
+        public bool Notifications { get; set; } = true;
         public string Theme { get; set; } = "default";
+        public bool Sound { get; set; } = true;
 
-        [JsonProperty("sound")]
-        public bool SoundEnabled { get; set; } = true;
+        public Dictionary<string, object> ToDictionary()
+        {
+            return new Dictionary<string, object>
+            {
+                ["notifications"] = Notifications,
+                ["theme"] = Theme,
+                ["sound"] = Sound
+            };
+        }
     }
+
 
     [Serializable]
     public class CurrentEmotion

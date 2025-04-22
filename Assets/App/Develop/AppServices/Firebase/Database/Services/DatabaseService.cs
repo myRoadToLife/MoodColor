@@ -4,10 +4,12 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using App.Develop.AppServices.Firebase.Database.Models;
-using App.Develop.CommonServices.Emotion;
+using App.Develop.CommonServices.Emotion; // Убедись, что EmotionTypes здесь определен
 using Firebase.Database;
-using Newtonsoft.Json;
+using Newtonsoft.Json; // Используется для десериализации
 using UnityEngine;
+using UserProfile = App.Develop.AppServices.Firebase.Database.Models.UserProfile;
+
 
 namespace App.Develop.AppServices.Firebase.Database.Services
 {
@@ -17,6 +19,7 @@ namespace App.Develop.AppServices.Firebase.Database.Services
         private string _userId;
         private readonly List<DatabaseReference> _activeListeners = new List<DatabaseReference>();
 
+        // Словарь для хранения ссылок на обработчики событий для корректной отписки
         private readonly Dictionary<DatabaseReference, EventHandler<ValueChangedEventArgs>> _eventHandlers =
             new Dictionary<DatabaseReference, EventHandler<ValueChangedEventArgs>>();
 
@@ -33,6 +36,7 @@ namespace App.Develop.AppServices.Firebase.Database.Services
             Debug.Log($"ID пользователя в DatabaseService обновлен: {userId}");
         }
 
+        // Проверка, аутентифицирован ли пользователь (установлен ли _userId)
         private bool CheckAuthentication()
         {
             if (string.IsNullOrEmpty(_userId))
@@ -44,70 +48,78 @@ namespace App.Develop.AppServices.Firebase.Database.Services
             return true;
         }
 
+        // Создание записи для нового пользователя в базе данных
         public async Task CreateNewUser(string userId, string email)
         {
             try
             {
-                var userSnapshot = await _database.Child("users").Child(userId).GetValueAsync();
+                var userRef = _database.Child("users").Child(userId);
+                var userSnapshot = await userRef.GetValueAsync();
 
                 if (userSnapshot.Exists)
                 {
-                    Debug.LogWarning($"👤 Пользователь {email} уже существует");
+                    Debug.LogWarning($"👤 Пользователь {email} (ID: {userId}) уже существует");
                     return;
                 }
 
-                var userData = new Dictionary<string, object>
+                // --- Профиль ---
+                var settings = new UserSettings
                 {
-                    ["profile"] = new Dictionary<string, object>
-                    {
-                        ["email"] = email,
-                        ["createdAt"] = ServerValue.Timestamp,
-                        ["lastActive"] = ServerValue.Timestamp,
-                        ["totalPoints"] = 0,
-                        ["settings"] = new Dictionary<string, object>
-                        {
-                            ["notifications"] = true,
-                            ["theme"] = "default",
-                            ["sound"] = true
-                        }
-                    }
+                    Notifications = true,
+                    Theme = "default",
+                    Sound = true
                 };
 
-                // Создаем баночки для каждого типа эмоций
-                var jars = new Dictionary<string, object>();
+                var profileData = new Dictionary<string, object>
+                {
+                    ["email"] = email,
+                    ["createdAt"] = ServerValue.Timestamp,
+                    ["lastActive"] = ServerValue.Timestamp,
+                    ["totalPoints"] = 0,
+                    ["settings"] = settings.ToDictionary()
+                };
+
+                // --- Баночки ---
+                var jarsData = new Dictionary<string, object>();
 
                 foreach (var emotionType in Enum.GetNames(typeof(EmotionTypes)))
                 {
-                    jars[emotionType.ToLower()] = new Dictionary<string, object>
+                    string key = emotionType.ToLower();
+
+                    var jar = new JarData
                     {
-                        ["type"] = emotionType,
-                        ["level"] = 1,
-                        ["capacity"] = 100,
-                        ["currentAmount"] = 0,
-                        ["customization"] = new Dictionary<string, object>
-                        {
-                            ["color"] = "default",
-                            ["pattern"] = "default",
-                            ["effects"] = new List<string>()
-                        }
+                        Type = emotionType,
+                        Level = 1,
+                        Capacity = 100,
+                        CurrentAmount = 0,
+                        Customization = new JarCustomization()
                     };
+
+                    jarsData[key] = jar.ToDictionary();
                 }
 
-                userData["jars"] = jars;
+                // --- Финальные данные ---
+                var userData = new Dictionary<string, object>
+                {
+                    ["profile"] = profileData,
+                    ["jars"] = jarsData
+                };
 
-                await _database.Child("users").Child(userId).UpdateChildrenAsync(userData);
-                Debug.Log($"✅ Профиль пользователя {email} создан");
+                await userRef.UpdateChildrenAsync(userData);
+                Debug.Log($"✅ Профиль пользователя {email} (ID: {userId}) создан");
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка создания пользователя: {ex.Message}");
+                Debug.LogError($"❌ Ошибка создания пользователя (ID: {userId}): {ex.Message}\n{ex.StackTrace}");
                 throw;
             }
         }
 
+
+        // Получение профиля пользователя
         public async Task<UserProfile> GetUserProfile(string userId = null)
         {
-            string targetUserId = userId ?? _userId;
+            string targetUserId = userId ?? _userId; // Используем переданный ID или ID текущего пользователя
 
             if (string.IsNullOrEmpty(targetUserId))
             {
@@ -119,190 +131,172 @@ namespace App.Develop.AppServices.Firebase.Database.Services
             {
                 var snapshot = await _database.Child("users").Child(targetUserId).Child("profile").GetValueAsync();
 
-                if (snapshot.Exists)
+                if (snapshot.Exists && snapshot.Value != null)
                 {
+                    // Используем Newtonsoft.Json для десериализации из словаря/JSON
                     var json = JsonConvert.SerializeObject(snapshot.Value);
                     return JsonConvert.DeserializeObject<UserProfile>(json);
                 }
 
+                Debug.LogWarning($"Профиль для пользователя {targetUserId} не найден.");
                 return null;
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка получения профиля: {ex.Message}");
+                Debug.LogError($"❌ Ошибка получения профиля (ID: {targetUserId}): {ex.Message}\n{ex.StackTrace}");
                 throw;
             }
         }
 
+        // Обновление произвольных данных пользователя
         public async Task UpdateUserData(Dictionary<string, object> updates)
         {
             if (!CheckAuthentication())
             {
-                throw new InvalidOperationException("Пользователь не авторизован");
+                throw new InvalidOperationException("Пользователь не авторизован для обновления данных");
             }
 
             try
             {
                 await _database.Child("users").Child(_userId).UpdateChildrenAsync(updates);
-                Debug.Log("✅ Данные пользователя обновлены");
+                Debug.Log($"✅ Данные пользователя {_userId} обновлены.");
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка обновления данных пользователя: {ex.Message}");
+                Debug.LogError($"❌ Ошибка обновления данных пользователя {_userId}: {ex.Message}\n{ex.StackTrace}");
                 throw;
             }
         }
 
+        // --- Методы прослушивания (Listeners) ---
+
+        // Базовый метод для подписки на события ValueChanged
+        private void SubscribeToData <T>(DatabaseReference reference, Action<T> onUpdate)
+        {
+            if (_eventHandlers.ContainsKey(reference))
+            {
+                Debug.LogWarning($"Попытка повторной подписки на {reference.Key}");
+                return; // Уже подписаны
+            }
+
+            _activeListeners.Add(reference);
+
+            EventHandler<ValueChangedEventArgs> handler = (sender, args) =>
+            {
+                if (args.DatabaseError != null)
+                {
+                    Debug.LogError($"Ошибка Firebase при прослушивании {reference.Key}: {args.DatabaseError.Message}");
+                    return;
+                }
+
+                if (args.Snapshot?.Exists == true && args.Snapshot.Value != null)
+                {
+                    try
+                    {
+                        // Десериализация с помощью Newtonsoft.Json
+                        var json = JsonConvert.SerializeObject(args.Snapshot.Value);
+                        var data = JsonConvert.DeserializeObject<T>(json);
+                        onUpdate?.Invoke(data);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogError($"❌ Ошибка обработки данных для {reference.Key}: {ex.Message}\n{ex.StackTrace}");
+                        // Можно добавить логику уведомления пользователя или отписки при критической ошибке
+                    }
+                }
+                else
+                {
+                    Debug.Log($"Данные для {reference.Key} не найдены или пусты.");
+                    // Вызываем onUpdate с default(T), чтобы обработать случай отсутствия данных
+                    onUpdate?.Invoke(default(T));
+                }
+            };
+
+            _eventHandlers[reference] = handler; // Сохраняем обработчик
+            reference.ValueChanged += handler; // Подписываемся
+            Debug.Log($"Подписка на {reference.Key} установлена.");
+        }
+
+        // Прослушивание эмоций в регионе
         public void ListenToRegionEmotions(string regionId, Action<Dictionary<string, int>> onUpdate)
         {
             if (string.IsNullOrEmpty(regionId))
             {
-                Debug.LogWarning("⚠️ ID региона не может быть пустым");
+                Debug.LogWarning("⚠️ ID региона не может быть пустым для ListenToRegionEmotions");
                 return;
             }
 
             var reference = _database.Child("regions").Child(regionId).Child("emotions");
-            _activeListeners.Add(reference);
-
-            // Создаем обработчик события
-            EventHandler<ValueChangedEventArgs> handler = (sender, args) =>
-            {
-                if (args?.Snapshot == null || !args.Snapshot.Exists) return;
-
-                try
-                {
-                    var emotions = new Dictionary<string, int>();
-
-                    foreach (var child in args.Snapshot.Children)
-                    {
-                        emotions[child.Key] = Convert.ToInt32(child.Value);
-                    }
-
-                    onUpdate?.Invoke(emotions);
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError($"❌ Ошибка обработки данных эмоций: {ex}");
-                }
-            };
-
-            // Сохраняем обработчик для последующего удаления
-            _eventHandlers[reference] = handler;
-
-            // Подписываемся на событие
-            reference.ValueChanged += handler;
+            SubscribeToData(reference, onUpdate);
         }
 
+        // Прослушивание данных баночек пользователя
         public void ListenToJars(Action<Dictionary<string, JarData>> onUpdate)
         {
             if (!CheckAuthentication()) return;
-
             var reference = _database.Child("users").Child(_userId).Child("jars");
-            _activeListeners.Add(reference);
-
-            // Создаем обработчик события
-            EventHandler<ValueChangedEventArgs> handler = (sender, args) =>
-            {
-                if (args?.Snapshot == null || !args.Snapshot.Exists) return;
-
-                try
-                {
-                    var json = JsonConvert.SerializeObject(args.Snapshot.Value);
-                    var jars = JsonConvert.DeserializeObject<Dictionary<string, JarData>>(json);
-                    onUpdate?.Invoke(jars);
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError($"❌ Ошибка обработки данных банок: {ex}");
-                }
-            };
-
-            // Сохраняем обработчик для последующего удаления
-            _eventHandlers[reference] = handler;
-
-            // Подписываемся на событие
-            reference.ValueChanged += handler;
+            SubscribeToData(reference, onUpdate);
         }
 
+        // Прослушивание профиля пользователя
         public void ListenToUserProfile(Action<UserProfile> onUpdate)
         {
             if (!CheckAuthentication()) return;
-
             var reference = _database.Child("users").Child(_userId).Child("profile");
-            _activeListeners.Add(reference);
-
-            // Создаем обработчик события
-            EventHandler<ValueChangedEventArgs> handler = (sender, args) =>
-            {
-                if (args?.Snapshot == null || !args.Snapshot.Exists) return;
-
-                try
-                {
-                    var json = JsonConvert.SerializeObject(args.Snapshot.Value);
-                    var profile = JsonConvert.DeserializeObject<UserProfile>(json);
-                    onUpdate?.Invoke(profile);
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError($"❌ Ошибка обработки данных профиля: {ex}");
-                }
-            };
-
-            // Сохраняем обработчик для последующего удаления
-            _eventHandlers[reference] = handler;
-
-            // Подписываемся на событие
-            reference.ValueChanged += handler;
+            SubscribeToData(reference, onUpdate);
         }
 
+        // Прослушивание истории эмоций пользователя
         public void ListenToUserEmotions(Action<Dictionary<string, EmotionData>> onUpdate)
         {
             if (!CheckAuthentication()) return;
-
             var reference = _database.Child("users").Child(_userId).Child("emotions");
-            _activeListeners.Add(reference);
-
-            // Создаем обработчик события
-            EventHandler<ValueChangedEventArgs> handler = (sender, args) =>
-            {
-                if (args?.Snapshot == null || !args.Snapshot.Exists) return;
-
-                try
-                {
-                    var json = JsonConvert.SerializeObject(args.Snapshot.Value);
-                    var emotions = JsonConvert.DeserializeObject<Dictionary<string, EmotionData>>(json);
-                    onUpdate?.Invoke(emotions);
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError($"❌ Ошибка обработки данных эмоций пользователя: {ex}");
-                }
-            };
-
-            // Сохраняем обработчик для последующего удаления
-            _eventHandlers[reference] = handler;
-
-            // Подписываемся на событие
-            reference.ValueChanged += handler;
+            SubscribeToData(reference, onUpdate);
         }
 
+        // --- Методы для работы с эмоциями и баночками ---
+
+        // Добавление новой записи об эмоции
         public async Task AddEmotion(EmotionData emotion)
         {
             if (!CheckAuthentication()) return;
+            if (emotion == null) throw new ArgumentNullException(nameof(emotion));
 
             try
             {
-                var emotionId = Guid.NewGuid().ToString();
-                await _database.Child("users").Child(_userId).Child("emotions").Child(emotionId).SetValueAsync(emotion);
-                Debug.Log($"✅ Эмоция {emotion.Type} добавлена");
+                // Генерируем ID, если он не задан
+                if (string.IsNullOrEmpty(emotion.Id))
+                {
+                    // Firebase может сам генерировать ключи через Push(), но если нужен Guid:
+                    emotion.Id = Guid.NewGuid().ToString();
+                    // Важно: Если используешь Push() для генерации ключа Firebase,
+                    // то ID нужно будет получать из результата Push() и сохранять внутри объекта уже после.
+                    // Пока оставляем Guid.NewGuid().
+                }
+
+                // Сериализуем объект в JSON с помощью Newtonsoft.Json
+                string jsonPayload = JsonConvert.SerializeObject(emotion, Formatting.None,
+                    new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore }); // Игнорируем null поля
+
+                // Используем ID эмоции как ключ и сохраняем JSON-строку
+                await _database.Child("users").Child(_userId).Child("emotions").Child(emotion.Id).SetRawJsonValueAsync(jsonPayload);
+
+                Debug.Log($"✅ Эмоция {emotion.Type} (ID: {emotion.Id}) добавлена для пользователя {_userId}");
+            }
+            catch (JsonException jsonEx) // Ловим ошибки сериализации
+            {
+                Debug.LogError($"❌ Ошибка сериализации EmotionData для пользователя {_userId}: {jsonEx.Message}\n{jsonEx.StackTrace}");
+                throw;
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка добавления эмоции: {ex.Message}");
+                Debug.LogError($"❌ Ошибка добавления эмоции для пользователя {_userId}: {ex.Message}\n{ex.StackTrace}");
                 throw;
             }
         }
 
+
+        // Обновление текущей эмоции пользователя
         public async Task UpdateCurrentEmotion(string type, int intensity)
         {
             if (!CheckAuthentication()) return;
@@ -311,42 +305,156 @@ namespace App.Develop.AppServices.Firebase.Database.Services
             {
                 var updates = new Dictionary<string, object>
                 {
-                    ["currentEmotion/type"] = type,
-                    ["currentEmotion/intensity"] = intensity,
-                    ["currentEmotion/timestamp"] = ServerValue.Timestamp
+                    ["type"] = type,
+                    ["intensity"] = intensity,
+                    ["timestamp"] = ServerValue.Timestamp // Время обновления на сервере
                 };
 
-                await _database.Child("users").Child(_userId).UpdateChildrenAsync(updates);
-                Debug.Log($"✅ Текущая эмоция обновлена на {type}");
+                // Обновляем узел currentEmotion целиком
+                await _database.Child("users").Child(_userId).Child("currentEmotion").UpdateChildrenAsync(updates);
+                Debug.Log($"✅ Текущая эмоция пользователя {_userId} обновлена на {type} ({intensity})");
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка обновления текущей эмоции: {ex.Message}");
+                Debug.LogError($"❌ Ошибка обновления текущей эмоции для {_userId}: {ex.Message}\n{ex.StackTrace}");
                 throw;
             }
         }
 
+        // Обновление количества в баночке с использованием транзакции
+        public async Task UpdateJarAmount(string emotionType, int amountToAdd)
+        {
+            if (!CheckAuthentication()) return;
+
+            if (string.IsNullOrEmpty(emotionType))
+            {
+                Debug.LogError("❌ Тип эмоции не может быть пустым для UpdateJarAmount");
+                return;
+            }
+
+            if (amountToAdd == 0) return;
+
+            var jarRef = _database.Child("users").Child(_userId).Child("jars").Child(emotionType.ToLower());
+
+            try
+            {
+                await jarRef.RunTransaction(mutableData =>
+                {
+                    if (mutableData.Value == null)
+                    {
+                        Debug.LogWarning($"⚠️ Узел баночки '{emotionType}' не найден. Прерываем транзакцию.");
+                        return TransactionResult.Abort();
+                    }
+
+                    try
+                    {
+                        var jarJson = JsonConvert.SerializeObject(mutableData.Value);
+                        var jar = JsonConvert.DeserializeObject<JarData>(jarJson);
+
+                        if (jar == null)
+                        {
+                            Debug.LogError($"❌ Не удалось десериализовать баночку '{emotionType}'");
+                            return TransactionResult.Abort();
+                        }
+
+                        int newAmount = Mathf.Clamp(jar.CurrentAmount + amountToAdd, 0, jar.Capacity);
+
+                        if (newAmount != jar.CurrentAmount)
+                        {
+                            mutableData.Child("currentAmount").Value = newAmount;
+                            Debug.Log($"🔄 {emotionType}: {jar.CurrentAmount} ➡ {newAmount}");
+                            return TransactionResult.Success(mutableData);
+                        }
+                        else
+                        {
+                            Debug.Log($"ℹ️ {emotionType}: значение не изменилось ({jar.CurrentAmount})");
+                            return TransactionResult.Abort();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogError($"❌ Ошибка в транзакции {emotionType}: {ex.Message}");
+                        return TransactionResult.Abort();
+                    }
+                });
+
+                Debug.Log($"✅ Транзакция для баночки '{emotionType}' завершена.");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Ошибка транзакции баночки '{emotionType}': {ex.Message}\n{ex.StackTrace}");
+                throw;
+            }
+        }
+
+
+        // Добавление очков пользователю с использованием транзакции
+        public async Task AddPointsToProfile(int pointsToAdd)
+        {
+            if (!CheckAuthentication()) return;
+
+            if (pointsToAdd <= 0)
+            {
+                Debug.LogWarning("⚠️ Попытка добавить 0 или отрицательное количество очков.");
+                return;
+            }
+
+            var pointsRef = _database.Child("users").Child(_userId).Child("profile").Child("totalPoints");
+
+            try
+            {
+                await pointsRef.RunTransaction(mutableData =>
+                {
+                    long currentPoints = 0;
+
+                    if (mutableData.Value != null && long.TryParse(mutableData.Value.ToString(), out long parsedPoints))
+                    {
+                        currentPoints = parsedPoints;
+                    }
+
+                    long newTotal = currentPoints + pointsToAdd;
+                    mutableData.Value = newTotal;
+
+                    Debug.Log($"🔄 Очки: {currentPoints} ➡ {newTotal}");
+                    return TransactionResult.Success(mutableData);
+                });
+
+                Debug.Log($"✅ Пользователю {_userId} начислено {pointsToAdd} очков.");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Ошибка транзакции начисления очков: {ex.Message}\n{ex.StackTrace}");
+                throw;
+            }
+        }
+
+
+
+        // Освобождение ресурсов (отписка от событий)
         public void Dispose()
         {
             try
             {
-                // Обходим словарь и отписываем каждый обработчик
-                foreach (var pair in _eventHandlers)
-                {
-                    var reference = pair.Key;
-                    var handler = pair.Value;
+                Debug.Log($"Disposing DatabaseService. Отписка от {_eventHandlers.Count} слушателей...");
+                // Обходим копию ключей, чтобы избежать проблем при изменении словаря во время итерации (хотя здесь это маловероятно)
+                var referencesToUnsubscribe = new List<DatabaseReference>(_eventHandlers.Keys);
 
-                    // Правильно отписываемся от события
-                    reference.ValueChanged -= handler;
+                foreach (var reference in referencesToUnsubscribe)
+                {
+                    if (_eventHandlers.TryGetValue(reference, out var handler))
+                    {
+                        reference.ValueChanged -= handler; // Отписываемся
+                        Debug.Log($"Отписка от {reference.Key} выполнена.");
+                    }
                 }
 
-                _eventHandlers.Clear();
-                _activeListeners.Clear();
-                Debug.Log("✅ DatabaseService: все обработчики событий удалены");
+                _eventHandlers.Clear(); // Очищаем словарь обработчиков
+                _activeListeners.Clear(); // Очищаем список активных ссылок
+                Debug.Log("✅ DatabaseService: все обработчики событий удалены и ресурсы освобождены.");
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка при освобождении ресурсов DatabaseService: {ex.Message}");
+                Debug.LogError($"❌ Ошибка при освобождении ресурсов DatabaseService: {ex.Message}\n{ex.StackTrace}");
             }
         }
     }

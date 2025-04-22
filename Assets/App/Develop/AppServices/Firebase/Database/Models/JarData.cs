@@ -21,7 +21,20 @@ namespace App.Develop.AppServices.Firebase.Database.Models
 
         [JsonProperty("customization")]
         public JarCustomization Customization { get; set; } = new JarCustomization();
+
+        public Dictionary<string, object> ToDictionary()
+        {
+            return new Dictionary<string, object>
+            {
+                ["type"] = Type,
+                ["level"] = Level,
+                ["capacity"] = Capacity,
+                ["currentAmount"] = CurrentAmount,
+                ["customization"] = Customization?.ToDictionary()
+            };
+        }
     }
+
 
     [Serializable]
     public class JarCustomization
@@ -34,5 +47,16 @@ namespace App.Develop.AppServices.Firebase.Database.Models
 
         [JsonProperty("effects")]
         public List<string> Effects { get; set; } = new List<string>();
+
+        public Dictionary<string, object> ToDictionary()
+        {
+            return new Dictionary<string, object>
+            {
+                ["color"] = Color,
+                ["pattern"] = Pattern,
+                ["effects"] = Effects
+            };
+        }
     }
+
 }
