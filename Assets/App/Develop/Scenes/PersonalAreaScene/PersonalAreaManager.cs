@@ -4,14 +4,16 @@ using App.Develop.CommonServices.SceneManagement;
 using App.Develop.CommonServices.UI;
 using App.Develop.DI;
 using App.Develop.Scenes.PersonalAreaScene.Settings;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace App.Develop.Scenes.PersonalAreaScene
 {
     public class PersonalAreaManager : MonoBehaviour
     {
         private const string DEFAULT_USERNAME = "Username";
-        private const string SETTINGS_PANEL_PATH = "UI/DeletionAccountPanel";
+        private const string DeletionAccount_PANEL_PATH = "UI/DeletionAccountPanel";
 
         [SerializeField] private PersonalAreaUIController _ui;
 
@@ -62,7 +64,7 @@ namespace App.Develop.Scenes.PersonalAreaScene
 
         private void ShowSettingsPanel()
         {
-            _panelManager.ShowPanel<AccountDeletionManager>(SETTINGS_PANEL_PATH);
+            _panelManager.TogglePanel<AccountDeletionManager>(DeletionAccount_PANEL_PATH);
         }
 
         private void SetupUserProfile()
@@ -76,6 +78,7 @@ namespace App.Develop.Scenes.PersonalAreaScene
             foreach (EmotionTypes type in Enum.GetValues(typeof(EmotionTypes)))
             {
                 var variable = _service.GetEmotionVariable(type);
+
                 if (variable == null)
                 {
                     Debug.LogWarning($"Не удалось получить переменную для эмоции {type}");
@@ -106,6 +109,25 @@ namespace App.Develop.Scenes.PersonalAreaScene
             _ui.OnOpenFriends -= () => Debug.Log("👥 Друзья");
             _ui.OnOpenWorkshop -= () => Debug.Log("🛠️ Мастерская");
             _ui.OnOpenSettings -= ShowSettingsPanel;
+        }
+
+        private void OnEnable()
+        {
+            // Подписываемся на событие выгрузки сцены
+            SceneManager.sceneUnloaded += OnSceneUnloaded;
+        }
+
+        private void OnDisable()
+        {
+            // Отписываемся от события выгрузки сцены
+            SceneManager.sceneUnloaded -= OnSceneUnloaded;
+        }
+
+        private void OnSceneUnloaded(Scene scene)
+        {
+            // Очищаем ссылки при выгрузке сцены
+            // Если есть другие ссылки, которые нужно очистить, добавьте их сюда
+            _service = null;
         }
     }
 }

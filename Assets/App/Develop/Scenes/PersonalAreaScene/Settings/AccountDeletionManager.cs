@@ -1,5 +1,6 @@
 using System.Collections;
 using App.Develop.AppServices.Auth;
+using App.Develop.AppServices.Firebase.Common.SecureStorage;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
 using Firebase.Auth;

@@ -20,16 +20,21 @@ namespace App.Develop.CommonServices.UI
 
         public T ShowPanel<T>(string panelPath) where T : MonoBehaviour
         {
-            // Если панель уже существует, просто показываем/скрываем её
             if (_activePanels.TryGetValue(panelPath, out var existingPanel))
             {
-                bool isActive = existingPanel.activeSelf;
-                existingPanel.SetActive(!isActive);
-                Debug.Log(isActive ? $"🔽 Панель {panelPath} скрыта" : $"🔼 Панель {panelPath} показана");
-                return existingPanel.GetComponent<T>();
+                // 🔒 Защита: удалён объект, но остался в словаре
+                if (existingPanel == null)
+                {
+                    Debug.LogWarning($"🧹 Объект панели {panelPath} уничтожен. Удаляю из словаря.");
+                    _activePanels.Remove(panelPath);
+                }
+                else
+                {
+                    existingPanel.SetActive(true);
+                    Debug.Log($"🔼 Панель {panelPath} уже существует, активируем.");
+                    return existingPanel.GetComponent<T>();
+                }
             }
-
-            Debug.Log($"⚙️ Открываем панель {panelPath}");
 
             var prefab = _assetLoader.LoadResource<GameObject>(panelPath);
             if (prefab == null)
@@ -39,24 +44,50 @@ namespace App.Develop.CommonServices.UI
             }
 
             var instance = UnityEngine.Object.Instantiate(prefab);
-            _activePanels[panelPath] = instance;
+            if (instance == null)
+            {
+                Debug.LogError($"❌ Не удалось создать экземпляр панели {panelPath}");
+                return null;
+            }
 
             var component = instance.GetComponentInChildren<T>();
             if (component == null)
             {
-                Debug.LogError($"❌ Компонент {typeof(T).Name} не найден на префабе {panelPath}");
+                Debug.LogError($"❌ Компонент {typeof(T).Name} не найден в префабе {panelPath}");
                 UnityEngine.Object.Destroy(instance);
-                _activePanels.Remove(panelPath);
                 return null;
             }
 
+            _activePanels[panelPath] = instance;
             _factory.CreateOn<T>(component.gameObject);
+
             return component;
+        }
+
+        public bool TogglePanel<T>(string panelPath) where T : MonoBehaviour
+        {
+            if (_activePanels.TryGetValue(panelPath, out var panel))
+            {
+                // Проверка на уничтоженный объект
+                if (panel == null)
+                {
+                    Debug.LogWarning($"🧹 Панель {panelPath} была уничтожена. Удаляем ссылку.");
+                    _activePanels.Remove(panelPath);
+                    return ShowPanel<T>(panelPath) != null;
+                }
+
+                bool isActive = panel.activeSelf;
+                panel.SetActive(!isActive);
+                Debug.Log(isActive ? $"🔽 Панель {panelPath} скрыта" : $"🔼 Панель {panelPath} показана");
+                return !isActive;
+            }
+
+            return ShowPanel<T>(panelPath) != null;
         }
 
         public void HidePanel(string panelPath)
         {
-            if (_activePanels.TryGetValue(panelPath, out var panel))
+            if (_activePanels.TryGetValue(panelPath, out var panel) && panel != null)
             {
                 panel.SetActive(false);
                 Debug.Log($"🔽 Панель {panelPath} скрыта");
@@ -67,7 +98,10 @@ namespace App.Develop.CommonServices.UI
         {
             foreach (var panel in _activePanels.Values)
             {
-                panel.SetActive(false);
+                if (panel != null)
+                {
+                    panel.SetActive(false);
+                }
             }
             Debug.Log("🔽 Все панели скрыты");
         }
@@ -84,4 +118,4 @@ namespace App.Develop.CommonServices.UI
             _activePanels.Clear();
         }
     }
-} 
+}

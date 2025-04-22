@@ -3,7 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace App.Develop.AppServices.Auth
+namespace App.Develop.AppServices.Firebase.Auth
 {
     public class AuthUIController : MonoBehaviour
     {

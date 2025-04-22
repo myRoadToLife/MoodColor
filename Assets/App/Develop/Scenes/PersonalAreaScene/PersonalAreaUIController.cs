@@ -11,6 +11,7 @@ namespace App.Develop.Scenes.PersonalAreaScene
     {
         private const string POINTS_FORMAT = "Очки: {0}";
         private const string ENTRIES_FORMAT = "Записей: {0}";
+        private const int DEFAULT_CAPACITY = 100; // Константа для емкости по умолчанию
 
         [Header("Profile Info")]
         [SerializeField] private TMP_Text _usernameText;
@@ -21,6 +22,7 @@ namespace App.Develop.Scenes.PersonalAreaScene
         [SerializeField] private Image _sadnessJarFill;
         [SerializeField] private Image _angerJarFill;
         [SerializeField] private Image _fearJarFill;
+        [SerializeField] private Image _disgustJarFill;
 
         [Header("Statistics")]
         [SerializeField] private TMP_Text _pointsText;
@@ -48,13 +50,21 @@ namespace App.Develop.Scenes.PersonalAreaScene
 
         private void InitializeEmotionJars()
         {
-            _emotionJars = new Dictionary<EmotionTypes, Image>
-            {
-                { EmotionTypes.Joy, _joyJarFill },
-                { EmotionTypes.Sadness, _sadnessJarFill },
-                { EmotionTypes.Anger, _angerJarFill },
-                { EmotionTypes.Fear, _fearJarFill }
-            };
+            _emotionJars = new Dictionary<EmotionTypes, Image>();
+            
+            // Проверяем каждую банку перед добавлением в словарь
+            if (_joyJarFill != null) _emotionJars.Add(EmotionTypes.Joy, _joyJarFill);
+            if (_sadnessJarFill != null) _emotionJars.Add(EmotionTypes.Sadness, _sadnessJarFill);
+            if (_angerJarFill != null) _emotionJars.Add(EmotionTypes.Anger, _angerJarFill);
+            if (_fearJarFill != null) _emotionJars.Add(EmotionTypes.Fear, _fearJarFill);
+            if (_disgustJarFill != null) _emotionJars.Add(EmotionTypes.Disgust, _disgustJarFill);
+            
+            // Предупреждаем о недостающих банках
+            if (_joyJarFill == null) Debug.LogWarning("Банка Joy не назначена в инспекторе");
+            if (_sadnessJarFill == null) Debug.LogWarning("Банка Sadness не назначена в инспекторе");
+            if (_angerJarFill == null) Debug.LogWarning("Банка Anger не назначена в инспекторе");
+            if (_fearJarFill == null) Debug.LogWarning("Банка Fear не назначена в инспекторе");
+            if (_disgustJarFill == null) Debug.LogWarning("Банка Disgust не назначена в инспекторе");
         }
 
         public void Initialize()
@@ -75,7 +85,18 @@ namespace App.Develop.Scenes.PersonalAreaScene
         {
             if (button == null) return;
             button.onClick.RemoveAllListeners();
-            button.onClick.AddListener(() => onClick?.Invoke());
+            
+            // Добавляем try-catch для обработки ошибок в обработчиках событий
+            button.onClick.AddListener(() => {
+                try
+                {
+                    onClick?.Invoke();
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"❌ Ошибка при обработке нажатия кнопки: {ex.Message}");
+                }
+            });
         }
 
         public void SetUsername(string username)
@@ -103,16 +124,38 @@ namespace App.Develop.Scenes.PersonalAreaScene
             _entriesText.text = string.Format(ENTRIES_FORMAT, entries);
         }
 
-        public void SetJar(EmotionTypes type, int value, int maxValue = 100)
+        public void SetJar(EmotionTypes type, int amount, int capacity)
         {
-            if (!_emotionJars.TryGetValue(type, out var jar))
+            // Проверяем, что словарь _emotionJars существует
+            if (_emotionJars == null)
             {
-                Debug.LogWarning($"❓ Неизвестный тип эмоции: {type}");
+                Debug.LogWarning("Словарь банок эмоций не инициализирован");
                 return;
             }
 
-            float fillAmount = Mathf.Clamp01((float)value / maxValue);
-            jar.fillAmount = fillAmount;
+            // Проверяем, есть ли банка для данного типа в словаре
+            if (!_emotionJars.TryGetValue(type, out Image jarFill))
+            {
+                Debug.LogWarning($"Неизвестный тип эмоции: {type}");
+                return;
+            }
+
+            // Проверяем, что ссылка на изображение заполнения не null
+            if (jarFill == null)
+            {
+                Debug.LogWarning($"Изображение заполнения для типа {type} не назначено");
+                return;
+            }
+
+            // Устанавливаем заполнение банки
+            float fillAmount = capacity > 0 ? (float)amount / capacity : 0;
+            jarFill.fillAmount = Mathf.Clamp01(fillAmount);
+        }
+
+        // Перегрузка метода с двумя параметрами
+        public void SetJar(EmotionTypes type, int amount)
+        {
+            SetJar(type, amount, DEFAULT_CAPACITY);
         }
 
         public void ClearAll()
@@ -122,9 +165,21 @@ namespace App.Develop.Scenes.PersonalAreaScene
             SetPoints(0);
             SetEntries(0);
 
-            foreach (var type in Enum.GetValues(typeof(EmotionTypes)))
+            // Проверяем, что словарь инициализирован
+            if (_emotionJars != null)
             {
-                SetJar((EmotionTypes)type, 0);
+                foreach (var type in Enum.GetValues(typeof(EmotionTypes)))
+                {
+                    try
+                    {
+                        // Используем перегрузку с двумя параметрами
+                        SetJar((EmotionTypes)type, 0);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogError($"Ошибка при очистке банки {type}: {ex.Message}");
+                    }
+                }
             }
         }
     }

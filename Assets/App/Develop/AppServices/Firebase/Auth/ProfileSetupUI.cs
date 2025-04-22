@@ -1,13 +1,13 @@
+// Assets/App/Develop/AppServices/Firebase/Auth/ProfileSetupUI.cs
+using System;
 using System.Collections.Generic;
-using Firebase.Auth;
-using Firebase.Extensions;
-using Firebase.Firestore;
-using TMPro;
-using UnityEngine;
+using App.Develop.AppServices.Firebase.Auth.Services;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
+using TMPro;
+using UnityEngine;
 
-namespace App.Develop.AppServices.Auth
+namespace App.Develop.AppServices.Firebase.Auth
 {
     public class ProfileSetupUI : MonoBehaviour, IInjectable
     {
@@ -17,29 +17,62 @@ namespace App.Develop.AppServices.Auth
         [SerializeField] private GameObject _popupPanel;
         [SerializeField] private TMP_Text _popupText;
 
-        private FirebaseAuth _auth;
-        private FirebaseFirestore _db;
+        private UserProfileService _profileService;
         private SceneSwitcher _sceneSwitcher;
+        private bool _isProcessing;
 
         public void Inject(DIContainer container)
         {
-            _sceneSwitcher = container.Resolve<SceneSwitcher>();
-            _auth = FirebaseAuth.DefaultInstance;
-            _db = FirebaseFirestore.DefaultInstance;
+            if (container == null)
+                throw new ArgumentNullException(nameof(container));
+
+            try
+            {
+                _sceneSwitcher = container.Resolve<SceneSwitcher>();
+                _profileService = container.Resolve<UserProfileService>();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Ошибка инициализации ProfileSetupUI: {ex.Message}");
+            }
         }
 
-        public void OnContinueProfile()
+        public async void OnContinueProfile()
         {
-            string nickname = _nicknameInput.text.Trim();
-            string gender = _genderDropdown.options[_genderDropdown.value].text.ToLower();
+            if (_isProcessing) return;
+            _isProcessing = true;
 
-            if (!IsValidNickname(nickname))
+            try
             {
-                ShowPopup("Никнейм должен содержать только латинские буквы без пробелов");
-                return;
-            }
+                string nickname = _nicknameInput.text.Trim();
+                string gender = _genderDropdown.options[_genderDropdown.value].text.ToLower();
 
-            SaveProfileAndGo(nickname, gender);
+                if (!IsValidNickname(nickname))
+                {
+                    ShowPopup("Никнейм должен содержать только латинские буквы без пробелов");
+                    return;
+                }
+
+                bool success = await _profileService.SetupProfile(nickname, gender);
+                if (success)
+                {
+                    ShowPopup("Профиль успешно обновлен!");
+                    GoToPersonalArea();
+                }
+                else
+                {
+                    ShowPopup("Ошибка при обновлении профиля");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Ошибка при установке профиля: {ex.Message}");
+                ShowPopup("Произошла ошибка. Попробуйте позже.");
+            }
+            finally
+            {
+                _isProcessing = false;
+            }
         }
 
         public void OnSkipProfile()
@@ -58,37 +91,6 @@ namespace App.Develop.AppServices.Auth
             }
 
             return true;
-        }
-
-        private void SaveProfileAndGo(string nickname, string gender)
-        {
-            var user = _auth.CurrentUser;
-            if (user == null)
-            {
-                ShowPopup("Пользователь не найден.");
-                return;
-            }
-
-            var docRef = _db.Collection("users").Document(user.UserId);
-
-            var updates = new Dictionary<string, object>
-            {
-                { "nickname", nickname },
-                { "gender", gender }
-            };
-
-            docRef.SetAsync(updates, SetOptions.MergeAll).ContinueWithOnMainThread(task =>
-            {
-                if (task.IsCompletedSuccessfully)
-                {
-                    Debug.Log("✅ Профиль успешно сохранён.");
-                    GoToPersonalArea();
-                }
-                else
-                {
-                    ShowPopup("Ошибка сохранения профиля:\n" + task.Exception?.Message);
-                }
-            });
         }
 
         private void GoToPersonalArea()
