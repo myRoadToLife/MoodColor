@@ -56,9 +56,24 @@ namespace App.Develop.AppServices.Firebase.Auth
 
         public void LoadSavedCredentials(string email, string password, bool rememberMe)
         {
-            _emailInput.text = email;
-            _passwordInput.text = password;
-            _rememberMeToggle.isOn = rememberMe;
+            // Если есть сохраненный email (когда "Запомнить меня" включено), используем его
+            if (!string.IsNullOrEmpty(email))
+            {
+                _emailInput.text = email;
+                _passwordInput.text = password;
+                _rememberMeToggle.isOn = rememberMe;
+            }
+            else
+            {
+                // Иначе загружаем последний использованный email
+                string lastEmail = _authManager.GetLastUsedEmail();
+                if (!string.IsNullOrEmpty(lastEmail))
+                {
+                    _emailInput.text = lastEmail;
+                    _passwordInput.text = "";
+                    _rememberMeToggle.isOn = false;
+                }
+            }
         }
 
         public void ClearCredentialFields()

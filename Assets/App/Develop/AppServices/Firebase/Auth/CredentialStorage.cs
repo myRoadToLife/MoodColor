@@ -10,6 +10,7 @@ namespace App.Develop.AppServices.Firebase.Auth
         private const string EMAIL_KEY = "user_email";
         private const string PASSWORD_KEY = "user_password";
         private const string REMEMBER_KEY = "remember_me";
+        private const string LAST_EMAIL_KEY = "last_email"; // Новый ключ для последнего использованного email
 
         private readonly string _securityKey;
 
@@ -26,6 +27,9 @@ namespace App.Develop.AppServices.Firebase.Auth
         {
             try
             {
+                // Всегда сохраняем последний использованный email
+                SecurePlayerPrefs.SetString(LAST_EMAIL_KEY, email);
+                
                 SecurePlayerPrefs.SetBool(REMEMBER_KEY, rememberMe);
 
                 if (rememberMe)
@@ -62,6 +66,22 @@ namespace App.Develop.AppServices.Firebase.Auth
                 return string.Empty;
             }
         }
+        
+        // Новый метод для получения последнего использованного email
+        public string GetLastUsedEmail()
+        {
+            try
+            {
+                return SecurePlayerPrefs.HasKey(LAST_EMAIL_KEY)
+                    ? SecurePlayerPrefs.GetString(LAST_EMAIL_KEY)
+                    : string.Empty;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Ошибка получения последнего email: {ex.Message}");
+                return string.Empty;
+            }
+        }
 
         public string GetSavedPassword()
         {
@@ -95,6 +115,7 @@ namespace App.Develop.AppServices.Firebase.Auth
         {
             try
             {
+                // Не удаляем LAST_EMAIL_KEY при очистке учетных данных
                 SecurePlayerPrefs.DeleteKey(EMAIL_KEY);
                 SecurePlayerPrefs.DeleteKey(PASSWORD_KEY);
                 SecurePlayerPrefs.SetBool(REMEMBER_KEY, false);

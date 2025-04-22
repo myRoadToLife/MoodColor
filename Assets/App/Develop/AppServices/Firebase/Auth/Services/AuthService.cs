@@ -155,6 +155,7 @@ namespace App.Develop.AppServices.Firebase.Auth.Services
                 return false;
             }
         }
+        
 
         public void SignOut()
         {
@@ -170,6 +171,7 @@ namespace App.Develop.AppServices.Firebase.Auth.Services
                 Debug.LogError($"❌ Ошибка при выходе: {ex.Message}");
             }
         }
+
 
         private string GetFriendlyErrorMessage(Exception ex)
         {

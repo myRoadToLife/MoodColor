@@ -1,4 +1,5 @@
 // Assets/App/Develop/AppServices/Firebase/Auth/AuthManager.cs
+
 using System;
 using App.Develop.AppServices.Auth;
 using App.Develop.AppServices.Firebase.Auth.Services;
@@ -21,7 +22,7 @@ namespace App.Develop.AppServices.Firebase.Auth
 
         public void Inject(DIContainer container)
         {
-            if (container == null) 
+            if (container == null)
                 throw new ArgumentNullException(nameof(container));
 
             try
@@ -77,6 +78,7 @@ namespace App.Develop.AppServices.Firebase.Auth
                 }
 
                 var result = await _authService.RegisterUser(email, password);
+
                 if (result.success)
                 {
                     _credentialStorage.SaveCredentials(email, password, rememberMe);
@@ -114,6 +116,7 @@ namespace App.Develop.AppServices.Firebase.Auth
                 }
 
                 var result = await _authService.LoginUser(email, password);
+
                 if (result.success)
                 {
                     _credentialStorage.SaveCredentials(email, password, rememberMe);
@@ -136,6 +139,20 @@ namespace App.Develop.AppServices.Firebase.Auth
             }
         }
 
+        public string GetLastUsedEmail()
+        {
+            try
+            {
+                return _credentialStorage.GetLastUsedEmail();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"🔴 Ошибка при получении последнего email: {ex}");
+                return string.Empty;
+            }
+        }
+
+
         public async void CheckEmailVerification()
         {
             if (_isProcessing || _uiController == null) return;
@@ -144,6 +161,7 @@ namespace App.Develop.AppServices.Firebase.Auth
             try
             {
                 var isVerified = await _authService.IsEmailVerified();
+
                 if (isVerified)
                 {
                     _uiController.ShowPopup("Email подтвержден!");
@@ -197,6 +215,7 @@ namespace App.Develop.AppServices.Firebase.Auth
             try
             {
                 _credentialStorage.ClearStoredCredentials();
+
                 if (_uiController != null)
                 {
                     _uiController.ClearCredentialFields();
@@ -205,6 +224,7 @@ namespace App.Develop.AppServices.Firebase.Auth
             catch (Exception ex)
             {
                 Debug.LogError($"🔴 Ошибка при очистке учетных данных: {ex}");
+
                 if (_uiController != null)
                 {
                     _uiController.ShowPopup("Произошла ошибка при очистке данных");
