@@ -76,7 +76,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ca0c26c757b34145a378c7270887e799, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _ui: {fileID: 3988177995069536344}
+  _ui: {fileID: 3684471779743404218}
 --- !u!114 &3915477284167581070
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -473,7 +473,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8918873498933561581}
-  - component: {fileID: 3988177995069536344}
+  - component: {fileID: 3684471779743404218}
   m_Layer: 0
   m_Name: PersonalAreaPanel
   m_TagString: Untagged
@@ -504,7 +504,7 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &3988177995069536344
+--- !u!114 &3684471779743404218
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -513,23 +513,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 1056655710156092819}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a844b2083d5d4c5a9db3b87797a1fc2a, type: 3}
+  m_Script: {fileID: 11500000, guid: 470d40be2448a6f4ca7e9cec1b7e769c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _usernameText: {fileID: 6443467873496453118}
-  _currentEmotionImage: {fileID: 2764532447696434886}
-  _joyJarFill: {fileID: 2808116612117206144}
-  _sadnessJarFill: {fileID: 1746927826325328821}
-  _angerJarFill: {fileID: 764016398577980176}
-  _fearJarFill: {fileID: 5276136066288747388}
-  _disgustJarFill: {fileID: 8671852739885854607}
-  _pointsText: {fileID: 9093032306011106741}
-  _entriesText: {fileID: 8546403453933483763}
-  _logEmotionButton: {fileID: 3231362361426092180}
-  _historyButton: {fileID: 5751466948248264187}
-  _friendsButton: {fileID: 1021378546137448139}
-  _settingsButton: {fileID: 3534627370620964087}
-  _workshopButton: {fileID: 8547469633349863}
+  _profileInfo: {fileID: 4258492938427891156}
+  _emotionJars: {fileID: 1375246782450406172}
+  _statistics: {fileID: 8027052724802813483}
+  _navigation: {fileID: 2371264653216163691}
 --- !u!1 &1216121241367694999
 GameObject:
   m_ObjectHideFlags: 0
@@ -797,8 +787,10 @@ GameObject:
   m_Component:
   - component: {fileID: 2326982551356285706}
   - component: {fileID: 306638842836331053}
+  - component: {fileID: 4258492938427891156}
+  - component: {fileID: 7698677694233765157}
   m_Layer: 0
-  m_Name: ProfileSection
+  m_Name: ProfileInfo
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -852,6 +844,34 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
+--- !u!114 &4258492938427891156
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1568577873321624822}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ea93b9fb24548948a4508a6b9838efb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _usernameText: {fileID: 6443467873496453118}
+  _currentEmotionImage: {fileID: 6530241086491371496}
+--- !u!114 &7698677694233765157
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1568577873321624822}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ea93b9fb24548948a4508a6b9838efb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _usernameText: {fileID: 6443467873496453118}
+  _currentEmotionImage: {fileID: 2764532447696434886}
 --- !u!1 &1765644211648544857
 GameObject:
   m_ObjectHideFlags: 0
@@ -862,8 +882,9 @@ GameObject:
   m_Component:
   - component: {fileID: 7122182456137590386}
   - component: {fileID: 7288844738346988254}
+  - component: {fileID: 2371264653216163691}
   m_Layer: 0
-  m_Name: ButtonsSection
+  m_Name: NavigationSection
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -919,6 +940,23 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
+--- !u!114 &2371264653216163691
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1765644211648544857}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fefa018a037f1d846a5b7985050e1f62, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _logEmotionButton: {fileID: 3231362361426092180}
+  _historyButton: {fileID: 5751466948248264187}
+  _friendsButton: {fileID: 1021378546137448139}
+  _settingsButton: {fileID: 3534627370620964087}
+  _workshopButton: {fileID: 8547469633349863}
 --- !u!1 &1793358486087747713
 GameObject:
   m_ObjectHideFlags: 0
@@ -1292,6 +1330,7 @@ GameObject:
   - component: {fileID: 5527066155850279082}
   - component: {fileID: 1821621922493451141}
   - component: {fileID: 6429529805962734526}
+  - component: {fileID: 8027052724802813483}
   m_Layer: 0
   m_Name: StatsSection
   m_TagString: Untagged
@@ -1384,6 +1423,20 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &8027052724802813483
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2929325177898511133}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2512f1bccd0e1d14e9dcae0303f0172c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _pointsText: {fileID: 9093032306011106741}
+  _entriesText: {fileID: 8546403453933483763}
 --- !u!1 &2947010127253432872
 GameObject:
   m_ObjectHideFlags: 0
@@ -1786,6 +1839,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2565473472818425012}
   - component: {fileID: 4126796785830637771}
+  - component: {fileID: 1375246782450406172}
   m_Layer: 0
   m_Name: JarsSection
   m_TagString: Untagged
@@ -1843,6 +1897,23 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
+--- !u!114 &1375246782450406172
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3980977655547815763}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d0a99ca3b3932d4687263a9c2513dd9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _joyJarFill: {fileID: 2808116612117206144}
+  _sadnessJarFill: {fileID: 1746927826325328821}
+  _angerJarFill: {fileID: 764016398577980176}
+  _fearJarFill: {fileID: 5276136066288747388}
+  _disgustJarFill: {fileID: 8671852739885854607}
 --- !u!1 &4163972819725784808
 GameObject:
   m_ObjectHideFlags: 0

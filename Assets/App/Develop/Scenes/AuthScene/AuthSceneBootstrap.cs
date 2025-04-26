@@ -1,12 +1,11 @@
 using System.Collections;
-using App.Develop.AppServices.Auth;
 using App.Develop.AppServices.Firebase.Auth;
 using App.Develop.CommonServices.AssetManagement;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
 using UnityEngine;
 
-namespace App.Develop.AuthScene
+namespace App.Develop.Scenes.AuthScene
 {
     public class AuthSceneBootstrap : MonoBehaviour
     {

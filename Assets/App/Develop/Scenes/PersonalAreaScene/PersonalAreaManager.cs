@@ -4,6 +4,7 @@ using App.Develop.CommonServices.SceneManagement;
 using App.Develop.CommonServices.UI;
 using App.Develop.DI;
 using App.Develop.Scenes.PersonalAreaScene.Settings;
+using App.Develop.Scenes.PersonalAreaScene.UI;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -126,7 +127,6 @@ namespace App.Develop.Scenes.PersonalAreaScene
         private void OnSceneUnloaded(Scene scene)
         {
             // Очищаем ссылки при выгрузке сцены
-            // Если есть другие ссылки, которые нужно очистить, добавьте их сюда
             _service = null;
         }
     }

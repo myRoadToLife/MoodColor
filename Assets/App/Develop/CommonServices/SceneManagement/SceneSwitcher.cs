@@ -1,10 +1,10 @@
 using System;
 using System.Collections;
-using App.Develop.AuthScene;
 using App.Develop.CommonServices.CoroutinePerformer;
 using App.Develop.CommonServices.LoadingScreen;
 using App.Develop.DI;
 using App.Develop.MainScreenScene.Infrastructure;
+using App.Develop.Scenes.AuthScene;
 using App.Develop.Scenes.PersonalAreaScene.Infrastructure;
 using UnityEngine;
 using Object = UnityEngine.Object;

@@ -2,6 +2,7 @@ using System.Collections;
 using App.Develop.CommonServices.AssetManagement;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
+using App.Develop.Scenes.PersonalAreaScene.UI;
 using UnityEngine;
 
 namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
