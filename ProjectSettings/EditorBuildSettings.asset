@@ -12,9 +12,6 @@ EditorBuildSettings:
     path: Assets/App/Scenes/Bootstrap.unity
     guid: 1af5f8cd5a0585549863e746ac0d0daf
   - enabled: 1
-    path: Assets/App/Scenes/MainScreen.unity
-    guid: 2351eab258049924eaa01f77f7387115
-  - enabled: 1
     path: Assets/App/Scenes/PersonalArea.unity
     guid: 0aba709b12522b947a1265a9865caaef
   - enabled: 1

@@ -1,12 +1,20 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace App.Develop.CommonServices.Emotion
 {
+    public class EmotionMixResult
+    {
+        public EmotionTypes ResultType { get; set; }
+        public float ResultIntensity { get; set; }
+        public Color ResultColor { get; set; }
+    }
+
     public class EmotionMixingRules
     {
         private readonly Dictionary<(EmotionTypes, EmotionTypes), EmotionMixResult> _mixingRules;
-        
+
         public EmotionMixingRules()
         {
             _mixingRules = new Dictionary<(EmotionTypes, EmotionTypes), EmotionMixResult>();
@@ -15,35 +23,66 @@ namespace App.Develop.CommonServices.Emotion
 
         private void InitializeRules()
         {
-            // Базовые правила смешивания
-            AddMixRule(EmotionTypes.Joy, EmotionTypes.Sadness, EmotionTypes.Neutral, 0.5f);
-            AddMixRule(EmotionTypes.Anger, EmotionTypes.Fear, EmotionTypes.Anxiety, 0.7f);
-            AddMixRule(EmotionTypes.Joy, EmotionTypes.Trust, EmotionTypes.Love, 0.8f);
-            // Добавьте другие правила по мере необходимости
+            // Радость + Грусть = Меланхолия (особый тип грусти)
+            AddRule(EmotionTypes.Joy, EmotionTypes.Sadness, new EmotionMixResult
+            {
+                ResultType = EmotionTypes.Sadness,
+                ResultIntensity = 0.7f,
+                ResultColor = new Color(0.5f, 0.5f, 0.8f)
+            });
+
+            // Гнев + Страх = Паника
+            AddRule(EmotionTypes.Anger, EmotionTypes.Fear, new EmotionMixResult
+            {
+                ResultType = EmotionTypes.Fear,
+                ResultIntensity = 1.2f,
+                ResultColor = new Color(0.8f, 0.2f, 0.2f)
+            });
+
+            // Радость + Гнев = Возбуждение (особый тип радости)
+            AddRule(EmotionTypes.Joy, EmotionTypes.Anger, new EmotionMixResult
+            {
+                ResultType = EmotionTypes.Joy,
+                ResultIntensity = 1.3f,
+                ResultColor = new Color(1f, 0.6f, 0.2f)
+            });
+
+            // Страх + Отвращение = Усиленное отвращение
+            AddRule(EmotionTypes.Fear, EmotionTypes.Disgust, new EmotionMixResult
+            {
+                ResultType = EmotionTypes.Disgust,
+                ResultIntensity = 1.4f,
+                ResultColor = new Color(0.4f, 0.8f, 0.4f)
+            });
+
+            // Грусть + Страх = Тревога (особый тип страха)
+            AddRule(EmotionTypes.Sadness, EmotionTypes.Fear, new EmotionMixResult
+            {
+                ResultType = EmotionTypes.Fear,
+                ResultIntensity = 0.9f,
+                ResultColor = new Color(0.6f, 0.6f, 0.8f)
+            });
         }
 
-        private void AddMixRule(EmotionTypes emotion1, EmotionTypes emotion2, EmotionTypes result, float intensity)
+        private void AddRule(EmotionTypes type1, EmotionTypes type2, EmotionMixResult result)
         {
-            var mixResult = new EmotionMixResult(result, intensity);
-            _mixingRules[(emotion1, emotion2)] = mixResult;
-            _mixingRules[(emotion2, emotion1)] = mixResult; // Коммутативность
+            _mixingRules[(type1, type2)] = result;
+            _mixingRules[(type2, type1)] = result; // Добавляем обратное правило
         }
-        
-        public bool TryGetMixResult(EmotionTypes emotion1, EmotionTypes emotion2, out EmotionMixResult result)
+
+        public bool TryGetMixResult(EmotionTypes type1, EmotionTypes type2, out EmotionMixResult result)
         {
-            return _mixingRules.TryGetValue((emotion1, emotion2), out result);
+            return _mixingRules.TryGetValue((type1, type2), out result);
         }
-    }
 
-    public class EmotionMixResult
-    {
-        public EmotionTypes ResultType { get; }
-        public float ResultIntensity { get; }
-
-        public EmotionMixResult(EmotionTypes type, float intensity)
+        public bool CanMix(EmotionTypes type1, EmotionTypes type2)
         {
-            ResultType = type;
-            ResultIntensity = Mathf.Clamp01(intensity);
+            return _mixingRules.ContainsKey((type1, type2));
+        }
+
+        public IEnumerable<(EmotionTypes, EmotionTypes)> GetAllPossibleMixes()
+        {
+            return _mixingRules.Keys;
         }
     }
 } 

@@ -14,6 +14,7 @@ namespace App.Develop.CommonServices.Emotion
         private readonly PlayerDataProvider _playerDataProvider;
         private readonly EmotionMixingRules _emotionMixingRules;
         private readonly Dictionary<EmotionTypes, EmotionConfig> _emotionConfigs;
+        private readonly EmotionHistory _emotionHistory;
 
         // События для оповещения об изменениях
         public event EventHandler<EmotionEvent> OnEmotionEvent;
@@ -25,6 +26,7 @@ namespace App.Develop.CommonServices.Emotion
             _emotions = new Dictionary<EmotionTypes, EmotionData>();
             _emotionMixingRules = new EmotionMixingRules();
             _emotionConfigs = new Dictionary<EmotionTypes, EmotionConfig>();
+            _emotionHistory = new EmotionHistory();
 
             InitializeEmotions();
             LoadEmotionConfigs(configsProvider);
@@ -150,6 +152,7 @@ namespace App.Develop.CommonServices.Emotion
             if (emotion == null) return;
 
             ValidateAndUpdateEmotion(type, newValue);
+            _emotionHistory.AddEntry(emotion, EmotionEventType.ValueChanged);
         }
 
         public void UpdateEmotionIntensity(EmotionTypes type, float intensity)
@@ -158,6 +161,7 @@ namespace App.Develop.CommonServices.Emotion
             if (emotion == null) return;
 
             emotion.Intensity = Mathf.Clamp01(intensity);
+            _emotionHistory.AddEntry(emotion, EmotionEventType.IntensityChanged);
             RaiseEmotionEvent(new EmotionEvent(type, EmotionEventType.IntensityChanged, 
                 emotion.Value, emotion.Intensity));
         }
@@ -172,11 +176,18 @@ namespace App.Develop.CommonServices.Emotion
                 if (emotion1 != null && emotion2 != null)
                 {
                     var newValue = (emotion1.Value + emotion2.Value) * mixResult.ResultIntensity;
-                    ValidateAndUpdateEmotion(mixResult.ResultType, newValue);
+                    var resultEmotion = GetEmotion(mixResult.ResultType);
                     
-                    RaiseEmotionEvent(new EmotionEvent(mixResult.ResultType, 
-                        EmotionEventType.EmotionMixed, newValue, mixResult.ResultIntensity));
-                    return true;
+                    if (resultEmotion != null)
+                    {
+                        resultEmotion.Color = mixResult.ResultColor;
+                        ValidateAndUpdateEmotion(mixResult.ResultType, newValue);
+                        _emotionHistory.AddEntry(resultEmotion, EmotionEventType.EmotionMixed);
+                        
+                        RaiseEmotionEvent(new EmotionEvent(mixResult.ResultType, 
+                            EmotionEventType.EmotionMixed, newValue, mixResult.ResultIntensity));
+                        return true;
+                    }
                 }
             }
             return false;
@@ -211,6 +222,21 @@ namespace App.Develop.CommonServices.Emotion
             }
         }
 
+        public IEnumerable<EmotionHistoryEntry> GetEmotionHistory(DateTime? from = null, DateTime? to = null)
+        {
+            return _emotionHistory.GetHistory(from, to);
+        }
+
+        public IEnumerable<EmotionHistoryEntry> GetEmotionHistoryByType(EmotionTypes type, DateTime? from = null, DateTime? to = null)
+        {
+            return _emotionHistory.GetHistoryByType(type, from, to);
+        }
+
+        public Dictionary<EmotionTypes, float> GetAverageIntensityByPeriod(DateTime from, DateTime to)
+        {
+            return _emotionHistory.GetAverageIntensityByPeriod(from, to);
+        }
+
         private void ValidateAndUpdateEmotion(EmotionTypes type, float newValue)
         {
             var emotion = GetEmotion(type);
@@ -220,14 +246,16 @@ namespace App.Develop.CommonServices.Emotion
             {
                 if (newValue > config.MaxCapacity)
                 {
+                    _emotionHistory.AddEntry(emotion, EmotionEventType.CapacityExceeded);
                     RaiseEmotionEvent(new EmotionEvent(type, EmotionEventType.CapacityExceeded));
                     newValue = config.MaxCapacity;
                 }
             }
 
             emotion.Value = Mathf.Max(0f, newValue);
-            emotion.LastUpdate = DateTime.Now;
+            emotion.LastUpdate = DateTime.UtcNow;
             
+            _emotionHistory.AddEntry(emotion, EmotionEventType.ValueChanged);
             RaiseEmotionEvent(new EmotionEvent(type, EmotionEventType.ValueChanged, 
                 emotion.Value, emotion.Intensity));
         }
@@ -236,5 +264,56 @@ namespace App.Develop.CommonServices.Emotion
         {
             OnEmotionEvent?.Invoke(this, e);
         }
+
+        #region Statistics
+
+        /// <summary>
+        /// Получает статистику эмоций по времени суток
+        /// </summary>
+        /// <param name="from">Начальная дата (опционально)</param>
+        /// <param name="to">Конечная дата (опционально)</param>
+        /// <returns>Словарь статистики по времени суток</returns>
+        public Dictionary<TimeOfDay, EmotionTimeStats> GetEmotionsByTimeOfDay(DateTime? from = null, DateTime? to = null)
+        {
+            return _emotionHistory.GetEmotionsByTimeOfDay(from, to);
+        }
+
+        /// <summary>
+        /// Получает статистику частоты записи эмоций
+        /// </summary>
+        /// <param name="from">Начальная дата</param>
+        /// <param name="to">Конечная дата</param>
+        /// <param name="groupByDay">Группировать по дням (true) или по часам (false)</param>
+        /// <returns>Список статистики частоты записей</returns>
+        public List<EmotionFrequencyStats> GetLoggingFrequency(DateTime from, DateTime to, bool groupByDay = true)
+        {
+            return _emotionHistory.GetLoggingFrequency(from, to, groupByDay);
+        }
+
+        /// <summary>
+        /// Получает статистику популярных комбинаций эмоций
+        /// </summary>
+        /// <param name="from">Начальная дата (опционально)</param>
+        /// <param name="to">Конечная дата (опционально)</param>
+        /// <param name="topCount">Количество самых популярных комбинаций</param>
+        /// <returns>Список статистики комбинаций</returns>
+        public List<EmotionCombinationStats> GetPopularEmotionCombinations(DateTime? from = null, DateTime? to = null, int topCount = 5)
+        {
+            return _emotionHistory.GetPopularEmotionCombinations(from, to, topCount);
+        }
+
+        /// <summary>
+        /// Получает статистику трендов эмоций
+        /// </summary>
+        /// <param name="from">Начальная дата</param>
+        /// <param name="to">Конечная дата</param>
+        /// <param name="groupByDay">Группировать по дням (true) или по часам (false)</param>
+        /// <returns>Список статистики трендов</returns>
+        public List<EmotionTrendStats> GetEmotionTrends(DateTime from, DateTime to, bool groupByDay = true)
+        {
+            return _emotionHistory.GetEmotionTrends(from, to, groupByDay);
+        }
+
+        #endregion
     }
 }
