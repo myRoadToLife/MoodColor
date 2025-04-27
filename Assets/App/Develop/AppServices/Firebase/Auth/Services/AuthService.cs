@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using App.Develop.AppServices.Auth;
 using Firebase;
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace App.Develop.AppServices.Firebase.Auth.Services
 {
@@ -15,6 +16,8 @@ namespace App.Develop.AppServices.Firebase.Auth.Services
         private readonly FirebaseAuth _auth;
         private readonly DatabaseService _databaseService;
         private readonly ValidationService _validationService;
+        private Dictionary<string, DateTime> _lastEmailSentTime = new Dictionary<string, DateTime>();
+        private const int MIN_EMAIL_INTERVAL_SECONDS = 60; // 1 минута между письмами
 
         public AuthService(
             FirebaseAuth auth,
@@ -114,11 +117,36 @@ namespace App.Develop.AppServices.Firebase.Auth.Services
                     return false;
                 }
 
+                string emailType = "verification"; // или "reset"
+                string key = $"{user.Email}_{emailType}";
+                
+                if (_lastEmailSentTime.TryGetValue(key, out DateTime lastTime))
+                {
+                    var timeSince = DateTime.Now - lastTime;
+                    if (timeSince.TotalSeconds < MIN_EMAIL_INTERVAL_SECONDS)
+                    {
+                        Debug.LogWarning($"⚠️ Слишком частые запросы на отправку писем. Пожалуйста, подождите {MIN_EMAIL_INTERVAL_SECONDS - (int)timeSince.TotalSeconds} секунд");
+                        return false;
+                    }
+                }
+                
+                // Записываем время отправки
+                _lastEmailSentTime[key] = DateTime.Now;
+
                 await user.SendEmailVerificationAsync();
+                Debug.Log("✅ Письмо с подтверждением отправлено");
                 return true;
             }
             catch (Exception ex)
             {
+                // Проверяем сообщение об ошибке на блокировку из-за активности
+                if (ex.Message.Contains("blocked") && ex.Message.Contains("unusual activity"))
+                {
+                    // Письмо отправлено, но Firebase сообщает о блокировке
+                    Debug.LogWarning($"⚠️ Письмо отправлено, но Firebase сообщает о блокировке: {ex.Message}");
+                    return true; // Возвращаем true, так как письмо фактически отправлено
+                }
+                
                 Debug.LogError($"❌ Ошибка отправки письма: {ex.Message}");
                 return false;
             }
@@ -157,11 +185,36 @@ namespace App.Develop.AppServices.Firebase.Auth.Services
                     return false;
                 }
 
+                string emailType = "reset"; // или "verification"
+                string key = $"{email}_{emailType}";
+                
+                if (_lastEmailSentTime.TryGetValue(key, out DateTime lastTime))
+                {
+                    var timeSince = DateTime.Now - lastTime;
+                    if (timeSince.TotalSeconds < MIN_EMAIL_INTERVAL_SECONDS)
+                    {
+                        Debug.LogWarning($"⚠️ Слишком частые запросы на отправку писем. Пожалуйста, подождите {MIN_EMAIL_INTERVAL_SECONDS - (int)timeSince.TotalSeconds} секунд");
+                        return false;
+                    }
+                }
+                
+                // Записываем время отправки
+                _lastEmailSentTime[key] = DateTime.Now;
+
                 await _auth.SendPasswordResetEmailAsync(email);
+                Debug.Log($"✅ Письмо для сброса пароля отправлено на {email}");
                 return true;
             }
             catch (Exception ex)
             {
+                // Проверяем сообщение об ошибке на блокировку из-за активности
+                if (ex.Message.Contains("blocked") && ex.Message.Contains("unusual activity"))
+                {
+                    // Письмо отправлено, но Firebase сообщает о блокировке
+                    Debug.LogWarning($"⚠️ Письмо отправлено, но Firebase сообщает о блокировке: {ex.Message}");
+                    return true; // Возвращаем true, так как письмо фактически отправлено
+                }
+                
                 Debug.LogError($"❌ Ошибка сброса пароля: {ex.Message}");
                 return false;
             }

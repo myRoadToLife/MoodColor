@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Check dependencies and duplicates every time before creating a new or changing an existing script. Explain how scripts interact. Use interfaces, events, and delegates when necessary.

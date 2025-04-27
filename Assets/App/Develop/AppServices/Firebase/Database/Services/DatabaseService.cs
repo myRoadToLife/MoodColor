@@ -429,7 +429,87 @@ namespace App.Develop.AppServices.Firebase.Database.Services
             }
         }
 
+        // Получает банки пользователя
+        public async Task<Dictionary<string, JarData>> GetUserJars()
+        {
+            try
+            {
+                string userId = _userId;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    Debug.LogError("Пользователь не авторизован");
+                    return null;
+                }
 
+                var snapshot = await _database.Child("users").Child(userId).Child("jars").GetValueAsync();
+
+                if (!snapshot.Exists)
+                {
+                    Debug.Log("Банки пользователя не найдены, создаём их");
+                    return await CreateDefaultJars();
+                }
+
+                var jarData = new Dictionary<string, JarData>();
+                foreach (var child in snapshot.Children)
+                {
+                    // Парсим данные каждой банки
+                    var jar = JsonConvert.DeserializeObject<JarData>(child.GetRawJsonValue());
+                    if (jar != null)
+                    {
+                        jarData[child.Key] = jar;
+                    }
+                }
+
+                return jarData;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка при получении банок пользователя: {ex.Message}");
+                throw;
+            }
+        }
+
+        // Создает банки по умолчанию для нового пользователя
+        private async Task<Dictionary<string, JarData>> CreateDefaultJars()
+        {
+            try
+            {
+                string userId = _userId;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    Debug.LogError("Пользователь не авторизован");
+                    return null;
+                }
+
+                var jarData = new Dictionary<string, JarData>();
+                
+                // Создаем банку для каждого типа эмоций
+                foreach (EmotionTypes type in Enum.GetValues(typeof(EmotionTypes)))
+                {
+                    var jar = new JarData
+                    {
+                        Type = type.ToString(),
+                        Level = 1,
+                        Capacity = 100,
+                        CurrentAmount = 0,
+                        Customization = new JarCustomization()
+                    };
+
+                    jarData[type.ToString()] = jar;
+                    
+                    // Сохраняем в базу данных
+                    await _database.Child("users").Child(userId).Child("jars").Child(type.ToString())
+                        .SetRawJsonValueAsync(JsonConvert.SerializeObject(jar));
+                }
+
+                return jarData;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка при создании банок по умолчанию: {ex.Message}");
+                throw;
+            }
+        }
 
         // Освобождение ресурсов (отписка от событий)
         public void Dispose()

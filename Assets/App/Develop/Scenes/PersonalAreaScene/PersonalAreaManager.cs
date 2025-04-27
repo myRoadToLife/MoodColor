@@ -1,4 +1,5 @@
 using System;
+using App.Develop.CommonServices.AssetManagement;
 using App.Develop.CommonServices.Emotion;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.CommonServices.UI;
@@ -15,6 +16,7 @@ namespace App.Develop.Scenes.PersonalAreaScene
     {
         private const string DEFAULT_USERNAME = "Username";
         private const string DeletionAccount_PANEL_PATH = "UI/DeletionAccountPanel";
+        private const string PANEL_SETTINGS = "UI/SettingsPanel";
 
         [SerializeField] private PersonalAreaUIController _ui;
 
@@ -65,7 +67,28 @@ namespace App.Develop.Scenes.PersonalAreaScene
 
         private void ShowSettingsPanel()
         {
-            _panelManager.TogglePanel<AccountDeletionManager>(DeletionAccount_PANEL_PATH);
+            Debug.Log("🔄 [PersonalAreaManager] Показываем панель настроек...");
+            
+            try
+            {
+                if (_panelManager == null)
+                {
+                    Debug.LogError("❌ [PersonalAreaManager] PanelManager отсутствует!");
+                    return;
+                }
+                
+                Debug.Log($"🔄 [PersonalAreaManager] Переключаем панель по пути: {AssetPaths.PanelSettings}");
+                
+                bool panelShown = _panelManager.TogglePanel<SettingsPanelController>(AssetPaths.PanelSettings);
+                
+                Debug.Log(panelShown 
+                    ? "✅ [PersonalAreaManager] Панель настроек успешно отображена" 
+                    : "❌ [PersonalAreaManager] Не удалось отобразить панель настроек");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ [PersonalAreaManager] Ошибка при отображении панели настроек: {ex.Message}\n{ex.StackTrace}");
+            }
         }
 
         private void SetupUserProfile()

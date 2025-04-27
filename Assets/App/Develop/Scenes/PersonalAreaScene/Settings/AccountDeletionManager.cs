@@ -28,12 +28,14 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
 
         private SceneSwitcher _sceneSwitcher;
         private FirebaseAuth _auth;
+        private DatabaseReference _database;
         private string _plainPassword = "";
 
         public void Inject(DIContainer container)
         {
             _sceneSwitcher = container.Resolve<SceneSwitcher>();
             _auth = FirebaseAuth.DefaultInstance;
+            _database = container.Resolve<DatabaseReference>();
 
             InitializeUI();
         }
@@ -178,8 +180,6 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
                 });
         }
 
-
-
         private void DeleteUserData()
         {
             var uid = _auth.CurrentUser?.UserId;
@@ -190,9 +190,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
                 return;
             }
 
-            // Удаляем данные пользователя из Realtime Database
-            FirebaseDatabase.DefaultInstance
-                .RootReference
+            _database
                 .Child("users")
                 .Child(uid)
                 .RemoveValueAsync()
@@ -217,7 +215,6 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
                     }
                 });
         }
-
 
         private void DeleteFirebaseUser()
         {

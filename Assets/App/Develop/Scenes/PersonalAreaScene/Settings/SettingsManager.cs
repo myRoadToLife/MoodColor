@@ -28,7 +28,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
     }
     #endregion
 
-    public class SettingsManager : MonoBehaviour, IInjectable, ISettingsManager
+    public class SettingsManager : IInjectable, ISettingsManager
     {
         #region Private Fields
         private FirebaseAuth _auth;
@@ -42,27 +42,29 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         public event Action<SettingsData> OnSettingsChanged;
         #endregion
 
-        #region Unity Lifecycle
-        private void Awake()
+        public SettingsManager()
         {
             _currentSettings = LoadLocalSettings();
         }
 
-        private void OnDestroy()
-        {
-            SaveSettings();
-        }
-        #endregion
-
-        #region Initialization
         public void Inject(DIContainer container)
         {
-            _auth = FirebaseAuth.DefaultInstance;
-            _database = FirebaseDatabase.DefaultInstance.RootReference;
+            if (container == null) throw new ArgumentNullException(nameof(container));
             
-            LoadSettings();
+            try
+            {
+                _auth = container.Resolve<FirebaseAuth>();
+                _database = container.Resolve<DatabaseReference>();
+                
+                LoadSettings();
+                Debug.Log("✅ SettingsManager успешно инициализирован");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Ошибка инициализации SettingsManager: {ex.Message}");
+                throw;
+            }
         }
-        #endregion
 
         #region Public Methods
         public void SetNotifications(bool enabled)

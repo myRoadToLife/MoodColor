@@ -14,10 +14,14 @@ using App.Develop.CommonServices.SceneManagement;
 using App.Develop.CommonServices.UI;
 using App.Develop.DI;
 using App.Develop.Scenes.PersonalAreaScene;
+using App.Develop.Scenes.PersonalAreaScene.Settings;
+using App.Develop.Scenes.PersonalAreaScene.UI;
 using Firebase;
 using Firebase.Auth;
 using Firebase.Database;
 using UnityEngine;
+using App.Develop.UI.Panels;
+using App.Develop.Scenes.PersonalAreaScene.UI.Components;
 
 namespace App.Develop.EntryPoint
 {
@@ -296,25 +300,44 @@ namespace App.Develop.EntryPoint
         }
 
         /// <summary>
-        /// Регистрирует сервисы личного кабинета в контейнере
+        /// Регистрирует сервисы для личного кабинета
         /// </summary>
         private void RegisterPersonalAreaServices(DIContainer container)
         {
             try
             {
+                // Регистрируем SettingsManager для работы панели настроек
+                container.RegisterAsSingle<ISettingsManager>(container =>
+                {
+                    var settingsManager = new SettingsManager();
+                    settingsManager.Inject(container);
+                    return settingsManager;
+                }).NonLazy();
+
+                // Сервис личного кабинета
                 container.RegisterAsSingle<IPersonalAreaService>(container =>
                     new PersonalAreaService(
                         container.Resolve<EmotionService>()
                     )
-                ).NonLazy();
+                );
+                
+                // Регистрируем EmotionJarView с отложенным созданием
+                container.RegisterAsSingle<EmotionJarView>(container =>
+                {
+                    // Создаем префаб только когда это действительно нужно
+                    // Логика регистрации упрощена, чтобы избежать проблем на этапе загрузки
+                    Debug.Log("⚠️ Создаем EmotionJarView через AssetPaths");
+                    return Instantiate(container.Resolve<ResourcesAssetLoader>().LoadResource<EmotionJarView>(AssetPaths.EmotionJarView));
+                });
 
-                Debug.Log("✅ PersonalAreaService зарегистрирован");
+                Debug.Log("✅ Сервисы личного кабинета зарегистрированы");
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка регистрации PersonalAreaService: {ex.Message}");
+                Debug.LogError($"❌ Ошибка регистрации сервисов личного кабинета: {ex.Message}");
                 throw;
             }
         }
+        
     }
 }

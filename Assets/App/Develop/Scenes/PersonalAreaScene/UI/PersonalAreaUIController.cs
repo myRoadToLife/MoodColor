@@ -8,8 +8,8 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
     public class PersonalAreaUIController : MonoBehaviour
     {
         [SerializeField] private ProfileInfoComponent _profileInfo;
-        [SerializeField] private EmotionJarsComponent _emotionJars;
-        [SerializeField] private StatisticsComponent _statistics;
+        [SerializeField] private EmotionJarView _emotionJars;
+        [SerializeField] private StatisticsView _statistics;
         [SerializeField] private NavigationComponent _navigation;
 
         public event Action OnLogEmotion
@@ -44,35 +44,214 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
 
         private void ValidateComponents()
         {
-            if (_profileInfo == null) Debug.LogError("ProfileInfoComponent не назначен");
-            if (_emotionJars == null) Debug.LogError("EmotionJarsComponent не назначен");
-            if (_statistics == null) Debug.LogError("StatisticsComponent не назначен");
-            if (_navigation == null) Debug.LogError("NavigationComponent не назначен");
+            Debug.Log("🔄 [PersonalAreaUIController] Валидация компонентов...");
+            
+            if (_profileInfo == null) 
+            {
+                Debug.LogError("❌ [PersonalAreaUIController] ProfileInfoComponent не назначен");
+            }
+            else
+            {
+                Debug.Log("✅ [PersonalAreaUIController] ProfileInfoComponent валиден");
+            }
+            
+            if (_emotionJars == null) 
+            {
+                Debug.LogError("❌ [PersonalAreaUIController] EmotionJarView не назначен");
+            }
+            else
+            {
+                Debug.Log("✅ [PersonalAreaUIController] EmotionJarView валиден: " + _emotionJars.name);
+            }
+            
+            if (_statistics == null) 
+            {
+                Debug.LogError("❌ [PersonalAreaUIController] StatisticsComponent не назначен");
+            }
+            else
+            {
+                Debug.Log("✅ [PersonalAreaUIController] StatisticsComponent валиден");
+            }
+            
+            if (_navigation == null) 
+            {
+                Debug.LogError("❌ [PersonalAreaUIController] NavigationComponent не назначен");
+            }
+            else
+            {
+                Debug.Log("✅ [PersonalAreaUIController] NavigationComponent валиден");
+            }
         }
 
         public void Initialize()
         {
-            ValidateComponents();
-            _navigation.Initialize();
+            Debug.Log("🔄 [PersonalAreaUIController] Начало инициализации...");
+            
+            try
+            {
+                ValidateComponents();
+                
+                if (_navigation != null)
+                {
+                    Debug.Log("🔄 [PersonalAreaUIController] Инициализация NavigationComponent...");
+                    try
+                    {
+                        _navigation.Initialize();
+                        Debug.Log("✅ [PersonalAreaUIController] NavigationComponent инициализирован");
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogError($"❌ [PersonalAreaUIController] Ошибка инициализации NavigationComponent: {ex.Message}");
+                    }
+                }
+                
+                if (_emotionJars != null)
+                {
+                    Debug.Log("🔄 [PersonalAreaUIController] Инициализация EmotionJarView...");
+                    try
+                    {
+                        _emotionJars.Initialize();
+                        Debug.Log("✅ [PersonalAreaUIController] EmotionJarView инициализирован");
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogError($"❌ [PersonalAreaUIController] Ошибка инициализации EmotionJarView: {ex.Message}\n{ex.StackTrace}");
+                    }
+                }
+                
+                Debug.Log("✅ [PersonalAreaUIController] Инициализация завершена успешно");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ [PersonalAreaUIController] Ошибка инициализации UI контроллера: {ex.Message}\n{ex.StackTrace}");
+            }
         }
 
-        public void SetUsername(string username) => _profileInfo.SetUsername(username);
-        public void SetCurrentEmotion(Sprite emotionSprite) => _profileInfo.SetCurrentEmotion(emotionSprite);
-        public void SetJar(EmotionTypes type, int amount) => _emotionJars.SetJar(type, amount);
-        public void SetPoints(int points) => _statistics.SetPoints(points);
-        public void SetEntries(int entries) => _statistics.SetEntries(entries);
+        public void SetUsername(string username)
+        {
+            if (_profileInfo == null)
+            {
+                Debug.LogError("❌ [PersonalAreaUIController] Невозможно установить имя пользователя: ProfileInfoComponent отсутствует");
+                return;
+            }
+            
+            Debug.Log($"🔄 [PersonalAreaUIController] Установка имени пользователя: {username}");
+            _profileInfo.SetUsername(username);
+        }
+        
+        public void SetCurrentEmotion(Sprite emotionSprite)
+        {
+            if (_profileInfo == null)
+            {
+                Debug.LogError("❌ [PersonalAreaUIController] Невозможно установить текущую эмоцию: ProfileInfoComponent отсутствует");
+                return;
+            }
+            
+            Debug.Log($"🔄 [PersonalAreaUIController] Установка текущей эмоции: {(emotionSprite != null ? emotionSprite.name : "null")}");
+            _profileInfo.SetCurrentEmotion(emotionSprite);
+        }
+        
+        public void SetJar(EmotionTypes type, int amount)
+        {
+            if (_emotionJars == null)
+            {
+                Debug.LogError($"❌ [PersonalAreaUIController] Невозможно установить количество для банки {type}: EmotionJarView отсутствует");
+                return;
+            }
+            
+            try
+            {
+                Debug.Log($"🔄 [PersonalAreaUIController] Установка количества {amount} для банки типа {type}");
+                _emotionJars.SetJar(type, amount);
+                Debug.Log($"✅ [PersonalAreaUIController] Количество для банки {type} установлено: {amount}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ [PersonalAreaUIController] Ошибка при установке количества для банки {type}: {ex.Message}");
+            }
+        }
+        
+        public void SetPoints(int points)
+        {
+            if (_statistics == null)
+            {
+                Debug.LogError("❌ [PersonalAreaUIController] Невозможно установить очки: StatisticsComponent отсутствует");
+                return;
+            }
+            
+            Debug.Log($"🔄 [PersonalAreaUIController] Установка очков: {points}");
+            _statistics.SetPoints(points);
+        }
+        
+        public void SetEntries(int entries)
+        {
+            if (_statistics == null)
+            {
+                Debug.LogError("❌ [PersonalAreaUIController] Невозможно установить записи: StatisticsComponent отсутствует");
+                return;
+            }
+            
+            Debug.Log($"🔄 [PersonalAreaUIController] Установка записей: {entries}");
+            _statistics.SetEntries(entries);
+        }
+
+        /// <summary>
+        /// Возвращает компонент EmotionJarView
+        /// </summary>
+        public EmotionJarView GetEmotionJarView()
+        {
+            Debug.Log($"🔄 [PersonalAreaUIController] Запрошен EmotionJarView: {(_emotionJars != null ? _emotionJars.name : "null")}"); 
+            return _emotionJars;
+        }
 
         public void ClearAll()
         {
-            _profileInfo.Clear();
-            _emotionJars.Clear();
-            _statistics.Clear();
-            _navigation.Clear();
+            Debug.Log("🔄 [PersonalAreaUIController] Очистка всех компонентов...");
+            
+            try
+            {
+                if (_profileInfo != null)
+                {
+                    _profileInfo.Clear();
+                    Debug.Log("✅ [PersonalAreaUIController] ProfileInfoComponent очищен");
+                }
+                
+                if (_emotionJars != null)
+                {
+                    _emotionJars.Clear();
+                    Debug.Log("✅ [PersonalAreaUIController] EmotionJarView очищен");
+                }
+                
+                if (_statistics != null)
+                {
+                    _statistics.Clear();
+                    Debug.Log("✅ [PersonalAreaUIController] StatisticsComponent очищен");
+                }
+                
+                if (_navigation != null)
+                {
+                    _navigation.Clear();
+                    Debug.Log("✅ [PersonalAreaUIController] NavigationComponent очищен");
+                }
+                
+                Debug.Log("✅ [PersonalAreaUIController] Все компоненты очищены");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ [PersonalAreaUIController] Ошибка при очистке компонентов: {ex.Message}");
+            }
         }
 
         private void OnDestroy()
         {
+            Debug.Log("🔄 [PersonalAreaUIController] OnDestroy вызван, очищаем компоненты");
             ClearAll();
+        }
+
+        public NavigationComponent GetNavigationComponent()
+        {
+            Debug.Log($"🔄 [PersonalAreaUIController] Запрошен NavigationComponent: {(_navigation != null ? _navigation.name : "null")}"); 
+            return _navigation;
         }
     }
 } 
