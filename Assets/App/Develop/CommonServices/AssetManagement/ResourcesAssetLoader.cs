@@ -2,9 +2,17 @@ using UnityEngine;
 
 namespace App.Develop.CommonServices.AssetManagement
 {
-    public class ResourcesAssetLoader
+    public class ResourcesAssetLoader : IResourcesLoader
     {
-        public T LoadResource <T>(string path) where T : Object
+        public T LoadAsset<T>(string path) where T : Object
             => Resources.Load<T>(path);
+
+        public void UnloadAsset(Object asset)
+        {
+            if (asset != null)
+            {
+                Resources.UnloadAsset(asset);
+            }
+        }
     }
 }

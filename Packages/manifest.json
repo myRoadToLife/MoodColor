@@ -1,4 +1,13 @@
 {
+  "scopedRegistries": [
+    {
+      "name": "package.openupm.com",
+      "url": "https://package.openupm.com",
+      "scopes": [
+        "jillejr.newtonsoft.json-for-unity"
+      ]
+    }
+  ],
   "dependencies": {
     "com.google.external-dependency-manager": "file:F:/MoodColor/Firebase/com.google.external-dependency-manager-1.2.185 (3).tgz",
     "com.google.firebase.analytics": "file:F:/MoodColor/Firebase/com.google.firebase.analytics-12.8.0 (1).tgz",
@@ -14,12 +23,14 @@
     "com.unity.inputsystem": "1.13.1",
     "com.unity.mobile.android-logcat": "1.4.5",
     "com.unity.multiplayer.center": "1.0.0",
-    "com.unity.nuget.newtonsoft-json": "3.2.1",
+    "com.unity.nuget.mono-cecil": "1.11.4",
     "com.unity.render-pipelines.universal": "17.0.4",
     "com.unity.test-framework": "1.5.1",
+    "com.unity.testtools.codecoverage": "1.2.4",
     "com.unity.timeline": "1.8.8",
     "com.unity.ugui": "2.0.0",
     "com.unity.visualscripting": "1.9.6",
+    "jillejr.newtonsoft.json-for-unity": "13.0.102",
     "com.unity.modules.accessibility": "1.0.0",
     "com.unity.modules.ai": "1.0.0",
     "com.unity.modules.androidjni": "1.0.0",

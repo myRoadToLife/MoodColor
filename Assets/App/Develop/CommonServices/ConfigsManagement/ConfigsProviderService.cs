@@ -24,7 +24,7 @@ namespace App.Develop.CommonServices.ConfigsManagement
 
         private void LoadStartEmotionConfig()
         {
-            StartEmotionConfig = _resourcesLoader.LoadResource<StartEmotionConfig>("Configs/Common/Emotion/StartEmotionConfig");
+            StartEmotionConfig = _resourcesLoader.LoadAsset<StartEmotionConfig>("Configs/Common/Emotion/StartEmotionConfig");
             
             if (StartEmotionConfig == null)
             {
@@ -39,7 +39,7 @@ namespace App.Develop.CommonServices.ConfigsManagement
         {
             foreach (EmotionTypes type in System.Enum.GetValues(typeof(EmotionTypes)))
             {
-                var config = _resourcesLoader.LoadResource<EmotionConfig>($"Configs/Common/Emotion/{type}Config");
+                var config = _resourcesLoader.LoadAsset<EmotionConfig>($"Configs/Common/Emotion/{type}Config");
                 if (config != null)
                 {
                     _emotionConfigs[type] = config;

@@ -164,12 +164,12 @@ namespace App.Develop.EntryPoint
 
                 // Исполнитель корутин
                 container.RegisterAsSingle<ICoroutinePerformer>(container =>
-                    Instantiate(container.Resolve<ResourcesAssetLoader>().LoadResource<CoroutinePerformer>(AssetPaths.CoroutinePerformer))
+                    Instantiate(container.Resolve<ResourcesAssetLoader>().LoadAsset<CoroutinePerformer>(AssetPaths.CoroutinePerformer))
                 );
 
                 // Загрузочный экран
                 container.RegisterAsSingle<ILoadingScreen>(container =>
-                    Instantiate(container.Resolve<ResourcesAssetLoader>().LoadResource<LoadingScreen>(AssetPaths.LoadingScreen))
+                    Instantiate(container.Resolve<ResourcesAssetLoader>().LoadAsset<LoadingScreen>(AssetPaths.LoadingScreen))
                 );
 
                 // Загрузчик сцен
@@ -330,7 +330,7 @@ namespace App.Develop.EntryPoint
                     // Создаем префаб только когда это действительно нужно
                     // Логика регистрации упрощена, чтобы избежать проблем на этапе загрузки
                     Debug.Log("⚠️ Создаем EmotionJarView через AssetPaths");
-                    return Instantiate(container.Resolve<ResourcesAssetLoader>().LoadResource<EmotionJarView>(AssetPaths.EmotionJarView));
+                    return Instantiate(container.Resolve<ResourcesAssetLoader>().LoadAsset<EmotionJarView>(AssetPaths.EmotionJarView));
                 });
 
                 Debug.Log("✅ Сервисы личного кабинета зарегистрированы");

@@ -50,7 +50,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
                 GameObject personalAreaPrefab = null;
                 try
                 {
-                    personalAreaPrefab = assetLoader.LoadResource<GameObject>(AssetPaths.PersonalAreaCanvas);
+                    personalAreaPrefab = assetLoader.LoadAsset<GameObject>(AssetPaths.PersonalAreaCanvas);
                 }
                 catch (Exception e)
                 {

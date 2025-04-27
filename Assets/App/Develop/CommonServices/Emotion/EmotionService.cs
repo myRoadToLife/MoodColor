@@ -32,6 +32,15 @@ namespace App.Develop.CommonServices.Emotion
             LoadEmotionConfigs(configsProvider);
         }
 
+        // Конструктор для тестов
+        internal EmotionService(Dictionary<EmotionTypes, EmotionData> initialEmotions)
+        {
+            _emotions = initialEmotions ?? throw new ArgumentNullException(nameof(initialEmotions));
+            _emotionMixingRules = new EmotionMixingRules();
+            _emotionConfigs = new Dictionary<EmotionTypes, EmotionConfig>();
+            _emotionHistory = new EmotionHistory();
+        }
+
         public List<EmotionTypes> AvailableEmotions => _emotions.Keys.ToList();
 
         public EmotionData GetEmotion(EmotionTypes type)

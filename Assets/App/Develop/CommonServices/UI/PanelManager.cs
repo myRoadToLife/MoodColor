@@ -36,7 +36,7 @@ namespace App.Develop.CommonServices.UI
                 }
             }
 
-            var prefab = _assetLoader.LoadResource<GameObject>(panelPath);
+            var prefab = _assetLoader.LoadAsset<GameObject>(panelPath);
             if (prefab == null)
             {
                 Debug.LogError($"❌ Префаб {panelPath} не найден в Resources");
