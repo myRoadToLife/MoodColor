@@ -205,7 +205,10 @@ namespace App.Develop.EntryPoint
 
                 // Сервис эмоций
                 container.RegisterAsSingle(container =>
-                    new EmotionService(container.Resolve<PlayerDataProvider>())
+                    new EmotionService(
+                        container.Resolve<PlayerDataProvider>(),
+                        container.Resolve<ConfigsProviderService>()
+                    )
                 ).NonLazy();
 
                 // Менеджер панелей UI
@@ -216,11 +219,11 @@ namespace App.Develop.EntryPoint
                     )
                 ).NonLazy();
 
-                Debug.Log("✅ Основные сервисы зарегистрированы");
+                Debug.Log("✅ Базовые сервисы зарегистрированы успешно");
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка регистрации основных сервисов: {ex.Message}");
+                Debug.LogError($"❌ Ошибка регистрации базовых сервисов: {ex}");
                 throw;
             }
         }

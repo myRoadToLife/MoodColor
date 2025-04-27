@@ -170,6 +170,11 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
                 Debug.LogError($"❌ [PersonalAreaUIController] Ошибка при установке количества для банки {type}: {ex.Message}");
             }
         }
+
+        public void SetJarFloat(EmotionTypes type, float amount)
+        {
+            SetJar(type, Mathf.RoundToInt(amount));
+        }
         
         public void SetPoints(int points)
         {

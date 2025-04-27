@@ -3,7 +3,6 @@ using System.Collections;
 using App.Develop.CommonServices.CoroutinePerformer;
 using App.Develop.CommonServices.LoadingScreen;
 using App.Develop.DI;
-using App.Develop.MainScreenScene.Infrastructure;
 using App.Develop.Scenes.AuthScene;
 using App.Develop.Scenes.PersonalAreaScene.Infrastructure;
 using UnityEngine;
@@ -89,9 +88,9 @@ namespace App.Develop.CommonServices.SceneManagement
         {
             switch (personalAreaScreenArgs.NextSceneInputArgs)
             {
-                case MainSceneInputArgs mainSceneInputArgs:
-                    yield return ProcessSwitchToMainScreenScene(mainSceneInputArgs);
-                    break;
+                // case MainSceneInputArgs mainSceneInputArgs:
+                //     yield return ProcessSwitchToMainScreenScene(mainSceneInputArgs);
+                //     break;
                 case AuthSceneInputArgs authSceneInputArgs:
                     yield return ProcessSwitchToAuthScene(authSceneInputArgs);
                     break;
@@ -158,24 +157,24 @@ namespace App.Develop.CommonServices.SceneManagement
             _loadingScreen.Hide();
         }
 
-        private IEnumerator ProcessSwitchToMainScreenScene(MainSceneInputArgs mainSceneInputArgs)
-        {
-            _loadingScreen.Show();
-
-            _sceneContainer?.Dispose();
-
-            yield return _sceneLoader.LoadAsync(SceneID.Empty);
-            yield return _sceneLoader.LoadAsync(SceneID.MainScreen);
-
-            var mainScreenBootstrap = Object.FindFirstObjectByType<MainScreenBootstrap>();
-
-            if (mainScreenBootstrap == null)
-                throw new NullReferenceException(nameof(mainScreenBootstrap));
-
-            _sceneContainer = new DIContainer(_projectContainer);
-            yield return mainScreenBootstrap.Run(_sceneContainer, mainSceneInputArgs);
-
-            _loadingScreen.Hide();
-        }
+        // private IEnumerator ProcessSwitchToMainScreenScene(MainSceneInputArgs mainSceneInputArgs)
+        // {
+        //     _loadingScreen.Show();
+        //
+        //     _sceneContainer?.Dispose();
+        //
+        //     yield return _sceneLoader.LoadAsync(SceneID.Empty);
+        //     yield return _sceneLoader.LoadAsync(SceneID.MainScreen);
+        //
+        //     var mainScreenBootstrap = Object.FindFirstObjectByType<MainScreenBootstrap>();
+        //
+        //     if (mainScreenBootstrap == null)
+        //         throw new NullReferenceException(nameof(mainScreenBootstrap));
+        //
+        //     _sceneContainer = new DIContainer(_projectContainer);
+        //     yield return mainScreenBootstrap.Run(_sceneContainer, mainSceneInputArgs);
+        //
+        //     _loadingScreen.Hide();
+        // }
     }
 }

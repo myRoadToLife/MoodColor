@@ -101,16 +101,13 @@ namespace App.Develop.Scenes.PersonalAreaScene
         {
             foreach (EmotionTypes type in Enum.GetValues(typeof(EmotionTypes)))
             {
+                // Подписываемся на изменения эмоций
                 var variable = _service.GetEmotionVariable(type);
-
-                if (variable == null)
+                if (variable != null)
                 {
-                    Debug.LogWarning($"Не удалось получить переменную для эмоции {type}");
-                    continue;
+                    _ui.SetJarFloat(type, variable.Value.Value);
+                    variable.Changed += (_, newData) => _ui.SetJarFloat(type, newData.Value);
                 }
-
-                _ui.SetJar(type, variable.Value.Value);
-                variable.Changed += (_, newData) => _ui.SetJar(type, newData.Value);
             }
         }
 

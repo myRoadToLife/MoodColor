@@ -298,7 +298,7 @@ namespace App.Develop.AppServices.Firebase.Database.Services
 
 
         // Обновление текущей эмоции пользователя
-        public async Task UpdateCurrentEmotion(string type, int intensity)
+        public async Task UpdateCurrentEmotion(string type, float intensity)
         {
             if (!CheckAuthentication()) return;
 

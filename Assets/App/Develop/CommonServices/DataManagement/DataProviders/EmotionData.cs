@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
 using App.Develop.CommonServices.Emotion;
-using App.Develop.CommonServices.DataManagement;
 using Newtonsoft.Json;
 using UnityEngine;
-using App.Develop.CommonServices.DataManagement.DataProviders;
 
 namespace App.Develop.CommonServices.DataManagement.DataProviders
 {
@@ -18,10 +16,10 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
         public string Type { get; set; }
 
         [JsonProperty("value")]
-        public int Value { get; set; }
+        public float Value { get; set; }
 
         [JsonProperty("intensity")]
-        public int Intensity { get; set; }
+        public float Intensity { get; set; }
 
         [JsonProperty("colorHex")]
         public string ColorHex { get; set; }
@@ -39,14 +37,36 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
         [JsonConverter(typeof(ColorHexConverter))]
         public Color Color { get; set; }
 
+        // Новые поля для системы эмоций
+        [JsonProperty("maxCapacity")]
+        public float MaxCapacity { get; set; } = 100f;
+
+        [JsonProperty("fillRate")]
+        public float FillRate { get; set; } = 1f;
+
+        [JsonProperty("drainRate")]
+        public float DrainRate { get; set; } = 0.5f;
+
+        [JsonProperty("bubbleThreshold")]
+        public float BubbleThreshold { get; set; } = 80f;
+
+        [JsonIgnore]
+        public DateTime LastUpdate 
+        { 
+            get => DateTime.FromFileTimeUtc(Timestamp);
+            set => Timestamp = value.ToFileTimeUtc();
+        }
+
         public EmotionData()
         {
             Id = Guid.NewGuid().ToString();
-            Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            Timestamp = DateTime.UtcNow.ToFileTimeUtc();
             Color = Color.white;
+            Value = 0f;
+            Intensity = 0f;
         }
 
-        public EmotionData(string type, int intensity = 0, int value = 0, string note = null, Color? color = null, string regionId = null)
+        public EmotionData(string type, float intensity = 0, float value = 0, string note = null, Color? color = null, string regionId = null)
         {
             Id = Guid.NewGuid().ToString();
             Type = type;
@@ -55,7 +75,27 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
             Note = note;
             Color = color ?? Color.white;
             RegionId = regionId;
-            Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            Timestamp = DateTime.UtcNow.ToFileTimeUtc();
+        }
+
+        public EmotionData Clone()
+        {
+            return new EmotionData
+            {
+                Id = Id,
+                Type = Type,
+                Value = Value,
+                Intensity = Intensity,
+                Color = Color,
+                ColorHex = ColorHex,
+                Note = Note,
+                RegionId = RegionId,
+                Timestamp = Timestamp,
+                MaxCapacity = MaxCapacity,
+                FillRate = FillRate,
+                DrainRate = DrainRate,
+                BubbleThreshold = BubbleThreshold
+            };
         }
 
         public bool Equals(EmotionData other)
@@ -63,8 +103,8 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
             if (other is null) return false;
             return Id == other.Id && 
                    Type == other.Type && 
-                   Value == other.Value && 
-                   Intensity == other.Intensity;
+                   Math.Abs(Value - other.Value) < float.Epsilon && 
+                   Math.Abs(Intensity - other.Intensity) < float.Epsilon;
         }
 
         public override bool Equals(object obj) => Equals(obj as EmotionData);
@@ -87,5 +127,4 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
         public static bool operator !=(EmotionData left, EmotionData right) =>
             !(left == right);
     }
-    
 }
