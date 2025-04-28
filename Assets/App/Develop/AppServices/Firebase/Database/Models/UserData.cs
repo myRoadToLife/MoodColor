@@ -19,6 +19,15 @@ namespace App.Develop.AppServices.Firebase.Database.Models
 
         [JsonProperty("currentEmotion")]
         public CurrentEmotion CurrentEmotion { get; set; }
+        
+        [JsonProperty("emotionHistory")]
+        public Dictionary<string, EmotionHistoryRecord> EmotionHistory { get; set; }
+        
+        [JsonProperty("syncSettings")]
+        public EmotionSyncSettings SyncSettings { get; set; }
+        
+        [JsonProperty("lastDailySummaryDate")]
+        public string LastDailySummaryDate { get; set; }
 
         public UserData()
         {
@@ -26,6 +35,9 @@ namespace App.Develop.AppServices.Firebase.Database.Models
             Emotions = new Dictionary<string, EmotionData>();
             Jars = new Dictionary<string, JarData>();
             CurrentEmotion = new CurrentEmotion();
+            EmotionHistory = new Dictionary<string, EmotionHistoryRecord>();
+            SyncSettings = new EmotionSyncSettings();
+            LastDailySummaryDate = DateTime.UtcNow.ToString("yyyy-MM-dd");
         }
     }
 

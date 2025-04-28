@@ -1,0 +1,438 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using App.Develop.AppServices.Firebase.Database.Interfaces;
+using App.Develop.AppServices.Firebase.Database.Models;
+using App.Develop.CommonServices.DataManagement;
+using App.Develop.CommonServices.DataManagement.DataProviders;
+using App.Develop.CommonServices.Emotion;
+using App.Develop.CommonServices.Networking;
+using Newtonsoft.Json;
+using UnityEngine;
+using App.Develop.AppServices.Firebase.Common.SecureStorage;
+
+namespace App.Develop.AppServices.Firebase.Database.Services
+{
+    public class EmotionSyncService : MonoBehaviour
+    {
+        #region Dependencies
+        private IDatabaseService _databaseService;
+        private EmotionHistoryCache _cache;
+        private ConnectivityManager _connectivityManager;
+        #endregion
+        
+        #region Private fields
+        private EmotionSyncSettings _syncSettings;
+        private bool _isSyncing;
+        private DateTime _lastSyncAttempt;
+        private bool _isInitialized;
+        #endregion
+        
+        #region Events
+        public event Action<bool, string> OnSyncComplete;
+        public event Action<float> OnSyncProgress;
+        public event Action<EmotionHistoryRecord> OnRecordSynced;
+        public event Action<EmotionHistoryRecord> OnSyncConflict;
+        #endregion
+        
+        #region Unity Lifecycle
+        private void OnEnable()
+        {
+            if (_isInitialized)
+            {
+                StartSync();
+            }
+        }
+
+        private void OnDisable()
+        {
+            // Если выключаемся, сохраняем настройки перед выходом
+            SaveSyncSettings();
+        }
+
+        private void Update()
+        {
+            if (!_isInitialized || _isSyncing) return;
+            
+            // Проверка необходимости автоматической синхронизации
+            if (_syncSettings.AutoSync && 
+                DateTime.Now - _lastSyncAttempt > _syncSettings.SyncInterval)
+            {
+                // Проверка подключения к сети
+                if (_connectivityManager != null && 
+                    (!_syncSettings.SyncOnWifiOnly || _connectivityManager.IsWifiConnected))
+                {
+                    StartSync();
+                }
+                else
+                {
+                    _lastSyncAttempt = DateTime.Now;
+                }
+            }
+        }
+        #endregion
+        
+        #region Initialization
+        public void Initialize(
+            IDatabaseService databaseService,
+            EmotionHistoryCache cache,
+            ConnectivityManager connectivityManager)
+        {
+            _databaseService = databaseService ?? throw new ArgumentNullException(nameof(databaseService));
+            _cache = cache ?? throw new ArgumentNullException(nameof(cache));
+            _connectivityManager = connectivityManager;
+            
+            _syncSettings = _cache.GetSyncSettings() ?? new EmotionSyncSettings();
+            _lastSyncAttempt = DateTime.Now;
+            _isInitialized = true;
+            
+            Debug.Log("EmotionSyncService инициализирован");
+        }
+        #endregion
+        
+        #region Public Methods
+        
+        /// <summary>
+        /// Запускает синхронизацию записей с сервером
+        /// </summary>
+        public async void StartSync()
+        {
+            if (!_isInitialized)
+            {
+                Debug.LogError("EmotionSyncService не инициализирован");
+                return;
+            }
+            
+            if (_isSyncing)
+            {
+                Debug.LogWarning("Синхронизация уже выполняется");
+                return;
+            }
+            
+            _isSyncing = true;
+            _lastSyncAttempt = DateTime.Now;
+            
+            bool success = false;
+            string message = "";
+            
+            try
+            {
+                // Проверка соединения с сервером
+                if (_databaseService == null || !_databaseService.IsAuthenticated)
+                {
+                    throw new InvalidOperationException("Пользователь не авторизован");
+                }
+                
+                Debug.Log("Начинаем синхронизацию данных с сервером...");
+                OnSyncProgress?.Invoke(0f);
+                
+                // Загружаем настройки синхронизации с сервера
+                var serverSettings = await _databaseService.GetSyncSettings();
+                if (serverSettings != null)
+                {
+                    _syncSettings = serverSettings;
+                    _cache.SaveSyncSettings(_syncSettings);
+                }
+                
+                // Получаем несинхронизированные записи из кэша
+                var unsyncedRecords = _cache.GetUnsyncedRecords(_syncSettings.MaxRecordsPerSync);
+                int totalRecords = unsyncedRecords.Count;
+                
+                Debug.Log($"Найдено {totalRecords} несинхронизированных записей");
+                
+                if (totalRecords == 0)
+                {
+                    // Если нет записей для синхронизации, проверяем новые записи с сервера
+                    await SyncFromServer();
+                    success = true;
+                    message = "Синхронизация выполнена успешно";
+                    return;
+                }
+                
+                // Отправляем записи на сервер
+                int processedCount = 0;
+                foreach (var record in unsyncedRecords)
+                {
+                    try
+                    {
+                        record.SyncStatus = SyncStatus.Syncing;
+                        _cache.UpdateRecord(record);
+                        
+                        // Отправляем запись на сервер
+                        await _databaseService.AddEmotionHistoryRecord(record);
+                        
+                        // Обновляем статус в кэше
+                        record.SyncStatus = SyncStatus.Synced;
+                        _cache.UpdateRecord(record);
+                        
+                        OnRecordSynced?.Invoke(record);
+                        processedCount++;
+                        
+                        // Обновляем прогресс
+                        float progress = totalRecords > 0 ? (float)processedCount / totalRecords : 1f;
+                        OnSyncProgress?.Invoke(progress);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogError($"Ошибка синхронизации записи {record.Id}: {ex.Message}");
+                        record.SyncStatus = SyncStatus.SyncFailed;
+                        _cache.UpdateRecord(record);
+                    }
+                }
+                
+                // Получаем данные с сервера
+                await SyncFromServer();
+                
+                // Обновляем время последней синхронизации
+                _syncSettings.LastSyncTime = DateTime.Now;
+                await _databaseService.UpdateSyncSettings(_syncSettings);
+                _cache.SaveSyncSettings(_syncSettings);
+                
+                success = true;
+                message = $"Синхронизировано {processedCount} из {totalRecords} записей";
+            }
+            catch (Exception ex)
+            {
+                success = false;
+                message = $"Ошибка синхронизации: {ex.Message}";
+                Debug.LogError(message);
+            }
+            finally
+            {
+                _isSyncing = false;
+                OnSyncComplete?.Invoke(success, message);
+                OnSyncProgress?.Invoke(1f);
+                
+                Debug.Log($"Синхронизация завершена. Успех: {success}. {message}");
+            }
+        }
+        
+        /// <summary>
+        /// Создает резервную копию данных
+        /// </summary>
+        public async Task<string> CreateBackup()
+        {
+            try
+            {
+                if (!_isInitialized || _databaseService == null || !_databaseService.IsAuthenticated)
+                {
+                    throw new InvalidOperationException("Сервис не инициализирован или пользователь не авторизован");
+                }
+                
+                string backupId = await _databaseService.CreateBackup();
+                _syncSettings.LastBackupTime = DateTime.Now;
+                await _databaseService.UpdateSyncSettings(_syncSettings);
+                _cache.SaveSyncSettings(_syncSettings);
+                
+                Debug.Log($"Резервная копия создана: {backupId}");
+                return backupId;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка создания резервной копии: {ex.Message}");
+                throw;
+            }
+        }
+        
+        /// <summary>
+        /// Восстанавливает данные из резервной копии
+        /// </summary>
+        public async Task RestoreFromBackup(string backupId)
+        {
+            try
+            {
+                if (!_isInitialized || _databaseService == null || !_databaseService.IsAuthenticated)
+                {
+                    throw new InvalidOperationException("Сервис не инициализирован или пользователь не авторизован");
+                }
+                
+                await _databaseService.RestoreFromBackup(backupId);
+                
+                // Очищаем локальный кэш и загружаем данные с сервера
+                _cache.ClearCache();
+                await SyncFromServer();
+                
+                Debug.Log($"Данные восстановлены из резервной копии: {backupId}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка восстановления из резервной копии: {ex.Message}");
+                throw;
+            }
+        }
+        
+        /// <summary>
+        /// Обновляет настройки синхронизации
+        /// </summary>
+        public async Task UpdateSyncSettings(EmotionSyncSettings settings)
+        {
+            if (settings == null) return;
+            
+            try
+            {
+                _syncSettings = settings;
+                _cache.SaveSyncSettings(settings);
+                
+                if (_databaseService != null && _databaseService.IsAuthenticated)
+                {
+                    await _databaseService.UpdateSyncSettings(settings);
+                }
+                
+                Debug.Log("Настройки синхронизации обновлены");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка обновления настроек синхронизации: {ex.Message}");
+                throw;
+            }
+        }
+        
+        /// <summary>
+        /// Форсирует создание резервной копии, если прошло достаточно времени
+        /// </summary>
+        public async Task CheckAndCreateBackup()
+        {
+            if (!_isInitialized || !_syncSettings.BackupEnabled) return;
+            
+            try
+            {
+                if (_syncSettings.LastBackupTime == DateTime.MinValue || 
+                    DateTime.Now - _syncSettings.LastBackupTime > _syncSettings.BackupInterval)
+                {
+                    await CreateBackup();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка при проверке резервного копирования: {ex.Message}");
+            }
+        }
+        #endregion
+        
+        #region Private Methods
+        
+        /// <summary>
+        /// Синхронизирует данные с сервера
+        /// </summary>
+        private async Task SyncFromServer()
+        {
+            try
+            {
+                Debug.Log("Получение данных с сервера...");
+                
+                DateTime? lastSyncTime = _syncSettings.LastSyncTime != DateTime.MinValue ? 
+                    _syncSettings.LastSyncTime : null;
+                
+                // Получаем записи с сервера, которые появились после последней синхронизации
+                var serverRecords = await _databaseService.GetEmotionHistory(lastSyncTime, null, _syncSettings.MaxRecordsPerSync);
+                
+                Debug.Log($"Получено {serverRecords.Count} записей с сервера");
+                
+                // Обрабатываем полученные записи
+                foreach (var serverRecord in serverRecords)
+                {
+                    var localRecord = _cache.GetRecord(serverRecord.Id);
+                    
+                    if (localRecord == null)
+                    {
+                        // Новая запись, добавляем в кэш
+                        serverRecord.SyncStatus = SyncStatus.Synced;
+                        _cache.AddRecord(serverRecord);
+                    }
+                    else
+                    {
+                        // Запись уже существует, проверяем на конфликты
+                        if (localRecord.SyncStatus == SyncStatus.NotSynced || 
+                            localRecord.SyncStatus == SyncStatus.SyncFailed)
+                        {
+                            // Есть конфликт - решаем согласно стратегии
+                            ResolveSyncConflict(localRecord, serverRecord);
+                        }
+                        else
+                        {
+                            // Нет конфликта, просто обновляем локальную копию
+                            serverRecord.SyncStatus = SyncStatus.Synced;
+                            _cache.UpdateRecord(serverRecord);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка при синхронизации с сервера: {ex.Message}");
+                throw;
+            }
+        }
+        
+        /// <summary>
+        /// Разрешает конфликт синхронизации между локальной и серверной записью
+        /// </summary>
+        private void ResolveSyncConflict(EmotionHistoryRecord localRecord, EmotionHistoryRecord serverRecord)
+        {
+            // Отмечаем конфликт для уведомления
+            localRecord.SyncStatus = SyncStatus.Conflict;
+            OnSyncConflict?.Invoke(localRecord);
+            
+            switch (_syncSettings.ConflictStrategy)
+            {
+                case ConflictResolutionStrategy.ServerWins:
+                    // Используем серверную запись
+                    serverRecord.SyncStatus = SyncStatus.Synced;
+                    _cache.UpdateRecord(serverRecord);
+                    break;
+                
+                case ConflictResolutionStrategy.ClientWins:
+                    // Оставляем локальную запись, она будет синхронизирована при следующей попытке
+                    localRecord.SyncStatus = SyncStatus.NotSynced;
+                    _cache.UpdateRecord(localRecord);
+                    break;
+                
+                case ConflictResolutionStrategy.MostRecent:
+                    // Используем самую свежую запись
+                    if (serverRecord.Timestamp > localRecord.Timestamp)
+                    {
+                        serverRecord.SyncStatus = SyncStatus.Synced;
+                        _cache.UpdateRecord(serverRecord);
+                    }
+                    else
+                    {
+                        localRecord.SyncStatus = SyncStatus.NotSynced;
+                        _cache.UpdateRecord(localRecord);
+                    }
+                    break;
+                
+                case ConflictResolutionStrategy.KeepBoth:
+                    // Сохраняем обе записи, генерируем новый ID для локальной
+                    serverRecord.SyncStatus = SyncStatus.Synced;
+                    _cache.UpdateRecord(serverRecord);
+                    
+                    localRecord.Id = Guid.NewGuid().ToString();
+                    localRecord.SyncStatus = SyncStatus.NotSynced;
+                    _cache.AddRecord(localRecord);
+                    break;
+                
+                case ConflictResolutionStrategy.AskUser:
+                    // Оставляем статус конфликта, решение примет пользователь
+                    _cache.UpdateRecord(localRecord);
+                    break;
+            }
+        }
+        
+        /// <summary>
+        /// Сохраняет настройки синхронизации
+        /// </summary>
+        private void SaveSyncSettings()
+        {
+            try
+            {
+                _cache.SaveSyncSettings(_syncSettings);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка при сохранении настроек синхронизации: {ex.Message}");
+            }
+        }
+        #endregion
+    }
+} 

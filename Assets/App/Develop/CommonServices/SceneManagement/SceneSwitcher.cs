@@ -36,16 +36,16 @@ namespace App.Develop.CommonServices.SceneManagement
             switch (outputSceneArgs)
             {
                 case OutputBootstrapArgs bootstrapArgs:
-                    _coroutinePerformer.StartPerformCoroutine(ProcessSwitchFromBootstrapScene(bootstrapArgs));
+                    _coroutinePerformer.StartCoroutine(ProcessSwitchFromBootstrapScene(bootstrapArgs));
                     break;
                 case OutputPersonalAreaScreenArgs personalAreaScreenArgs:
-                    _coroutinePerformer.StartPerformCoroutine(ProcessSwitchFromPersonalAreaScene(personalAreaScreenArgs));
+                    _coroutinePerformer.StartCoroutine(ProcessSwitchFromPersonalAreaScene(personalAreaScreenArgs));
                     break;
                 case OutputMainScreenArgs mainScreenArgs:
-                    _coroutinePerformer.StartPerformCoroutine(ProcessSwitchFromMainScreenScene(mainScreenArgs));
+                    _coroutinePerformer.StartCoroutine(ProcessSwitchFromMainScreenScene(mainScreenArgs));
                     break;
                 case OutputAuthSceneArgs authSceneArgs:
-                    _coroutinePerformer.StartPerformCoroutine(ProcessSwitchFromAuthScene(authSceneArgs));
+                    _coroutinePerformer.StartCoroutine(ProcessSwitchFromAuthScene(authSceneArgs));
                     break;
                 default:
                     throw new ArgumentException(nameof(outputSceneArgs));

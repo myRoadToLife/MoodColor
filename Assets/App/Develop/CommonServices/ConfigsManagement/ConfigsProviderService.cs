@@ -2,20 +2,25 @@ using App.Develop.CommonServices.AssetManagement;
 using App.Develop.CommonServices.Emotion;
 using App.Develop.Configs.Common.Emotion;
 using UnityEngine;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace App.Develop.CommonServices.ConfigsManagement
 {
-    public class ConfigsProviderService
+    public class ConfigsProviderService : IConfigsProvider
     {
-        private readonly ResourcesAssetLoader _resourcesLoader;
+        private readonly IResourcesLoader _resourcesLoader;
         private readonly Dictionary<EmotionTypes, EmotionConfig> _emotionConfigs;
+
+        private const string EmotionConfigsPath = "Configs/Common/Emotion/";
+        private const string StartConfigPath = EmotionConfigsPath + "StartEmotionConfig";
 
         public StartEmotionConfig StartEmotionConfig { get; private set; }
 
-        public ConfigsProviderService(ResourcesAssetLoader resourcesLoader)
+        public ConfigsProviderService(IResourcesLoader resourcesLoader)
         {
-            _resourcesLoader = resourcesLoader;
+            _resourcesLoader = resourcesLoader ?? throw new ArgumentNullException(nameof(resourcesLoader));
             _emotionConfigs = new Dictionary<EmotionTypes, EmotionConfig>();
             
             LoadStartEmotionConfig();
@@ -24,43 +29,92 @@ namespace App.Develop.CommonServices.ConfigsManagement
 
         private void LoadStartEmotionConfig()
         {
-            StartEmotionConfig = _resourcesLoader.LoadAsset<StartEmotionConfig>("Configs/Common/Emotion/StartEmotionConfig");
-            
-            if (StartEmotionConfig == null)
+            try
             {
-                Debug.LogError("❌ StartEmotionConfig не найден в ресурсах!");
-                return;
+                StartEmotionConfig = _resourcesLoader.LoadAsset<StartEmotionConfig>(StartConfigPath);
+                
+                if (StartEmotionConfig == null)
+                {
+                    throw new InvalidOperationException("StartEmotionConfig не найден в ресурсах!");
+                }
+                
+                Debug.Log("✅ StartEmotionConfig успешно загружен");
             }
-            
-            Debug.Log("✅ StartEmotionConfig успешно загружен");
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Ошибка загрузки StartEmotionConfig: {ex.Message}");
+                throw;
+            }
         }
 
         private void LoadEmotionConfigs()
         {
-            foreach (EmotionTypes type in System.Enum.GetValues(typeof(EmotionTypes)))
+            foreach (EmotionTypes type in Enum.GetValues(typeof(EmotionTypes)))
             {
-                var config = _resourcesLoader.LoadAsset<EmotionConfig>($"Configs/Common/Emotion/{type}Config");
-                if (config != null)
+                try
                 {
-                    _emotionConfigs[type] = config;
-                    Debug.Log($"✅ Загружен конфиг для эмоции {type}");
+                    string configPath = $"{EmotionConfigsPath}{type}Config";
+                    var config = _resourcesLoader.LoadAsset<EmotionConfig>(configPath);
+                    
+                    if (config != null)
+                    {
+                        _emotionConfigs[type] = config;
+                        Debug.Log($"✅ Загружен конфиг для эмоции {type}");
+                    }
+                    else
+                    {
+                        Debug.LogError($"❌ Не найден конфиг для эмоции {type}");
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    Debug.LogWarning($"⚠️ Не найден конфиг для эмоции {type}");
+                    Debug.LogError($"❌ Ошибка загрузки конфига для {type}: {ex.Message}");
                 }
             }
         }
 
         public EmotionConfig LoadEmotionConfig(EmotionTypes type)
         {
-            if (_emotionConfigs.TryGetValue(type, out var config))
+            // Проверяем кэш
+            if (_emotionConfigs.TryGetValue(type, out var cachedConfig))
             {
-                return config;
+                return cachedConfig;
             }
-            
-            Debug.LogWarning($"⚠️ Конфиг для эмоции {type} не найден");
-            return null;
+
+            try
+            {
+                string configPath = $"{EmotionConfigsPath}{type}Config";
+                var config = _resourcesLoader.LoadAsset<EmotionConfig>(configPath);
+                
+                if (config != null)
+                {
+                    _emotionConfigs[type] = config;
+                    return config;
+                }
+                
+                Debug.LogError($"❌ Не удалось загрузить конфиг для эмоции {type}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Ошибка загрузки конфига для {type}: {ex.Message}");
+                return null;
+            }
+        }
+
+        public IEnumerable<EmotionTypes> GetAllEmotionTypes()
+        {
+            return _emotionConfigs.Keys;
+        }
+
+        public bool HasConfig(EmotionTypes type)
+        {
+            return _emotionConfigs.ContainsKey(type);
+        }
+
+        public IReadOnlyDictionary<EmotionTypes, EmotionConfig> GetAllConfigs()
+        {
+            return _emotionConfigs;
         }
     }
 }

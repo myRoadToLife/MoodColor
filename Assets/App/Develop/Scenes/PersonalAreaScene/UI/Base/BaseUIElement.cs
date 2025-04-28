@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace App.Develop.Scenes.PersonalAreaScene.UI.Base
+namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Base
 {
     public abstract class BaseUIElement : MonoBehaviour
     {

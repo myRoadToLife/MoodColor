@@ -1,9 +1,10 @@
+using App.App.Develop.Scenes.PersonalAreaScene.UI.Base;
 using App.Develop.Scenes.PersonalAreaScene.UI.Base;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace App.Develop.Scenes.PersonalAreaScene.UI.Components
+namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Components
 {
     public class ProfileView : BaseUIElement, IUIComponent
     {

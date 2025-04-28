@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using System.Linq;
 using App.Develop.AppServices.Firebase.Auth;
 using App.Develop.AppServices.Firebase.Auth.Services;
 using App.Develop.AppServices.Firebase.Database.Services;
@@ -31,50 +32,56 @@ namespace App.Develop.EntryPoint
     public class EntryPoint : MonoBehaviour
     {
         [SerializeField] private Bootstrap _appBootstrap;
+        private const string DATABASE_URL = "https://moodcolor-3ac59-default-rtdb.firebaseio.com/";
+        private const string FIREBASE_APP_NAME = "MoodColorApp"; // Имя для кастомного экземпляра Firebase
+        
         private DIContainer _projectContainer;
+        private FirebaseApp _firebaseApp; // Храним ссылку на наш экземпляр Firebase
+        private FirebaseDatabase _firebaseDatabase; // Храним ссылку на базу данных
 
-        private async void Start()
+        private void Awake()
         {
-            try
-            {
-                await InitializeApplication();
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"❌ Критическая ошибка при запуске: {ex}");
-            }
+            DontDestroyOnLoad(gameObject);
+            InitializeApplication();
         }
 
         /// <summary>
         /// Основной метод инициализации приложения
         /// </summary>
-        private async Task InitializeApplication()
+        private async void InitializeApplication()
         {
-            // Настройка базовых параметров приложения
-            SetupAppSettings();
-
-            // Создание и настройка контейнера зависимостей
-            _projectContainer = new DIContainer();
-            RegisterCoreServices(_projectContainer);
-
-            // Показываем загрузочный экран сразу после инициализации
-            ShowInitialLoadingScreen();
-
-            // Инициализация Firebase
-            if (!await InitFirebaseAsync())
+            try
             {
-                Debug.LogError("❌ Firebase не готов. Приложение не может продолжить работу.");
-                return;
-            }
+                // Настройка базовых параметров приложения
+                SetupAppSettings();
 
-            // Регистрация сервисов, зависящих от Firebase
-            RegisterFirebaseServices();
-            
-            // Инициализация контейнера и загрузка данных
-            InitializeContainerAndLoadData();
-            
-            // Запуск основного процесса приложения
-            StartBootstrapProcess();
+                // Создание и настройка контейнера зависимостей
+                _projectContainer = new DIContainer();
+                RegisterCoreServices(_projectContainer);
+
+                // Показываем загрузочный экран сразу после инициализации
+                ShowInitialLoadingScreen();
+
+                // Инициализация Firebase
+                if (!await InitFirebaseAsync())
+                {
+                    Debug.LogError("❌ Не удалось инициализировать Firebase");
+                    return;
+                }
+
+                // Регистрация сервисов, зависящих от Firebase
+                RegisterFirebaseServices();
+                
+                // Инициализация контейнера и загрузка данных
+                InitializeContainerAndLoadData();
+                
+                // Запуск основного процесса приложения
+                StartBootstrapProcess();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Ошибка инициализации приложения: {ex}");
+            }
         }
 
         /// <summary>
@@ -104,18 +111,48 @@ namespace App.Develop.EntryPoint
             try
             {
                 Debug.Log("🔄 Инициализация Firebase...");
-                var task = FirebaseApp.CheckAndFixDependenciesAsync();
-                await task;
-
-                var result = task.Result;
-                if (result == DependencyStatus.Available)
+                
+                // Удаляем все существующие экземпляры с нашим именем, если они есть
+                try
                 {
-                    Debug.Log("✅ Firebase инициализирован успешно");
-                    return true;
+                    var existingApp = FirebaseApp.GetInstance(FIREBASE_APP_NAME);
+                    if (existingApp != null)
+                    {
+                        existingApp.Dispose();
+                        Debug.Log($"Удален существующий экземпляр Firebase с именем {FIREBASE_APP_NAME}");
+                    }
+                }
+                catch (Exception)
+                {
+                    // Если приложение не найдено, это не ошибка
                 }
                 
-                Debug.LogError($"❌ Firebase не доступен: {result}");
-                return false;
+                // Проверяем зависимости
+                var dependencyTask = FirebaseApp.CheckAndFixDependenciesAsync();
+                await dependencyTask;
+
+                var dependencyStatus = dependencyTask.Result;
+                if (dependencyStatus != DependencyStatus.Available)
+                {
+                    Debug.LogError($"❌ Firebase не доступен: {dependencyStatus}");
+                    return false;
+                }
+                
+                // Создаем кастомный экземпляр Firebase с нашим URL
+                var options = new Firebase.AppOptions
+                {
+                    DatabaseUrl = new Uri(DATABASE_URL)
+                };
+                
+                _firebaseApp = FirebaseApp.Create(options, FIREBASE_APP_NAME);
+                Debug.Log($"✅ Создан экземпляр Firebase с именем {FIREBASE_APP_NAME} и URL: {DATABASE_URL}");
+                
+                // Создаем экземпляр базы данных с нашим Firebase App и URL
+                _firebaseDatabase = FirebaseDatabase.GetInstance(_firebaseApp, DATABASE_URL);
+                _firebaseDatabase.SetPersistenceEnabled(true);
+                Debug.Log("✅ База данных Firebase инициализирована");
+                
+                return true;
             }
             catch (Exception ex)
             {
@@ -149,7 +186,7 @@ namespace App.Develop.EntryPoint
         private void StartBootstrapProcess()
         {
             _projectContainer.Resolve<ICoroutinePerformer>()
-                .StartPerformCoroutine(_appBootstrap.Run(_projectContainer));
+                .StartCoroutine(_appBootstrap.Run(_projectContainer));
         }
 
         /// <summary>
@@ -164,7 +201,7 @@ namespace App.Develop.EntryPoint
 
                 // Исполнитель корутин
                 container.RegisterAsSingle<ICoroutinePerformer>(container =>
-                    Instantiate(container.Resolve<ResourcesAssetLoader>().LoadAsset<CoroutinePerformer>(AssetPaths.CoroutinePerformer))
+                    CoroutinePerformerFactory.Create()
                 );
 
                 // Загрузочный экран
@@ -235,16 +272,27 @@ namespace App.Develop.EntryPoint
         {
             try
             {
+                if (_firebaseApp == null)
+                {
+                    throw new InvalidOperationException("Firebase не инициализирован");
+                }
+                
+                if (_firebaseDatabase == null)
+                {
+                    throw new InvalidOperationException("База данных Firebase не инициализирована");
+                }
+                
                 // Сервис аутентификации Firebase
-                container.RegisterAsSingle<FirebaseAuth>(container => FirebaseAuth.DefaultInstance).NonLazy();
+                container.RegisterAsSingle<FirebaseAuth>(container => FirebaseAuth.GetAuth(_firebaseApp)).NonLazy();
+                
+                // Регистрируем наш экземпляр FirebaseApp
+                container.RegisterAsSingle<FirebaseApp>(container => _firebaseApp).NonLazy();
+                
+                // Регистрируем экземпляр FirebaseDatabase
+                container.RegisterAsSingle<FirebaseDatabase>(container => _firebaseDatabase).NonLazy();
 
                 // Ссылка на базу данных Firebase
-                container.RegisterAsSingle<DatabaseReference>(container =>
-                {
-                    string databaseUrl = "https://moodcolor-3ac59-default-rtdb.firebaseio.com/";
-                    var database = FirebaseDatabase.GetInstance(FirebaseApp.DefaultInstance, databaseUrl);
-                    return database.RootReference;
-                }).NonLazy();
+                container.RegisterAsSingle<DatabaseReference>(container => _firebaseDatabase.RootReference).NonLazy();
 
                 // Сервис базы данных
                 container.RegisterAsSingle<DatabaseService>(container =>

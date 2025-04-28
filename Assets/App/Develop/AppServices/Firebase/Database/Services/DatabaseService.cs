@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using App.Develop.AppServices.Firebase.Database.Models;
 using App.Develop.CommonServices.DataManagement.DataProviders;
@@ -538,5 +539,520 @@ namespace App.Develop.AppServices.Firebase.Database.Services
                 Debug.LogError($"❌ Ошибка при освобождении ресурсов DatabaseService: {ex.Message}\n{ex.StackTrace}");
             }
         }
+
+        #region Emotion History
+
+        /// <summary>
+        /// Получает историю эмоций
+        /// </summary>
+        public async Task<List<EmotionHistoryRecord>> GetEmotionHistory(DateTime? startDate = null, DateTime? endDate = null, int limit = 100)
+        {
+            if (!CheckAuthentication())
+            {
+                Debug.LogWarning("Пользователь не авторизован для получения истории эмоций");
+                return new List<EmotionHistoryRecord>();
+            }
+
+            try
+            {
+                Query query = _database.Child("users").Child(_userId).Child("emotionHistory").OrderByKey();
+                
+                // Добавляем фильтр по дате начала
+                if (startDate.HasValue)
+                {
+                    var startTimestamp = startDate.Value.ToFileTimeUtc();
+                    query = query.StartAt(null, startTimestamp.ToString());
+                }
+                
+                // Добавляем фильтр по дате окончания
+                if (endDate.HasValue)
+                {
+                    var endTimestamp = endDate.Value.ToFileTimeUtc();
+                    query = query.EndAt(null, endTimestamp.ToString());
+                }
+                
+                // Ограничиваем количество записей
+                query = query.LimitToLast(limit);
+                
+                var snapshot = await query.GetValueAsync();
+                var result = new List<EmotionHistoryRecord>();
+                
+                if (snapshot.Exists && snapshot.ChildrenCount > 0)
+                {
+                    foreach (var child in snapshot.Children)
+                    {
+                        try
+                        {
+                            var record = JsonConvert.DeserializeObject<EmotionHistoryRecord>(child.GetRawJsonValue());
+                            if (record != null)
+                            {
+                                result.Add(record);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogError($"Ошибка при десериализации записи истории эмоций: {ex.Message}");
+                        }
+                    }
+                }
+                
+                Debug.Log($"Получено {result.Count} записей истории эмоций");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка получения истории эмоций: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Получает историю эмоций по типу
+        /// </summary>
+        public async Task<List<EmotionHistoryRecord>> GetEmotionHistoryByType(string emotionType, DateTime? startDate = null, DateTime? endDate = null, int limit = 100)
+        {
+            try
+            {
+                var result = new List<EmotionHistoryRecord>();
+                var allRecords = await GetEmotionHistory(startDate, endDate, limit * 2);
+                
+                // Фильтруем по типу
+                var filteredRecords = allRecords.Where(r => r.Type == emotionType).Take(limit).ToList();
+                
+                Debug.Log($"Получено {filteredRecords.Count} записей истории эмоций типа {emotionType}");
+                return filteredRecords;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка получения истории эмоций по типу: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Добавляет запись в историю эмоций
+        /// </summary>
+        public async Task AddEmotionHistoryRecord(EmotionHistoryRecord record)
+        {
+            if (!CheckAuthentication())
+            {
+                Debug.LogWarning("Пользователь не авторизован для добавления записи в историю эмоций");
+                return;
+            }
+
+            try
+            {
+                if (record == null)
+                {
+                    throw new ArgumentNullException(nameof(record), "Запись не может быть null");
+                }
+                
+                // Генерируем ID, если его нет
+                if (string.IsNullOrEmpty(record.Id))
+                {
+                    record.Id = Guid.NewGuid().ToString();
+                }
+                
+                var dictionary = record.ToDictionary();
+                
+                // Сохраняем запись в Firebase
+                await _database.Child("users").Child(_userId).Child("emotionHistory").Child(record.Id)
+                    .SetValueAsync(dictionary);
+                
+                Debug.Log($"Запись добавлена в историю эмоций: {record.Id}, тип: {record.Type}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка добавления записи в историю эмоций: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Добавляет запись в историю эмоций на основе эмоции и события
+        /// </summary>
+        public async Task AddEmotionHistoryRecord(EmotionData emotion, EmotionEventType eventType)
+        {
+            if (!CheckAuthentication())
+            {
+                Debug.LogWarning("Пользователь не авторизован для добавления записи в историю эмоций");
+                return;
+            }
+
+            try
+            {
+                if (emotion == null)
+                {
+                    throw new ArgumentNullException(nameof(emotion), "Эмоция не может быть null");
+                }
+                
+                // Создаем запись
+                var record = new EmotionHistoryRecord(emotion, eventType);
+                
+                // Добавляем запись
+                await AddEmotionHistoryRecord(record);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка добавления записи в историю эмоций: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Пакетное добавление записей в историю
+        /// </summary>
+        public async Task AddEmotionHistoryBatch(List<EmotionHistoryRecord> records)
+        {
+            if (!CheckAuthentication())
+            {
+                Debug.LogWarning("Пользователь не авторизован для добавления записей в историю эмоций");
+                return;
+            }
+
+            try
+            {
+                if (records == null || records.Count == 0)
+                {
+                    return;
+                }
+                
+                var updates = new Dictionary<string, object>();
+                
+                foreach (var record in records)
+                {
+                    // Генерируем ID, если его нет
+                    if (string.IsNullOrEmpty(record.Id))
+                    {
+                        record.Id = Guid.NewGuid().ToString();
+                    }
+                    
+                    updates[$"users/{_userId}/emotionHistory/{record.Id}"] = record.ToDictionary();
+                }
+                
+                await _database.UpdateChildrenAsync(updates);
+                
+                Debug.Log($"Добавлено {records.Count} записей в историю эмоций");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка пакетного добавления записей в историю эмоций: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Получает несинхронизированные записи
+        /// </summary>
+        public async Task<List<EmotionHistoryRecord>> GetUnsyncedEmotionRecords(int limit = 100)
+        {
+            if (!CheckAuthentication())
+            {
+                Debug.LogWarning("Пользователь не авторизован для получения несинхронизированных записей");
+                return new List<EmotionHistoryRecord>();
+            }
+
+            try
+            {
+                var query = _database.Child("users").Child(_userId).Child("emotionHistory")
+                    .OrderByChild("syncStatus")
+                    .EqualTo(SyncStatus.NotSynced.ToString())
+                    .LimitToFirst(limit);
+                
+                var snapshot = await query.GetValueAsync();
+                var result = new List<EmotionHistoryRecord>();
+                
+                if (snapshot.Exists && snapshot.ChildrenCount > 0)
+                {
+                    foreach (var child in snapshot.Children)
+                    {
+                        try
+                        {
+                            var record = JsonConvert.DeserializeObject<EmotionHistoryRecord>(child.GetRawJsonValue());
+                            if (record != null)
+                            {
+                                result.Add(record);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogError($"Ошибка при десериализации несинхронизированной записи: {ex.Message}");
+                        }
+                    }
+                }
+                
+                Debug.Log($"Получено {result.Count} несинхронизированных записей");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка получения несинхронизированных записей: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Обновляет статус синхронизации записи
+        /// </summary>
+        public async Task UpdateEmotionSyncStatus(string recordId, SyncStatus status)
+        {
+            if (!CheckAuthentication())
+            {
+                Debug.LogWarning("Пользователь не авторизован для обновления статуса синхронизации");
+                return;
+            }
+
+            try
+            {
+                if (string.IsNullOrEmpty(recordId))
+                {
+                    throw new ArgumentException("ID записи не может быть пустым", nameof(recordId));
+                }
+                
+                await _database.Child("users").Child(_userId).Child("emotionHistory").Child(recordId).Child("syncStatus")
+                    .SetValueAsync(status.ToString());
+                
+                Debug.Log($"Статус синхронизации записи {recordId} обновлен на {status}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка обновления статуса синхронизации: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Удаляет запись из истории
+        /// </summary>
+        public async Task DeleteEmotionHistoryRecord(string recordId)
+        {
+            if (!CheckAuthentication())
+            {
+                Debug.LogWarning("Пользователь не авторизован для удаления записи");
+                return;
+            }
+
+            try
+            {
+                if (string.IsNullOrEmpty(recordId))
+                {
+                    throw new ArgumentException("ID записи не может быть пустым", nameof(recordId));
+                }
+                
+                await _database.Child("users").Child(_userId).Child("emotionHistory").Child(recordId).RemoveValueAsync();
+                
+                Debug.Log($"Запись {recordId} удалена из истории эмоций");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка удаления записи из истории эмоций: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Получает статистику по эмоциям за период
+        /// </summary>
+        public async Task<Dictionary<string, int>> GetEmotionStatistics(DateTime startDate, DateTime endDate)
+        {
+            if (!CheckAuthentication())
+            {
+                Debug.LogWarning("Пользователь не авторизован для получения статистики эмоций");
+                return new Dictionary<string, int>();
+            }
+
+            try
+            {
+                var records = await GetEmotionHistory(startDate, endDate, 1000);
+                var stats = new Dictionary<string, int>();
+                
+                foreach (var record in records)
+                {
+                    if (!string.IsNullOrEmpty(record.Type))
+                    {
+                        if (stats.ContainsKey(record.Type))
+                        {
+                            stats[record.Type]++;
+                        }
+                        else
+                        {
+                            stats[record.Type] = 1;
+                        }
+                    }
+                }
+                
+                Debug.Log($"Получена статистика эмоций с {startDate} по {endDate}: {stats.Count} типов");
+                return stats;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка получения статистики эмоций: {ex.Message}");
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region Sync Settings
+
+        /// <summary>
+        /// Получает настройки синхронизации
+        /// </summary>
+        public async Task<EmotionSyncSettings> GetSyncSettings()
+        {
+            if (!CheckAuthentication())
+            {
+                Debug.LogWarning("Пользователь не авторизован для получения настроек синхронизации");
+                return null;
+            }
+
+            try
+            {
+                var snapshot = await _database.Child("users").Child(_userId).Child("syncSettings").GetValueAsync();
+                
+                if (snapshot.Exists)
+                {
+                    var settings = JsonConvert.DeserializeObject<EmotionSyncSettings>(snapshot.GetRawJsonValue());
+                    Debug.Log("Настройки синхронизации получены с сервера");
+                    return settings;
+                }
+                
+                // Если настроек нет, создаем и сохраняем дефолтные
+                var defaultSettings = new EmotionSyncSettings();
+                await UpdateSyncSettings(defaultSettings);
+                
+                Debug.Log("Созданы и сохранены дефолтные настройки синхронизации");
+                return defaultSettings;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка получения настроек синхронизации: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Обновляет настройки синхронизации
+        /// </summary>
+        public async Task UpdateSyncSettings(EmotionSyncSettings settings)
+        {
+            if (!CheckAuthentication())
+            {
+                Debug.LogWarning("Пользователь не авторизован для обновления настроек синхронизации");
+                return;
+            }
+
+            try
+            {
+                if (settings == null)
+                {
+                    throw new ArgumentNullException(nameof(settings), "Настройки не могут быть null");
+                }
+                
+                // Сериализуем настройки в словарь
+                var json = JsonConvert.SerializeObject(settings);
+                var dictionary = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
+                
+                // Сохраняем настройки в Firebase
+                await _database.Child("users").Child(_userId).Child("syncSettings").UpdateChildrenAsync(dictionary);
+                
+                Debug.Log("Настройки синхронизации обновлены");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка обновления настроек синхронизации: {ex.Message}");
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region Backup
+
+        /// <summary>
+        /// Создает резервную копию данных пользователя
+        /// </summary>
+        public async Task<string> CreateBackup()
+        {
+            if (!CheckAuthentication())
+            {
+                Debug.LogWarning("Пользователь не авторизован для создания резервной копии");
+                return null;
+            }
+
+            try
+            {
+                // Получаем все данные пользователя
+                var snapshot = await _database.Child("users").Child(_userId).GetValueAsync();
+                
+                if (!snapshot.Exists)
+                {
+                    throw new InvalidOperationException("Данные пользователя не найдены");
+                }
+                
+                // Создаем ID для резервной копии
+                string backupId = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+                
+                // Сохраняем резервную копию
+                await _database.Child("backups").Child(_userId).Child(backupId).SetRawJsonValueAsync(snapshot.GetRawJsonValue());
+                
+                Debug.Log($"Резервная копия создана: {backupId}");
+                return backupId;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка создания резервной копии: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Восстанавливает данные из резервной копии
+        /// </summary>
+        public async Task RestoreFromBackup(string backupId)
+        {
+            if (!CheckAuthentication())
+            {
+                Debug.LogWarning("Пользователь не авторизован для восстановления из резервной копии");
+                return;
+            }
+
+            try
+            {
+                if (string.IsNullOrEmpty(backupId))
+                {
+                    throw new ArgumentException("ID резервной копии не может быть пустым", nameof(backupId));
+                }
+                
+                // Получаем резервную копию
+                var snapshot = await _database.Child("backups").Child(_userId).Child(backupId).GetValueAsync();
+                
+                if (!snapshot.Exists)
+                {
+                    throw new InvalidOperationException($"Резервная копия {backupId} не найдена");
+                }
+                
+                // Восстанавливаем данные (кроме profile, чтобы не перезаписать текущие данные авторизации)
+                var backupData = JsonConvert.DeserializeObject<Dictionary<string, object>>(snapshot.GetRawJsonValue());
+                
+                // Фильтруем поля, которые не нужно восстанавливать
+                if (backupData.ContainsKey("profile"))
+                {
+                    backupData.Remove("profile");
+                }
+                
+                // Восстанавливаем остальные данные
+                await _database.Child("users").Child(_userId).UpdateChildrenAsync(backupData);
+                
+                Debug.Log($"Данные восстановлены из резервной копии {backupId}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка восстановления из резервной копии: {ex.Message}");
+                throw;
+            }
+        }
+
+        #endregion
     }
 }

@@ -8,13 +8,13 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
 {
     public class PlayerDataProvider : DataProvider<PlayerData>
     {
-        private readonly ConfigsProviderService _configsProvider;
+        private readonly IConfigsProvider _configsProvider;
         private PlayerData _cachedData; // Добавим кэшированные данные
 
         public PlayerDataProvider(ISaveLoadService saveLoadService,
-            ConfigsProviderService configsProviderService) : base(saveLoadService)
+            IConfigsProvider configsProvider) : base(saveLoadService)
         {
-            _configsProvider = configsProviderService ?? throw new ArgumentNullException(nameof(configsProviderService));
+            _configsProvider = configsProvider ?? throw new ArgumentNullException(nameof(configsProvider));
         }
 
         protected override PlayerData GetOriginData()
