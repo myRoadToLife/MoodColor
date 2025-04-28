@@ -22,6 +22,7 @@ namespace App.Develop.CommonServices.Emotion
         private readonly EmotionMixingRules _emotionMixingRules;
         private readonly Dictionary<EmotionTypes, EmotionConfig> _emotionConfigs;
         private readonly EmotionHistory _emotionHistory;
+        private readonly EmotionConfigService _emotionConfigService;
         
         // Firebase компоненты для синхронизации
         private IDatabaseService _databaseService;
@@ -47,12 +48,14 @@ namespace App.Develop.CommonServices.Emotion
         public EmotionService(
             PlayerDataProvider playerDataProvider, 
             IConfigsProvider configsProvider,
+            EmotionConfigService emotionConfigService = null,
             ConnectivityManager connectivityManager = null)
         {
             _playerDataProvider = playerDataProvider ?? throw new ArgumentNullException(nameof(playerDataProvider));
             _emotions = new Dictionary<EmotionTypes, EmotionData>();
             _emotionMixingRules = new EmotionMixingRules();
             _emotionConfigs = new Dictionary<EmotionTypes, EmotionConfig>();
+            _emotionConfigService = emotionConfigService;
             _connectivityManager = connectivityManager;
             
             // Создаем кэш для истории эмоций
@@ -60,7 +63,16 @@ namespace App.Develop.CommonServices.Emotion
             _emotionHistory = new EmotionHistory(_emotionHistoryCache);
 
             InitializeEmotions();
-            LoadEmotionConfigs(configsProvider);
+            
+            if (_emotionConfigService != null)
+            {
+                LoadEmotionConfigsFromService();
+            }
+            else
+            {
+                LoadEmotionConfigs(configsProvider);
+            }
+            
             _isInitialized = true;
         }
 
@@ -395,6 +407,20 @@ namespace App.Develop.CommonServices.Emotion
             foreach (EmotionTypes type in Enum.GetValues(typeof(EmotionTypes)))
             {
                 var config = configsProvider.LoadEmotionConfig(type);
+                if (config != null)
+                {
+                    _emotionConfigs[type] = config;
+                }
+            }
+        }
+
+        private void LoadEmotionConfigsFromService()
+        {
+            if (_emotionConfigService == null) return;
+
+            foreach (EmotionTypes type in Enum.GetValues(typeof(EmotionTypes)))
+            {
+                var config = _emotionConfigService.LoadEmotionConfig(type);
                 if (config != null)
                 {
                     _emotionConfigs[type] = config;

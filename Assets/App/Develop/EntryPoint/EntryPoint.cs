@@ -231,6 +231,11 @@ namespace App.Develop.EntryPoint
                 container.RegisterAsSingle(container =>
                     new ConfigsProviderService(container.Resolve<ResourcesAssetLoader>())
                 ).NonLazy();
+                
+                // Сервис конфигураций эмоций
+                container.RegisterAsSingle(container =>
+                    new EmotionConfigService(container.Resolve<ResourcesAssetLoader>())
+                ).NonLazy();
 
                 // Провайдер данных игрока
                 container.RegisterAsSingle(container =>
@@ -244,7 +249,8 @@ namespace App.Develop.EntryPoint
                 container.RegisterAsSingle(container =>
                     new EmotionService(
                         container.Resolve<PlayerDataProvider>(),
-                        container.Resolve<ConfigsProviderService>()
+                        container.Resolve<ConfigsProviderService>(),
+                        container.Resolve<EmotionConfigService>()
                     )
                 ).NonLazy();
 

@@ -72,6 +72,8 @@ namespace App.Develop.AppServices.Firebase.Database.Models
         ClientWins,
         MostRecent,
         KeepBoth,
-        AskUser
+        AskUser,
+        Merge,
+        Manual
     }
 } 

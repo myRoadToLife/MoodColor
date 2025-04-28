@@ -13,7 +13,7 @@ namespace App.Develop.Configs.Common.Emotion
             _maxCapacity = BaseEmotionConfigs.Capacities.HighCapacity;
             _defaultFillRate = BaseEmotionConfigs.Rates.FastFillRate;
             _defaultDrainRate = BaseEmotionConfigs.Rates.DefaultDrainRate;
-            _bubbleThreshold = BaseEmotionConfigs.Thresholds.HighBubbleThreshold;
+            _bubbleThreshold = BaseEmotionConfigs.Thresholds.DefaultBubbleThreshold;
             _intensityInfluence = BaseEmotionConfigs.GetStrongIntensityCurve();
         }
     }

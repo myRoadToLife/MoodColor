@@ -61,6 +61,11 @@ namespace App.Develop.CommonServices.Emotion
             return null;
         }
 
+        public EmotionConfig LoadEmotionConfig(EmotionTypes type)
+        {
+            return GetConfig(type);
+        }
+
         public (float Value, Color Color) GetStartValue(EmotionTypes type)
         {
             return _startConfig != null 

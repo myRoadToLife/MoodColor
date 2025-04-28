@@ -12,9 +12,9 @@ namespace App.Develop.Configs.Common.Emotion
             _baseColor = BaseEmotionConfigs.Colors.Sadness;
             _maxCapacity = BaseEmotionConfigs.Capacities.DefaultCapacity;
             _defaultFillRate = BaseEmotionConfigs.Rates.SlowFillRate;
-            _defaultDrainRate = BaseEmotionConfigs.Rates.SlowDrainRate;
+            _defaultDrainRate = BaseEmotionConfigs.Rates.DefaultDrainRate;
             _bubbleThreshold = BaseEmotionConfigs.Thresholds.LowBubbleThreshold;
-            _intensityInfluence = BaseEmotionConfigs.GetStrongIntensityCurve();
+            _intensityInfluence = BaseEmotionConfigs.GetWeakIntensityCurve();
         }
     }
 } 
