@@ -8,8 +8,9 @@ using App.Develop.CommonServices.DataManagement.DataProviders;
 using App.Develop.CommonServices.Emotion;
 using Firebase.Database;
 using UnityEngine;
+using App.Develop.AppServices.Firebase.Common.Cache;
 
-namespace App.App.Develop.AppServices.Firebase.Database.Interfaces
+namespace App.Develop.AppServices.Firebase.Database.Interfaces
 {
     /// <summary>
     /// Реализация интерфейса IDatabaseService, адаптирующая DatabaseService
@@ -28,10 +29,15 @@ namespace App.App.Develop.AppServices.Firebase.Database.Interfaces
         #endregion
         
         #region Constructor
-        public DatabaseServiceImpl(DatabaseReference databaseReference, string userId = null)
+        public DatabaseServiceImpl(DatabaseReference databaseReference, FirebaseCacheManager cacheManager, string userId = null)
         {
-            _databaseService = new DatabaseService(databaseReference, userId);
+            _databaseService = new DatabaseService(databaseReference, cacheManager);
             _userId = userId;
+            
+            if (!string.IsNullOrEmpty(userId))
+            {
+                _databaseService.UpdateUserId(userId);
+            }
         }
         #endregion
         
@@ -102,9 +108,7 @@ namespace App.App.Develop.AppServices.Firebase.Database.Interfaces
         #region Emotions
         public async Task<Dictionary<string, EmotionData>> GetUserEmotions()
         {
-            // Реализовать адаптацию к методам DatabaseService
-            Debug.LogWarning("GetUserEmotions не реализован");
-            return new Dictionary<string, EmotionData>();
+            return await _databaseService.GetUserEmotions();
         }
         
         public async Task UpdateCurrentEmotion(string emotionType, float intensity)

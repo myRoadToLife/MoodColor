@@ -64,7 +64,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         #region Private Fields
         private ISettingsManager _settingsManager;
         private PanelManager _panelManager;
-        private AuthStateService _authStateService;
+        private IAuthStateService _authStateService;
         private SceneSwitcher _sceneSwitcher;
         private bool _isInitialized = false;
         #endregion
@@ -89,7 +89,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         {
             _settingsManager = container.Resolve<ISettingsManager>();
             _panelManager = container.Resolve<PanelManager>();
-            _authStateService = container.Resolve<AuthStateService>();
+            _authStateService = container.Resolve<IAuthStateService>();
             _sceneSwitcher = container.Resolve<SceneSwitcher>();
 
             InitializeControls();

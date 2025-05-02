@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using App.Develop.AppServices.Firebase.Common.Cache;
+using App.Develop.AppServices.Firebase.Common.Helpers;
 using App.Develop.AppServices.Firebase.Database.Models;
 using App.Develop.CommonServices.DataManagement.DataProviders;
 using App.Develop.CommonServices.Emotion; // Убедись, что EmotionTypes здесь определен
@@ -12,24 +14,55 @@ using Newtonsoft.Json; // Используется для десериализа
 using UnityEngine;
 using UserProfile = App.Develop.AppServices.Firebase.Database.Models.UserProfile;
 
-
 namespace App.Develop.AppServices.Firebase.Database.Services
 {
-    public class DatabaseService : IDisposable
+    /// <summary>
+    /// Сервис для работы с базой данных Firebase
+    /// </summary>
+    public class DatabaseService : IDatabaseService
     {
+        #region Private Fields
         private readonly DatabaseReference _database;
+        private readonly FirebaseCacheManager _cacheManager;
         private string _userId;
         private readonly List<DatabaseReference> _activeListeners = new List<DatabaseReference>();
 
         // Словарь для хранения ссылок на обработчики событий для корректной отписки
         private readonly Dictionary<DatabaseReference, EventHandler<ValueChangedEventArgs>> _eventHandlers =
             new Dictionary<DatabaseReference, EventHandler<ValueChangedEventArgs>>();
+        #endregion
 
-        public DatabaseService(DatabaseReference database, string userId = null)
+        #region Properties
+        /// <summary>
+        /// Ссылка на корень базы данных
+        /// </summary>
+        public DatabaseReference RootReference => _database;
+        
+        /// <summary>
+        /// ID текущего пользователя
+        /// </summary>
+        public string UserId => _userId;
+
+        /// <summary>
+        /// Проверяет, аутентифицирован ли пользователь
+        /// </summary>
+        public bool IsAuthenticated => !string.IsNullOrEmpty(UserId);
+        #endregion
+
+        #region Constructor
+        /// <summary>
+        /// Создает новый экземпляр сервиса базы данных
+        /// </summary>
+        /// <param name="database">Ссылка на базу данных</param>
+        /// <param name="cacheManager">Менеджер кэширования</param>
+        public DatabaseService(DatabaseReference database, FirebaseCacheManager cacheManager)
         {
             _database = database ?? throw new ArgumentNullException(nameof(database));
-            _userId = userId;
+            _cacheManager = cacheManager ?? throw new ArgumentNullException(nameof(cacheManager));
+            
+            Debug.Log("✅ DatabaseService инициализирован");
         }
+        #endregion
 
         // Метод для обновления ID пользователя при аутентификации
         public void UpdateUserId(string userId)
@@ -1009,12 +1042,12 @@ namespace App.Develop.AppServices.Firebase.Database.Services
         /// <summary>
         /// Восстанавливает данные из резервной копии
         /// </summary>
-        public async Task RestoreFromBackup(string backupId)
+        public async Task<bool> RestoreFromBackup(string backupId)
         {
             if (!CheckAuthentication())
             {
                 Debug.LogWarning("Пользователь не авторизован для восстановления из резервной копии");
-                return;
+                return false;
             }
 
             try
@@ -1045,14 +1078,407 @@ namespace App.Develop.AppServices.Firebase.Database.Services
                 await _database.Child("users").Child(_userId).UpdateChildrenAsync(backupData);
                 
                 Debug.Log($"Данные восстановлены из резервной копии {backupId}");
+                return true;
             }
             catch (Exception ex)
             {
                 Debug.LogError($"Ошибка восстановления из резервной копии: {ex.Message}");
-                throw;
+                return false;
+            }
+        }
+        
+        /// <summary>
+        /// Получает список доступных резервных копий
+        /// </summary>
+        public async Task<string[]> GetAvailableBackups()
+        {
+            if (!CheckAuthentication())
+            {
+                Debug.LogWarning("Пользователь не авторизован для получения списка резервных копий");
+                return Array.Empty<string>();
+            }
+
+            try
+            {
+                var snapshot = await _database.Child("backups").Child(_userId).GetValueAsync();
+                
+                if (!snapshot.Exists)
+                {
+                    Debug.Log("Резервные копии не найдены");
+                    return Array.Empty<string>();
+                }
+                
+                List<string> backupIds = new List<string>();
+                
+                foreach (var child in snapshot.Children)
+                {
+                    backupIds.Add(child.Key);
+                }
+                
+                Debug.Log($"Найдено {backupIds.Count} резервных копий");
+                return backupIds.OrderByDescending(id => id).ToArray(); // Сортируем по убыванию даты
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка получения списка резервных копий: {ex.Message}");
+                return Array.Empty<string>();
+            }
+        }
+        
+        /// <summary>
+        /// Проверяет подключение к базе данных
+        /// </summary>
+        public async Task<bool> CheckConnection()
+        {
+            try
+            {
+                // Проверяем подключение, запрашивая специальный узел
+                var connectionRef = _database.Root.Child(".info/connected");
+                var snapshot = await connectionRef.GetValueAsync();
+                
+                bool isConnected = snapshot.Exists && snapshot.Value != null && (bool)snapshot.Value;
+                
+                Debug.Log($"Статус подключения к Firebase: {(isConnected ? "Подключено" : "Не подключено")}");
+                return isConnected;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка проверки подключения: {ex.Message}");
+                return false;
             }
         }
 
+        #endregion
+
+        #region EmotionDatabaseService Implementation
+
+        /// <summary>
+        /// Получает текущие эмоции пользователя
+        /// </summary>
+        public async Task<Dictionary<string, EmotionData>> GetUserEmotions()
+        {
+            if (!CheckAuthentication())
+            {
+                Debug.LogWarning("Пользователь не авторизован для получения эмоций");
+                return new Dictionary<string, EmotionData>();
+            }
+
+            try
+            {
+                var snapshot = await _database.Child("users").Child(_userId).Child("emotions").GetValueAsync();
+                
+                if (!snapshot.Exists)
+                {
+                    Debug.Log("Эмоции пользователя не найдены");
+                    return new Dictionary<string, EmotionData>();
+                }
+                
+                var emotionsDict = new Dictionary<string, EmotionData>();
+                
+                foreach (var child in snapshot.Children)
+                {
+                    try
+                    {
+                        var emotion = JsonConvert.DeserializeObject<EmotionData>(child.GetRawJsonValue());
+                        if (emotion != null)
+                        {
+                            emotionsDict[child.Key] = emotion;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogError($"Ошибка десериализации эмоции: {ex.Message}");
+                    }
+                }
+                
+                Debug.Log($"Получено {emotionsDict.Count} эмоций");
+                return emotionsDict;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка получения эмоций: {ex.Message}");
+                return new Dictionary<string, EmotionData>();
+            }
+        }
+        
+        /// <summary>
+        /// Обновляет эмоции пользователя
+        /// </summary>
+        public async Task UpdateUserEmotions(Dictionary<string, EmotionData> emotions)
+        {
+            if (!CheckAuthentication())
+            {
+                Debug.LogWarning("Пользователь не авторизован для обновления эмоций");
+                return;
+            }
+
+            try
+            {
+                if (emotions == null || emotions.Count == 0)
+                {
+                    Debug.LogWarning("Пустой словарь эмоций");
+                    return;
+                }
+                
+                var updates = new Dictionary<string, object>();
+                
+                foreach (var kvp in emotions)
+                {
+                    string json = JsonConvert.SerializeObject(kvp.Value);
+                    var emotionDict = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
+                    updates[$"emotions/{kvp.Key}"] = emotionDict;
+                }
+                
+                await _database.Child("users").Child(_userId).UpdateChildrenAsync(updates);
+                
+                Debug.Log($"Обновлено {emotions.Count} эмоций");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка обновления эмоций: {ex.Message}");
+                throw;
+            }
+        }
+        
+        /// <summary>
+        /// Обновляет конкретную эмоцию пользователя
+        /// </summary>
+        public async Task UpdateUserEmotion(EmotionData emotion)
+        {
+            if (!CheckAuthentication())
+            {
+                Debug.LogWarning("Пользователь не авторизован для обновления эмоции");
+                return;
+            }
+
+            try
+            {
+                if (emotion == null)
+                {
+                    throw new ArgumentNullException(nameof(emotion));
+                }
+                
+                if (string.IsNullOrEmpty(emotion.Id))
+                {
+                    emotion.Id = Guid.NewGuid().ToString();
+                }
+                
+                string json = JsonConvert.SerializeObject(emotion);
+                
+                await _database.Child("users").Child(_userId).Child("emotions").Child(emotion.Id)
+                    .SetRawJsonValueAsync(json);
+                
+                Debug.Log($"Эмоция {emotion.Type} обновлена");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка обновления эмоции: {ex.Message}");
+                throw;
+            }
+        }
+        
+        /// <summary>
+        /// Получает несинхронизированные записи истории эмоций
+        /// </summary>
+        public async Task<List<EmotionHistoryRecord>> GetUnsyncedEmotionHistory(int limit = 50)
+        {
+            // Переиспользуем существующий метод
+            return await GetUnsyncedEmotionRecords(limit);
+        }
+        
+        /// <summary>
+        /// Обновляет статус синхронизации записи истории эмоций
+        /// </summary>
+        public async Task UpdateEmotionHistoryRecordStatus(string recordId, SyncStatus status)
+        {
+            // Переиспользуем существующий метод
+            await UpdateEmotionSyncStatus(recordId, status);
+        }
+        
+        #endregion
+        
+        #region UserProfileDatabaseService Implementation
+        
+        /// <summary>
+        /// Создает профиль пользователя
+        /// </summary>
+        public async Task CreateUserProfile(UserProfile profile, string userId = null)
+        {
+            string targetUserId = userId ?? _userId;
+
+            if (string.IsNullOrEmpty(targetUserId))
+            {
+                Debug.LogWarning("ID пользователя не указан для создания профиля");
+                return;
+            }
+
+            try
+            {
+                string json = JsonConvert.SerializeObject(profile);
+                
+                await _database.Child("users").Child(targetUserId).Child("profile")
+                    .SetRawJsonValueAsync(json);
+                
+                Debug.Log($"Профиль пользователя {targetUserId} создан");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка создания профиля: {ex.Message}");
+                throw;
+            }
+        }
+        
+        /// <summary>
+        /// Обновляет профиль пользователя
+        /// </summary>
+        public async Task UpdateUserProfile(UserProfile profile, string userId = null)
+        {
+            string targetUserId = userId ?? _userId;
+
+            if (string.IsNullOrEmpty(targetUserId))
+            {
+                Debug.LogWarning("ID пользователя не указан для обновления профиля");
+                return;
+            }
+
+            try
+            {
+                string json = JsonConvert.SerializeObject(profile);
+                var updates = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
+                
+                await _database.Child("users").Child(targetUserId).Child("profile")
+                    .UpdateChildrenAsync(updates);
+                
+                Debug.Log($"Профиль пользователя {targetUserId} обновлен");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка обновления профиля: {ex.Message}");
+                throw;
+            }
+        }
+        
+        /// <summary>
+        /// Обновляет поле профиля пользователя
+        /// </summary>
+        public async Task UpdateUserProfileField(string field, object value, string userId = null)
+        {
+            string targetUserId = userId ?? _userId;
+
+            if (string.IsNullOrEmpty(targetUserId))
+            {
+                Debug.LogWarning("ID пользователя не указан для обновления поля профиля");
+                return;
+            }
+
+            try
+            {
+                if (string.IsNullOrEmpty(field))
+                {
+                    throw new ArgumentException("Поле не может быть пустым", nameof(field));
+                }
+                
+                await _database.Child("users").Child(targetUserId).Child("profile").Child(field)
+                    .SetValueAsync(value);
+                
+                Debug.Log($"Поле {field} профиля пользователя {targetUserId} обновлено");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка обновления поля профиля: {ex.Message}");
+                throw;
+            }
+        }
+        
+        /// <summary>
+        /// Проверяет существование профиля пользователя
+        /// </summary>
+        public async Task<bool> UserProfileExists(string userId = null)
+        {
+            string targetUserId = userId ?? _userId;
+
+            if (string.IsNullOrEmpty(targetUserId))
+            {
+                Debug.LogWarning("ID пользователя не указан для проверки существования профиля");
+                return false;
+            }
+
+            try
+            {
+                var snapshot = await _database.Child("users").Child(targetUserId).Child("profile").GetValueAsync();
+                return snapshot.Exists;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка проверки существования профиля: {ex.Message}");
+                return false;
+            }
+        }
+        
+        /// <summary>
+        /// Проверяет существование никнейма
+        /// </summary>
+        public async Task<bool> NicknameExists(string nickname)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(nickname))
+                {
+                    throw new ArgumentException("Никнейм не может быть пустым", nameof(nickname));
+                }
+                
+                var query = _database.Child("users").OrderByChild("profile/nickname").EqualTo(nickname).LimitToFirst(1);
+                var snapshot = await query.GetValueAsync();
+                
+                return snapshot.Exists && snapshot.ChildrenCount > 0;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка проверки существования никнейма: {ex.Message}");
+                return false;
+            }
+        }
+        
+        /// <summary>
+        /// Проверяет доступность никнейма
+        /// </summary>
+        public async Task<(bool available, string error)> CheckNicknameAvailability(string nickname)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(nickname))
+                {
+                    return (false, "Никнейм не может быть пустым");
+                }
+                
+                if (nickname.Length < 3)
+                {
+                    return (false, "Никнейм должен содержать не менее 3 символов");
+                }
+                
+                if (nickname.Length > 20)
+                {
+                    return (false, "Никнейм не должен превышать 20 символов");
+                }
+                
+                if (!System.Text.RegularExpressions.Regex.IsMatch(nickname, "^[a-zA-Z0-9_]+$"))
+                {
+                    return (false, "Никнейм может содержать только латинские буквы, цифры и символ подчеркивания");
+                }
+                
+                bool exists = await NicknameExists(nickname);
+                
+                return exists ? 
+                    (false, "Этот никнейм уже занят") : 
+                    (true, null);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка проверки доступности никнейма: {ex.Message}");
+                return (false, "Произошла ошибка при проверке никнейма");
+            }
+        }
+        
         #endregion
     }
 }

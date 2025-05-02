@@ -16,6 +16,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
 {
     public class AccountDeletionManager : MonoBehaviour, IInjectable
     {
+        #region SerializeFields
         [Header("Panels")]
         [SerializeField] private GameObject _popupPanel;
         [SerializeField] private TMP_Text _popupText;
@@ -29,23 +30,18 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         [SerializeField] private Button _confirmDeleteButton;
         [SerializeField] private Toggle _showPasswordToggle;
         [SerializeField] private TMP_InputField _passwordInput;
+        #endregion
 
+        #region Private Fields
         private SceneSwitcher _sceneSwitcher;
         private FirebaseAuth _auth;
         private DatabaseReference _database;
-        private AuthStateService _authStateService;
+        private IAuthStateService _authStateService;
+        private AccountDeletionHelper _deletionHelper;
         private string _plainPassword = "";
+        #endregion
 
-        public void Inject(DIContainer container)
-        {
-            _sceneSwitcher = container.Resolve<SceneSwitcher>();
-            _auth = FirebaseAuth.DefaultInstance;
-            _database = container.Resolve<DatabaseReference>();
-            _authStateService = container.Resolve<AuthStateService>();
-
-            InitializeUI();
-        }
-
+        #region Unity Lifecycle
         private void Start()
         {
             // Проверяем состояние аутентификации при запуске
@@ -61,8 +57,57 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             {
                 _authStateService.AuthStateChanged -= OnAuthStateChanged;
             }
+            
+            // Отписываемся от событий помощника удаления
+            UnsubscribeFromHelperEvents();
         }
+        #endregion
 
+        #region Initialization
+        public void Inject(DIContainer container)
+        {
+            _sceneSwitcher = container.Resolve<SceneSwitcher>();
+            _auth = FirebaseAuth.DefaultInstance;
+            _database = container.Resolve<DatabaseReference>();
+            _authStateService = container.Resolve<IAuthStateService>();
+            
+            // Создаем помощника удаления аккаунта с передачей IAuthStateService
+            _deletionHelper = new AccountDeletionHelper(_database, _authStateService);
+            SubscribeToHelperEvents();
+
+            InitializeUI();
+        }
+        
+        private void SubscribeToHelperEvents()
+        {
+            if (_deletionHelper == null) return;
+            
+            _deletionHelper.OnMessage += ShowPopup;
+            _deletionHelper.OnError += ShowPopup;
+            _deletionHelper.OnRedirectToAuth += () => StartCoroutine(DelayedRedirect());
+            _deletionHelper.OnUserDeleted += () => 
+            {
+                ShowPopup("Аккаунт успешно удален.");
+                _sceneSwitcher.ProcessSwitchSceneFor(new OutputPersonalAreaScreenArgs(new AuthSceneInputArgs()));
+            };
+        }
+        
+        private void UnsubscribeFromHelperEvents()
+        {
+            if (_deletionHelper == null) return;
+            
+            _deletionHelper.OnMessage -= ShowPopup;
+            _deletionHelper.OnError -= ShowPopup;
+            _deletionHelper.OnRedirectToAuth -= () => StartCoroutine(DelayedRedirect());
+            _deletionHelper.OnUserDeleted -= () => 
+            {
+                ShowPopup("Аккаунт успешно удален.");
+                _sceneSwitcher.ProcessSwitchSceneFor(new OutputPersonalAreaScreenArgs(new AuthSceneInputArgs()));
+            };
+        }
+        #endregion
+
+        #region Authentication State Management
         private void OnAuthStateChanged(FirebaseUser user)
         {
             // Обновляем ссылку на Auth при изменении состояния аутентификации
@@ -146,7 +191,9 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
                 Debug.LogWarning("⚠️ Не удалось обновить информацию о пользователе");
             }
         }
+        #endregion
 
+        #region UI Initialization
         private void InitializeUI()
         {
             Debug.Log("✅ InitializeUI вызван");
@@ -203,7 +250,9 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             _passwordInput.contentType = TMP_InputField.ContentType.Password;
             _passwordInput.ForceLabelUpdate();
         }
+        #endregion
 
+        #region UI Event Handlers
         private void OnPasswordChanged(string newText)
         {
             Debug.Log($"⌨ Введённый пароль изменён: {newText}");
@@ -237,7 +286,9 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             _passwordInput.caretPosition = _plainPassword.Length;
             _passwordInput.ActivateInputField();
         }
+        #endregion
 
+        #region Account Actions
         private void Logout()
         {
             Debug.Log("🔘 Logout нажата");
@@ -276,161 +327,12 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         {
             Debug.Log("🔘 Подтвердить удаление");
             
-            // Проверка на пустой пароль
-            if (string.IsNullOrWhiteSpace(_plainPassword))
-            {
-                Debug.LogWarning("⚠️ Пустой пароль при попытке удаления аккаунта");
-                ShowPopup("Введите пароль для подтверждения.");
-                return;
-            }
-            
-            // Проверяем авторизацию через AuthStateService
-            if (!_authStateService.IsAuthenticated)
-            {
-                Debug.LogError("❌ Пользователь не авторизован при попытке удаления аккаунта");
-                ShowPopup("Для удаления аккаунта необходимо войти в систему.");
-                StartCoroutine(DelayedRedirect());
-                return;
-            }
-            
-            // Получаем текущего пользователя из сервиса
-            var user = _authStateService.CurrentUser;
-            var email = user.Email;
-            
-            Debug.Log($"📧 Текущий пользователь: {email ?? "null"}, UID: {user.UserId}");
-            
-            if (string.IsNullOrEmpty(email))
-            {
-                Debug.LogError($"❌ Email пользователя отсутствует. UID: {user.UserId}");
-                ShowPopup("Ошибка: не удалось получить email. Повторите вход в аккаунт.");
-                return;
-            }
-            
-            try
-            {
-                // Получаем учетные данные
-                var credential = EmailAuthProvider.GetCredential(email, _plainPassword);
-                
-                // Выполняем повторную аутентификацию
-                user.ReauthenticateAsync(credential).ContinueWithOnMainThread(task =>
-                {
-                    if (task.IsFaulted)
-                    {
-                        Debug.LogError($"❌ Ошибка реаутентификации: {task.Exception?.GetBaseException()?.Message}");
-                        ShowPopup("Неверный пароль или ошибка аутентификации.");
-                        return;
-                    }
-                    
-                    // Удаляем данные пользователя
-                    DeleteUserData();
-                });
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"❌ Исключение при аутентификации: {ex.Message}");
-                ShowPopup("Произошла ошибка. Повторите попытку позже.");
-            }
+            // Используем вспомогательный класс для удаления аккаунта
+            _deletionHelper.DeleteAccount(_plainPassword);
         }
+        #endregion
 
-        private void DeleteUserData()
-        {
-            // Проверяем авторизацию через AuthStateService
-            if (!_authStateService.IsAuthenticated)
-            {
-                Debug.LogError("❌ Пользователь не авторизован при удалении данных");
-                ShowPopup("Ошибка: сессия истекла. Войдите снова.");
-                StartCoroutine(DelayedRedirect());
-                return;
-            }
-            
-            var uid = _authStateService.CurrentUser.UserId;
-            
-            Debug.Log($"🗑️ Удаление данных пользователя: {uid}");
-            
-            _database
-                .Child("users")
-                .Child(uid)
-                .RemoveValueAsync()
-                .ContinueWithOnMainThread(task =>
-                {
-                    if (task.IsFaulted)
-                    {
-                        Debug.LogError($"❌ Ошибка при удалении данных: {task.Exception?.GetBaseException()?.Message}");
-                        
-                        // Можно продолжить с удалением аккаунта, даже если данные не удалились
-                        Debug.LogWarning("⚠️ Продолжаем с удалением аккаунта, несмотря на ошибку с базой данных");
-                    }
-                    else
-                    {
-                        Debug.Log("✅ Данные пользователя успешно удалены");
-                    }
-                    
-                    // Проверяем авторизацию перед удалением аккаунта
-                    if (!_authStateService.IsAuthenticated)
-                    {
-                        Debug.LogError("❌ Сессия истекла после удаления данных");
-                        ShowPopup("Ошибка: сессия истекла в процессе удаления. Данные удалены, но аккаунт сохранен.");
-                        StartCoroutine(DelayedRedirect());
-                        return;
-                    }
-                    
-                    DeleteFirebaseUser();
-                });
-        }
-
-        private void DeleteFirebaseUser()
-        {
-            // Проверяем авторизацию через AuthStateService
-            if (!_authStateService.IsAuthenticated)
-            {
-                Debug.LogError("❌ Пользователь не авторизован при удалении учетной записи");
-                ShowPopup("Ошибка: сессия истекла. Войдите снова.");
-                StartCoroutine(DelayedRedirect());
-                return;
-            }
-            
-            Debug.Log($"🗑️ Удаление аккаунта Firebase: {_authStateService.CurrentUser.Email}");
-            
-            _authStateService.CurrentUser.DeleteAsync().ContinueWithOnMainThread(task =>
-            {
-                if (task.IsFaulted)
-                {
-                    Debug.LogError($"❌ Ошибка при удалении аккаунта: {task.Exception?.GetBaseException()?.Message}");
-                    
-                    bool requiresReauth = task.Exception?.InnerExceptions.Any(ex => 
-                        ex.Message.Contains("requires recent authentication") || 
-                        ex.Message.Contains("requires a recent login")) ?? false;
-                    
-                    if (requiresReauth)
-                    {
-                        ShowPopup("Для удаления аккаунта необходима повторная авторизация. Пожалуйста, войдите снова.");
-                        StartCoroutine(DelayedRedirect());
-                    }
-                    else
-                    {
-                        ShowPopup("Не удалось удалить аккаунт. Повторите попытку позже.");
-                    }
-                    
-                    return;
-                }
-                
-                Debug.Log("✅ Аккаунт успешно удален");
-                CleanupStoredCredentials();
-                ShowPopup("Аккаунт успешно удален.");
-                
-                _sceneSwitcher.ProcessSwitchSceneFor(
-                    new OutputPersonalAreaScreenArgs(new AuthSceneInputArgs()));
-            });
-        }
-
-        private void CleanupStoredCredentials()
-        {
-            SecurePlayerPrefs.DeleteKey("email");
-            SecurePlayerPrefs.DeleteKey("password");
-            SecurePlayerPrefs.DeleteKey("remember_me");
-            SecurePlayerPrefs.Save();
-        }
-
+        #region UI Messages
         private void ShowPopup(string message)
         {
             if (_popupPanel == null || _popupText == null) return;
@@ -453,5 +355,6 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             Debug.Log("🔍 Скрытие всплывающего сообщения");
             _popupPanel?.SetActive(false);
         }
+        #endregion
     }
 }

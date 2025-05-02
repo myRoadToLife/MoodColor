@@ -4,6 +4,7 @@ using System.Linq;
 using App.Develop.AppServices.Firebase.Auth;
 using App.Develop.AppServices.Firebase.Auth.Services;
 using App.Develop.AppServices.Firebase.Database.Services;
+using App.Develop.AppServices.Firebase.Common.Cache;
 using App.Develop.CommonServices.AssetManagement;
 using App.Develop.CommonServices.ConfigsManagement;
 using App.Develop.CommonServices.CoroutinePerformer;
@@ -23,6 +24,9 @@ using Firebase.Database;
 using UnityEngine;
 using App.Develop.UI.Panels;
 using App.Develop.Scenes.PersonalAreaScene.UI.Components;
+
+// Используем IDatabaseService только из этого пространства имен
+using IDatabaseService = App.Develop.AppServices.Firebase.Database.Services.IDatabaseService;
 
 namespace App.Develop.EntryPoint
 {
@@ -300,11 +304,24 @@ namespace App.Develop.EntryPoint
                 // Ссылка на базу данных Firebase
                 container.RegisterAsSingle<DatabaseReference>(container => _firebaseDatabase.RootReference).NonLazy();
 
-                // Сервис базы данных
-                container.RegisterAsSingle<DatabaseService>(container =>
-                    new DatabaseService(
-                        container.Resolve<DatabaseReference>()
+                // Менеджер кэширования Firebase
+                container.RegisterAsSingle<FirebaseCacheManager>(container => 
+                    new FirebaseCacheManager(
+                        container.Resolve<ISaveLoadService>()
                     )
+                ).NonLazy();
+
+                // Сервис базы данных
+                container.RegisterAsSingle<IDatabaseService>(container =>
+                    new DatabaseService(
+                        container.Resolve<DatabaseReference>(),
+                        container.Resolve<FirebaseCacheManager>()
+                    )
+                ).NonLazy();
+
+                // Старая регистрация для обратной совместимости
+                container.RegisterAsSingle<DatabaseService>(container => 
+                    (DatabaseService)container.Resolve<IDatabaseService>()
                 ).NonLazy();
 
                 Debug.Log("✅ Firebase сервисы зарегистрированы");
@@ -348,7 +365,7 @@ namespace App.Develop.EntryPoint
                 ).NonLazy();
 
                 // Сервис отслеживания состояния аутентификации
-                container.RegisterAsSingle<AuthStateService>(container =>
+                container.RegisterAsSingle<IAuthStateService>(container =>
                     new AuthStateService(
                         container.Resolve<FirebaseAuth>(),
                         container.Resolve<IAuthService>()

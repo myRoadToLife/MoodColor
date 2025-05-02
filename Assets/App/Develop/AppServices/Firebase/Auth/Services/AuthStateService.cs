@@ -10,7 +10,7 @@ namespace App.Develop.AppServices.Firebase.Auth.Services
     /// Сервис для управления состоянием аутентификации Firebase.
     /// Отслеживает изменения состояния и обеспечивает восстановление аутентификации.
     /// </summary>
-    public class AuthStateService
+    public class AuthStateService : IAuthStateService
     {
         private readonly FirebaseAuth _auth;
         private readonly IAuthService _authService;

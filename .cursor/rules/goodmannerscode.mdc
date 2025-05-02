@@ -1,0 +1,15 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Readability the code should be understandable. Clear names of variables and methods, minimally necessary comments, uniform coding style.
+
+Architecture we use SOLID, avoid God objects. Classes should have clear responsibilities, and we should follow design patterns.
+
+Performance we monitor Update() calls, reduce the number of Instantiate() and Destroy(), use Object Pooling.
+
+Structure we work with ScriptableObjects, separate logic and UI, use appropriate architectural patterns.
+
+
+Automation where you can simplify your life  we simplify: Editor Scripts, automatic settings.

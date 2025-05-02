@@ -12,6 +12,9 @@ using App.Develop.Configs.Common.Emotion;
 using UnityEngine;
 using App.Develop.AppServices.Firebase.Common.SecureStorage;
 
+// Используем IDatabaseService только из пространства имен Services
+using IDatabaseService = App.Develop.AppServices.Firebase.Database.Services.IDatabaseService;
+
 namespace App.Develop.CommonServices.Emotion
 {
     public class EmotionService : IDataReader<PlayerData>, IDataWriter<PlayerData>
