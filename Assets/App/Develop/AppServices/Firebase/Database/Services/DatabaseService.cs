@@ -24,6 +24,7 @@ namespace App.Develop.AppServices.Firebase.Database.Services
         #region Private Fields
         private readonly DatabaseReference _database;
         private readonly FirebaseCacheManager _cacheManager;
+        private readonly FirebaseBatchManager _batchManager;
         private string _userId;
         private readonly List<DatabaseReference> _activeListeners = new List<DatabaseReference>();
 
@@ -47,6 +48,11 @@ namespace App.Develop.AppServices.Firebase.Database.Services
         /// Проверяет, аутентифицирован ли пользователь
         /// </summary>
         public bool IsAuthenticated => !string.IsNullOrEmpty(UserId);
+        
+        /// <summary>
+        /// Менеджер пакетных операций
+        /// </summary>
+        public FirebaseBatchManager BatchManager => _batchManager;
         #endregion
 
         #region Constructor
@@ -59,8 +65,24 @@ namespace App.Develop.AppServices.Firebase.Database.Services
         {
             _database = database ?? throw new ArgumentNullException(nameof(database));
             _cacheManager = cacheManager ?? throw new ArgumentNullException(nameof(cacheManager));
+            _batchManager = new FirebaseBatchManager(_database);
+            
+            // Подписываемся на события завершения батча
+            _batchManager.OnBatchCompleted += OnBatchCompleted;
             
             Debug.Log("✅ DatabaseService инициализирован");
+        }
+        
+        private void OnBatchCompleted(bool success, string message)
+        {
+            if (success)
+            {
+                Debug.Log($"✅ Батч успешно выполнен: {message}");
+            }
+            else
+            {
+                Debug.LogError($"❌ Ошибка выполнения батча: {message}");
+            }
         }
         #endregion
 
@@ -565,6 +587,29 @@ namespace App.Develop.AppServices.Firebase.Database.Services
 
                 _eventHandlers.Clear(); // Очищаем словарь обработчиков
                 _activeListeners.Clear(); // Очищаем список активных ссылок
+                
+                // Отписываемся от событий FirebaseBatchManager
+                if (_batchManager != null)
+                {
+                    _batchManager.OnBatchCompleted -= OnBatchCompleted;
+                    
+                    // Если есть незавершенные операции батчинга, выполняем их синхронно перед закрытием
+                    int pendingCount = _batchManager.GetPendingOperationsCount();
+                    if (pendingCount > 0)
+                    {
+                        Debug.Log($"Завершение {pendingCount} незавершенных операций батчинга перед закрытием...");
+                        try
+                        {
+                            // Выполняем синхронно, чтобы не потерять данные
+                            _batchManager.ExecuteBatchAsync().GetAwaiter().GetResult();
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogError($"❌ Ошибка при выполнении незавершенных операций батчинга: {ex.Message}");
+                        }
+                    }
+                }
+                
                 Debug.Log("✅ DatabaseService: все обработчики событий удалены и ресурсы освобождены.");
             }
             catch (Exception ex)
@@ -688,11 +733,14 @@ namespace App.Develop.AppServices.Firebase.Database.Services
                 
                 var dictionary = record.ToDictionary();
                 
-                // Сохраняем запись в Firebase
-                await _database.Child("users").Child(_userId).Child("emotionHistory").Child(record.Id)
-                    .SetValueAsync(dictionary);
+                // Используем механизм батчинга
+                string path = $"users/{_userId}/emotionHistory/{record.Id}";
+                _batchManager.AddUpdateOperation(path, dictionary);
                 
-                Debug.Log($"Запись добавлена в историю эмоций: {record.Id}, тип: {record.Type}");
+                // Выполняем батч немедленно, так как это одиночная операция
+                await _batchManager.ExecuteBatchAsync();
+                
+                Debug.Log($"Запись добавлена в историю эмоций через механизм батчинга: {record.Id}, тип: {record.Type}");
             }
             catch (Exception ex)
             {
@@ -750,8 +798,7 @@ namespace App.Develop.AppServices.Firebase.Database.Services
                     return;
                 }
                 
-                var updates = new Dictionary<string, object>();
-                
+                // Используем механизм батчинга для пакетной обработки
                 foreach (var record in records)
                 {
                     // Генерируем ID, если его нет
@@ -760,12 +807,15 @@ namespace App.Develop.AppServices.Firebase.Database.Services
                         record.Id = Guid.NewGuid().ToString();
                     }
                     
-                    updates[$"users/{_userId}/emotionHistory/{record.Id}"] = record.ToDictionary();
+                    // Добавляем операцию в батч
+                    string path = $"users/{_userId}/emotionHistory/{record.Id}";
+                    _batchManager.AddUpdateOperation(path, record.ToDictionary());
                 }
                 
-                await _database.UpdateChildrenAsync(updates);
+                // Принудительно выполняем батч
+                await _batchManager.ExecuteBatchAsync();
                 
-                Debug.Log($"Добавлено {records.Count} записей в историю эмоций");
+                Debug.Log($"Добавлено {records.Count} записей в историю эмоций через механизм батчинга");
             }
             catch (Exception ex)
             {
@@ -842,10 +892,14 @@ namespace App.Develop.AppServices.Firebase.Database.Services
                     throw new ArgumentException("ID записи не может быть пустым", nameof(recordId));
                 }
                 
-                await _database.Child("users").Child(_userId).Child("emotionHistory").Child(recordId).Child("syncStatus")
-                    .SetValueAsync(status.ToString());
+                // Используем механизм батчинга
+                string path = $"users/{_userId}/emotionHistory/{recordId}/syncStatus";
+                _batchManager.AddUpdateOperation(path, status.ToString());
                 
-                Debug.Log($"Статус синхронизации записи {recordId} обновлен на {status}");
+                // Выполняем батч немедленно, так как это одиночная операция
+                await _batchManager.ExecuteBatchAsync();
+                
+                Debug.Log($"Статус синхронизации записи {recordId} обновлен на {status} через механизм батчинга");
             }
             catch (Exception ex)
             {
@@ -872,9 +926,14 @@ namespace App.Develop.AppServices.Firebase.Database.Services
                     throw new ArgumentException("ID записи не может быть пустым", nameof(recordId));
                 }
                 
-                await _database.Child("users").Child(_userId).Child("emotionHistory").Child(recordId).RemoveValueAsync();
+                // Используем механизм батчинга
+                string path = $"users/{_userId}/emotionHistory/{recordId}";
+                _batchManager.AddDeleteOperation(path);
                 
-                Debug.Log($"Запись {recordId} удалена из истории эмоций");
+                // Выполняем батч немедленно
+                await _batchManager.ExecuteBatchAsync();
+                
+                Debug.Log($"Запись {recordId} удалена из истории эмоций через механизм батчинга");
             }
             catch (Exception ex)
             {
@@ -1220,18 +1279,19 @@ namespace App.Develop.AppServices.Firebase.Database.Services
                     return;
                 }
                 
-                var updates = new Dictionary<string, object>();
-                
+                // Используем механизм батчинга для пакетной обработки
                 foreach (var kvp in emotions)
                 {
+                    string path = $"users/{_userId}/emotions/{kvp.Key}";
                     string json = JsonConvert.SerializeObject(kvp.Value);
                     var emotionDict = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
-                    updates[$"emotions/{kvp.Key}"] = emotionDict;
+                    _batchManager.AddUpdateOperation(path, emotionDict);
                 }
                 
-                await _database.Child("users").Child(_userId).UpdateChildrenAsync(updates);
+                // Принудительно выполняем батч
+                await _batchManager.ExecuteBatchAsync();
                 
-                Debug.Log($"Обновлено {emotions.Count} эмоций");
+                Debug.Log($"Обновлено {emotions.Count} эмоций через механизм батчинга");
             }
             catch (Exception ex)
             {
@@ -1264,11 +1324,16 @@ namespace App.Develop.AppServices.Firebase.Database.Services
                 }
                 
                 string json = JsonConvert.SerializeObject(emotion);
+                var emotionDict = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
                 
-                await _database.Child("users").Child(_userId).Child("emotions").Child(emotion.Id)
-                    .SetRawJsonValueAsync(json);
+                // Используем механизм батчинга
+                string path = $"users/{_userId}/emotions/{emotion.Id}";
+                _batchManager.AddUpdateOperation(path, emotionDict);
                 
-                Debug.Log($"Эмоция {emotion.Type} обновлена");
+                // Выполняем батч немедленно, так как это одиночная операция
+                await _batchManager.ExecuteBatchAsync();
+                
+                Debug.Log($"Эмоция {emotion.Type} обновлена через механизм батчинга");
             }
             catch (Exception ex)
             {
@@ -1480,5 +1545,93 @@ namespace App.Develop.AppServices.Firebase.Database.Services
         }
         
         #endregion
+
+        /// <summary>
+        /// Обновляет статусы синхронизации нескольких записей одним батчем
+        /// </summary>
+        public async Task UpdateEmotionSyncStatusBatch(Dictionary<string, SyncStatus> recordStatusPairs)
+        {
+            if (!CheckAuthentication())
+            {
+                Debug.LogWarning("Пользователь не авторизован для обновления статусов синхронизации");
+                return;
+            }
+
+            try
+            {
+                if (recordStatusPairs == null || recordStatusPairs.Count == 0)
+                {
+                    Debug.LogWarning("Пустой словарь записей для обновления статусов");
+                    return;
+                }
+                
+                // Используем механизм батчинга для всех записей
+                foreach (var kvp in recordStatusPairs)
+                {
+                    if (string.IsNullOrEmpty(kvp.Key))
+                    {
+                        Debug.LogWarning("Пропуск записи с пустым ID");
+                        continue;
+                    }
+                    
+                    string path = $"users/{_userId}/emotionHistory/{kvp.Key}/syncStatus";
+                    _batchManager.AddUpdateOperation(path, kvp.Value.ToString());
+                }
+                
+                // Выполняем батч для всех операций
+                await _batchManager.ExecuteBatchAsync();
+                
+                Debug.Log($"Обновлены статусы синхронизации для {recordStatusPairs.Count} записей через механизм батчинга");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка пакетного обновления статусов синхронизации: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Удаляет несколько записей из истории одним батчем
+        /// </summary>
+        public async Task DeleteEmotionHistoryRecordBatch(List<string> recordIds)
+        {
+            if (!CheckAuthentication())
+            {
+                Debug.LogWarning("Пользователь не авторизован для удаления записей");
+                return;
+            }
+
+            try
+            {
+                if (recordIds == null || recordIds.Count == 0)
+                {
+                    Debug.LogWarning("Пустой список записей для удаления");
+                    return;
+                }
+                
+                // Используем механизм батчинга для всех записей
+                foreach (var recordId in recordIds)
+                {
+                    if (string.IsNullOrEmpty(recordId))
+                    {
+                        Debug.LogWarning("Пропуск записи с пустым ID");
+                        continue;
+                    }
+                    
+                    string path = $"users/{_userId}/emotionHistory/{recordId}";
+                    _batchManager.AddDeleteOperation(path);
+                }
+                
+                // Выполняем батч для всех операций
+                await _batchManager.ExecuteBatchAsync();
+                
+                Debug.Log($"Удалено {recordIds.Count} записей из истории эмоций через механизм батчинга");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Ошибка пакетного удаления записей из истории эмоций: {ex.Message}");
+                throw;
+            }
+        }
     }
 }

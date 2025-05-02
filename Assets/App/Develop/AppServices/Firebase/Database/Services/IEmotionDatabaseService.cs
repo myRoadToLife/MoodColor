@@ -38,6 +38,21 @@ namespace App.Develop.AppServices.Firebase.Database.Services
         Task AddEmotionHistoryRecord(EmotionData emotion, EmotionEventType eventType);
         
         /// <summary>
+        /// Пакетное добавление записей в историю эмоций
+        /// </summary>
+        Task AddEmotionHistoryBatch(List<EmotionHistoryRecord> records);
+        
+        /// <summary>
+        /// Обновляет статусы синхронизации нескольких записей одним батчем
+        /// </summary>
+        Task UpdateEmotionSyncStatusBatch(Dictionary<string, SyncStatus> recordStatusPairs);
+        
+        /// <summary>
+        /// Удаляет несколько записей из истории одним батчем
+        /// </summary>
+        Task DeleteEmotionHistoryRecordBatch(List<string> recordIds);
+        
+        /// <summary>
         /// Получает историю эмоций пользователя
         /// </summary>
         Task<List<EmotionHistoryRecord>> GetEmotionHistory(DateTime? startDate = null, DateTime? endDate = null, int limit = 100);

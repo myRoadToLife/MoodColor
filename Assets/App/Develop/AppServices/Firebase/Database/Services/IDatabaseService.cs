@@ -1,4 +1,6 @@
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using App.Develop.AppServices.Firebase.Database.Models;
 using Firebase.Database;
 
 namespace App.Develop.AppServices.Firebase.Database.Services
@@ -24,6 +26,11 @@ namespace App.Develop.AppServices.Firebase.Database.Services
         bool IsAuthenticated { get; }
         
         /// <summary>
+        /// Менеджер пакетных операций
+        /// </summary>
+        FirebaseBatchManager BatchManager { get; }
+        
+        /// <summary>
         /// Обновляет ID пользователя для работы с базой данных
         /// </summary>
         /// <param name="userId">ID пользователя</param>
@@ -35,6 +42,16 @@ namespace App.Develop.AppServices.Firebase.Database.Services
         /// <param name="emotionType">Тип эмоции</param>
         /// <param name="intensity">Интенсивность эмоции</param>
         Task UpdateCurrentEmotion(string emotionType, float intensity);
+        
+        /// <summary>
+        /// Обновляет статусы синхронизации нескольких записей одним батчем
+        /// </summary>
+        Task UpdateEmotionSyncStatusBatch(Dictionary<string, SyncStatus> recordStatusPairs);
+        
+        /// <summary>
+        /// Удаляет несколько записей из истории одним батчем
+        /// </summary>
+        Task DeleteEmotionHistoryRecordBatch(List<string> recordIds);
         
         /// <summary>
         /// Создает резервную копию данных пользователя

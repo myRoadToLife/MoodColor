@@ -150,24 +150,46 @@ namespace App.Develop.AppServices.Firebase.Database.Services
                     return;
                 }
                 
-                // Отправляем записи на сервер
+                // Используем батчинг для отправки записей на сервер
+                int batchSize = 20; // Оптимальный размер для Firebase
                 int processedCount = 0;
-                foreach (var record in unsyncedRecords)
+                
+                for (int i = 0; i < unsyncedRecords.Count; i += batchSize)
                 {
+                    // Разбиваем записи на группы по batchSize
+                    var batch = unsyncedRecords.Skip(i).Take(batchSize).ToList();
+                    
+                    // Отправляем группу записей
                     try
                     {
-                        record.SyncStatus = SyncStatus.Syncing;
-                        _cache.UpdateRecord(record);
+                        // Обновляем статус на "Синхронизируется"
+                        foreach (var record in batch)
+                        {
+                            record.SyncStatus = SyncStatus.Syncing;
+                            _cache.UpdateRecord(record);
+                        }
                         
-                        // Отправляем запись на сервер
-                        await _databaseService.AddEmotionHistoryRecord(record);
+                        // Отправляем группу записей на сервер с использованием BatchManager
+                        await _databaseService.AddEmotionHistoryBatch(batch);
                         
-                        // Обновляем статус в кэше
-                        record.SyncStatus = SyncStatus.Synced;
-                        _cache.UpdateRecord(record);
+                        // Создаем словарь обновлений статусов
+                        var statusUpdates = new Dictionary<string, SyncStatus>();
+                        foreach (var record in batch)
+                        {
+                            statusUpdates[record.Id] = SyncStatus.Synced;
+                            processedCount++;
+                            OnRecordSynced?.Invoke(record);
+                        }
                         
-                        OnRecordSynced?.Invoke(record);
-                        processedCount++;
+                        // Обновляем статусы в Firebase одним батчем
+                        await _databaseService.UpdateEmotionSyncStatusBatch(statusUpdates);
+                        
+                        // Обновляем статусы в локальном кэше
+                        foreach (var record in batch)
+                        {
+                            record.SyncStatus = SyncStatus.Synced;
+                            _cache.UpdateRecord(record);
+                        }
                         
                         // Обновляем прогресс
                         float progress = totalRecords > 0 ? (float)processedCount / totalRecords : 1f;
@@ -175,9 +197,14 @@ namespace App.Develop.AppServices.Firebase.Database.Services
                     }
                     catch (Exception ex)
                     {
-                        Debug.LogError($"Ошибка синхронизации записи {record.Id}: {ex.Message}");
-                        record.SyncStatus = SyncStatus.SyncFailed;
-                        _cache.UpdateRecord(record);
+                        Debug.LogError($"Ошибка пакетной синхронизации: {ex.Message}");
+                        
+                        // Отмечаем все записи в партии как непрошедшие синхронизацию
+                        foreach (var record in batch)
+                        {
+                            record.SyncStatus = SyncStatus.SyncFailed;
+                            _cache.UpdateRecord(record);
+                        }
                     }
                 }
                 
@@ -201,10 +228,9 @@ namespace App.Develop.AppServices.Firebase.Database.Services
             finally
             {
                 _isSyncing = false;
+                OnSyncProgress?.Invoke(1f); // Завершающий прогресс 100%
                 OnSyncComplete?.Invoke(success, message);
-                OnSyncProgress?.Invoke(1f);
-                
-                Debug.Log($"Синхронизация завершена. Успех: {success}. {message}");
+                Debug.Log(message);
             }
         }
         
@@ -329,33 +355,67 @@ namespace App.Develop.AppServices.Firebase.Database.Services
                 
                 Debug.Log($"Получено {serverRecords.Count} записей с сервера");
                 
-                // Обрабатываем полученные записи
+                // Группируем записи по типу обработки
+                var newRecords = new List<EmotionHistoryRecord>();
+                var updateRecords = new List<EmotionHistoryRecord>();
+                var conflictRecords = new List<Tuple<EmotionHistoryRecord, EmotionHistoryRecord>>();
+                
+                // Классифицируем записи
                 foreach (var serverRecord in serverRecords)
                 {
                     var localRecord = _cache.GetRecord(serverRecord.Id);
                     
                     if (localRecord == null)
                     {
-                        // Новая запись, добавляем в кэш
+                        // Новая запись
                         serverRecord.SyncStatus = SyncStatus.Synced;
-                        _cache.AddRecord(serverRecord);
+                        newRecords.Add(serverRecord);
+                    }
+                    else if (localRecord.SyncStatus == SyncStatus.NotSynced || 
+                             localRecord.SyncStatus == SyncStatus.SyncFailed)
+                    {
+                        // Конфликт
+                        conflictRecords.Add(new Tuple<EmotionHistoryRecord, EmotionHistoryRecord>(localRecord, serverRecord));
                     }
                     else
                     {
-                        // Запись уже существует, проверяем на конфликты
-                        if (localRecord.SyncStatus == SyncStatus.NotSynced || 
-                            localRecord.SyncStatus == SyncStatus.SyncFailed)
-                        {
-                            // Есть конфликт - решаем согласно стратегии
-                            ResolveSyncConflict(localRecord, serverRecord);
-                        }
-                        else
-                        {
-                            // Нет конфликта, просто обновляем локальную копию
-                            serverRecord.SyncStatus = SyncStatus.Synced;
-                            _cache.UpdateRecord(serverRecord);
-                        }
+                        // Обновление существующей записи
+                        serverRecord.SyncStatus = SyncStatus.Synced;
+                        updateRecords.Add(serverRecord);
                     }
+                }
+                
+                // Обрабатываем новые записи пакетно
+                if (newRecords.Count > 0)
+                {
+                    // Добавляем все новые записи в кэш
+                    foreach (var record in newRecords)
+                    {
+                        _cache.AddRecord(record);
+                    }
+                    Debug.Log($"Добавлено {newRecords.Count} новых записей в кэш");
+                }
+                
+                // Обрабатываем обновления пакетно
+                if (updateRecords.Count > 0)
+                {
+                    // Обновляем все записи в кэше
+                    foreach (var record in updateRecords)
+                    {
+                        _cache.UpdateRecord(record);
+                    }
+                    Debug.Log($"Обновлено {updateRecords.Count} записей в кэше");
+                }
+                
+                // Обрабатываем конфликты индивидуально, так как требуется особая логика
+                if (conflictRecords.Count > 0)
+                {
+                    foreach (var pair in conflictRecords)
+                    {
+                        // Разрешаем конфликт согласно стратегии
+                        ResolveSyncConflict(pair.Item1, pair.Item2);
+                    }
+                    Debug.Log($"Разрешено {conflictRecords.Count} конфликтов");
                 }
             }
             catch (Exception ex)
