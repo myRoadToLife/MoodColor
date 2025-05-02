@@ -103,6 +103,12 @@ namespace App.Develop.AppServices.Firebase.Common.SecureStorage
             }
         }
 
+        // Новый публичный метод для проверки инициализации
+        public static bool IsInitialized()
+        {
+            return _isInitialized;
+        }
+
         // Методы для работы с разными типами данных
         public static void SetString(string key, string value)
         {

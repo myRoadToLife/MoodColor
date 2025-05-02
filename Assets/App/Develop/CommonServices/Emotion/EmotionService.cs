@@ -61,9 +61,18 @@ namespace App.Develop.CommonServices.Emotion
             _emotionConfigService = emotionConfigService;
             _connectivityManager = connectivityManager;
             
-            // Создаем кэш для истории эмоций
-            _emotionHistoryCache = new EmotionHistoryCache();
-            _emotionHistory = new EmotionHistory(_emotionHistoryCache);
+            try
+            {
+                // Создаем кэш для истории эмоций с обработкой возможных ошибок
+                _emotionHistoryCache = new EmotionHistoryCache();
+                _emotionHistory = new EmotionHistory(_emotionHistoryCache);
+            }
+            catch (Exception ex)
+            {
+                // Если произошла ошибка при создании кэша, создаем пустую историю
+                Debug.LogError($"Ошибка при инициализации кэша истории эмоций: {ex.Message}. Будет использована пустая история.");
+                _emotionHistory = new EmotionHistory();
+            }
 
             InitializeEmotions();
             

@@ -61,6 +61,11 @@ namespace App.Develop.EntryPoint
 
                 // Создание и настройка контейнера зависимостей
                 _projectContainer = new DIContainer();
+                
+                // Инициализация SecurePlayerPrefs перед регистрацией сервисов
+                InitializeSecureStorage(_projectContainer);
+                
+                // Регистрация основных сервисов
                 RegisterCoreServices(_projectContainer);
 
                 // Показываем загрузочный экран сразу после инициализации
@@ -343,10 +348,14 @@ namespace App.Develop.EntryPoint
                 // Сервис валидации
                 container.RegisterAsSingle<ValidationService>(container => new ValidationService()).NonLazy();
 
+                // CredentialStorage уже зарегистрирован в InitializeSecureStorage
+                // Оставим эту часть в комментариях для понимания изменений
+                /*
                 // Хранилище учетных данных
                 container.RegisterAsSingle<CredentialStorage>(container =>
                     new CredentialStorage("UltraSecretKey!🔥")
                 ).NonLazy();
+                */
 
                 // Сервис аутентификации
                 container.RegisterAsSingle<IAuthService>(container =>
@@ -420,6 +429,24 @@ namespace App.Develop.EntryPoint
                 throw;
             }
         }
-        
+
+        /// <summary>
+        /// Инициализирует SecurePlayerPrefs до регистрации других сервисов
+        /// </summary>
+        private void InitializeSecureStorage(DIContainer container)
+        {
+            try
+            {
+                // Используем тип без полного квалификатора
+                var credentialStorage = new CredentialStorage("UltraSecretKey!🔥");
+                container.RegisterAsSingle<CredentialStorage>(c => credentialStorage).NonLazy();
+                Debug.Log("✅ SecurePlayerPrefs инициализирован");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Ошибка инициализации SecurePlayerPrefs: {ex.Message}");
+                throw;
+            }
+        }
     }
 }

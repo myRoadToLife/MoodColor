@@ -24,14 +24,42 @@ namespace App.Develop.AppServices.Firebase.Database.Services
         
         public EmotionHistoryCache()
         {
-            _cacheIndex = LoadCacheIndex();
-            _syncSettings = LoadSyncSettings();
-            _maxCacheSize = _syncSettings?.MaxCacheRecords ?? DEFAULT_MAX_CACHE_SIZE;
-            
-            Debug.Log($"EmotionHistoryCache инициализирован. В кэше {_cacheIndex.Count} записей.");
+            try
+            {
+                _cacheIndex = LoadCacheIndex();
+                _syncSettings = LoadSyncSettings();
+                _maxCacheSize = _syncSettings?.MaxCacheRecords ?? DEFAULT_MAX_CACHE_SIZE;
+                
+                Debug.Log($"EmotionHistoryCache инициализирован. В кэше {_cacheIndex.Count} записей.");
+            }
+            catch (Exception ex)
+            {
+                // В случае ошибки создаем пустые объекты с значениями по умолчанию
+                Debug.LogError($"Ошибка при инициализации EmotionHistoryCache: {ex.Message}");
+                _cacheIndex = new List<string>();
+                _syncSettings = CreateDefaultSyncSettings();
+                _maxCacheSize = DEFAULT_MAX_CACHE_SIZE;
+            }
         }
         
         #region Public Methods
+        
+        /// <summary>
+        /// Проверяет инициализацию SecurePlayerPrefs
+        /// </summary>
+        private bool CheckSecurePrefsInitialized()
+        {
+            try
+            {
+                // Используем новый публичный метод для проверки
+                return SecurePlayerPrefs.IsInitialized();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"Ошибка при проверке инициализации SecurePlayerPrefs: {ex.Message}");
+                return false;
+            }
+        }
         
         /// <summary>
         /// Добавляет запись в кэш
@@ -39,6 +67,13 @@ namespace App.Develop.AppServices.Firebase.Database.Services
         public void AddRecord(EmotionHistoryRecord record)
         {
             if (record == null) return;
+            
+            // Проверяем инициализацию SecurePlayerPrefs
+            if (!CheckSecurePrefsInitialized())
+            {
+                Debug.LogWarning($"Невозможно добавить запись {record.Id} в кэш: SecurePlayerPrefs не инициализирован");
+                return;
+            }
             
             try
             {
@@ -74,6 +109,13 @@ namespace App.Develop.AppServices.Firebase.Database.Services
         {
             if (string.IsNullOrEmpty(recordId)) return null;
             
+            // Проверяем инициализацию SecurePlayerPrefs
+            if (!CheckSecurePrefsInitialized())
+            {
+                Debug.LogWarning($"Невозможно получить запись {recordId} из кэша: SecurePlayerPrefs не инициализирован");
+                return null;
+            }
+            
             try
             {
                 string key = GetRecordKey(recordId);
@@ -105,6 +147,13 @@ namespace App.Develop.AppServices.Firebase.Database.Services
         public void RemoveRecord(string recordId)
         {
             if (string.IsNullOrEmpty(recordId)) return;
+            
+            // Проверяем инициализацию SecurePlayerPrefs
+            if (!CheckSecurePrefsInitialized())
+            {
+                Debug.LogWarning($"Невозможно удалить запись {recordId} из кэша: SecurePlayerPrefs не инициализирован");
+                return;
+            }
             
             try
             {
@@ -211,6 +260,13 @@ namespace App.Develop.AppServices.Firebase.Database.Services
         /// </summary>
         public void ClearCache()
         {
+            // Проверяем инициализацию SecurePlayerPrefs
+            if (!CheckSecurePrefsInitialized())
+            {
+                Debug.LogWarning("Невозможно очистить кэш: SecurePlayerPrefs не инициализирован");
+                return;
+            }
+            
             try
             {
                 foreach (var recordId in _cacheIndex)
@@ -238,6 +294,13 @@ namespace App.Develop.AppServices.Firebase.Database.Services
         public void SaveSyncSettings(EmotionSyncSettings settings)
         {
             if (settings == null) return;
+            
+            // Проверяем инициализацию SecurePlayerPrefs
+            if (!CheckSecurePrefsInitialized())
+            {
+                Debug.LogWarning("Невозможно сохранить настройки синхронизации: SecurePlayerPrefs не инициализирован");
+                return;
+            }
             
             try
             {
@@ -287,6 +350,10 @@ namespace App.Develop.AppServices.Firebase.Database.Services
                     return JsonConvert.DeserializeObject<List<string>>(json) ?? new List<string>();
                 }
             }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("SecurePlayerPrefs не инициализирован"))
+            {
+                Debug.LogWarning("SecurePlayerPrefs не инициализирован при загрузке индекса кэша. Возвращается пустой список.");
+            }
             catch (Exception ex)
             {
                 Debug.LogError($"Ошибка при загрузке индекса кэша: {ex.Message}");
@@ -300,6 +367,13 @@ namespace App.Develop.AppServices.Firebase.Database.Services
         /// </summary>
         private void SaveCacheIndex()
         {
+            // Проверяем инициализацию SecurePlayerPrefs
+            if (!CheckSecurePrefsInitialized())
+            {
+                Debug.LogWarning("Невозможно сохранить индекс кэша: SecurePlayerPrefs не инициализирован");
+                return;
+            }
+            
             try
             {
                 string json = JsonConvert.SerializeObject(_cacheIndex);
@@ -318,18 +392,40 @@ namespace App.Develop.AppServices.Firebase.Database.Services
         {
             try
             {
+                // Пробуем получить настройки, если SecurePlayerPrefs не инициализирован, 
+                // будет выброшено исключение, и мы вернем настройки по умолчанию
                 if (SecurePlayerPrefs.HasKey(SYNC_SETTINGS_KEY))
                 {
                     string json = SecurePlayerPrefs.GetString(SYNC_SETTINGS_KEY);
-                    return JsonConvert.DeserializeObject<EmotionSyncSettings>(json) ?? new EmotionSyncSettings();
+                    return JsonConvert.DeserializeObject<EmotionSyncSettings>(json) ?? CreateDefaultSyncSettings();
                 }
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("SecurePlayerPrefs не инициализирован"))
+            {
+                Debug.LogWarning("SecurePlayerPrefs не инициализирован. Используются настройки по умолчанию.");
+                return CreateDefaultSyncSettings();
             }
             catch (Exception ex)
             {
                 Debug.LogError($"Ошибка при загрузке настроек синхронизации: {ex.Message}");
+                return CreateDefaultSyncSettings();
             }
             
-            return new EmotionSyncSettings();
+            return CreateDefaultSyncSettings();
+        }
+        
+        /// <summary>
+        /// Создает настройки синхронизации по умолчанию
+        /// </summary>
+        private EmotionSyncSettings CreateDefaultSyncSettings()
+        {
+            return new EmotionSyncSettings 
+            {
+                AutoSync = true,
+                SyncIntervalMinutes = 15,
+                MaxCacheRecords = DEFAULT_MAX_CACHE_SIZE,
+                SyncOnWifiOnly = true
+            };
         }
         
         /// <summary>
