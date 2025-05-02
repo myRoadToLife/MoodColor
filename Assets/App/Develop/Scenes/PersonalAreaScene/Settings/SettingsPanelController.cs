@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using App.Develop.AppServices.Firebase.Auth.Services;
 using App.Develop.CommonServices.AssetManagement;
+using App.Develop.CommonServices.SceneManagement;
 using App.Develop.CommonServices.UI;
 using App.Develop.DI;
 using TMPro;
@@ -62,6 +64,8 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         #region Private Fields
         private ISettingsManager _settingsManager;
         private PanelManager _panelManager;
+        private AuthStateService _authStateService;
+        private SceneSwitcher _sceneSwitcher;
         private bool _isInitialized = false;
         #endregion
 
@@ -85,6 +89,8 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         {
             _settingsManager = container.Resolve<ISettingsManager>();
             _panelManager = container.Resolve<PanelManager>();
+            _authStateService = container.Resolve<AuthStateService>();
+            _sceneSwitcher = container.Resolve<SceneSwitcher>();
 
             InitializeControls();
             SubscribeEvents();
@@ -269,7 +275,26 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         #region Account Deletion
         private void ShowDeleteAccountPanel()
         {
-            _panelManager.ShowPanel<AccountDeletionManager>(AssetPaths.AccountDeletionManager);
+            Debug.Log("🔘 Запрос на показ панели удаления аккаунта");
+
+            // Проверяем состояние аутентификации перед показом панели
+            if (_authStateService == null || !_authStateService.IsAuthenticated)
+            {
+                Debug.LogError("❌ Пользователь не авторизован при попытке показать панель удаления");
+                ShowPopup("Для удаления аккаунта необходимо войти в систему.");
+                
+                // Перенаправляем на экран входа с небольшой задержкой
+                Invoke(nameof(RedirectToAuth), 2f);
+                return;
+            }
+            
+            Debug.Log($"✅ Показ панели удаления для пользователя: {_authStateService.CurrentUser.Email}");
+            _panelManager.ShowPanel<AccountDeletionManager>(AssetPaths.DeletionAccountPanel);
+        }
+
+        private void RedirectToAuth()
+        {
+            _sceneSwitcher.ProcessSwitchSceneFor(new OutputPersonalAreaScreenArgs(new AuthSceneInputArgs()));
         }
         #endregion
 

@@ -31,7 +31,6 @@ namespace App.Develop.CommonServices.UI
                 else
                 {
                     existingPanel.SetActive(true);
-                    Debug.Log($"🔼 Панель {panelPath} уже существует, активируем.");
                     return existingPanel.GetComponent<T>();
                 }
             }
@@ -78,7 +77,6 @@ namespace App.Develop.CommonServices.UI
 
                 bool isActive = panel.activeSelf;
                 panel.SetActive(!isActive);
-                Debug.Log(isActive ? $"🔽 Панель {panelPath} скрыта" : $"🔼 Панель {panelPath} показана");
                 return !isActive;
             }
 
@@ -90,7 +88,6 @@ namespace App.Develop.CommonServices.UI
             if (_activePanels.TryGetValue(panelPath, out var panel) && panel != null)
             {
                 panel.SetActive(false);
-                Debug.Log($"🔽 Панель {panelPath} скрыта");
             }
         }
 
@@ -103,7 +100,6 @@ namespace App.Develop.CommonServices.UI
                     panel.SetActive(false);
                 }
             }
-            Debug.Log("🔽 Все панели скрыты");
         }
 
         public void Dispose()

@@ -347,6 +347,14 @@ namespace App.Develop.EntryPoint
                     )
                 ).NonLazy();
 
+                // Сервис отслеживания состояния аутентификации
+                container.RegisterAsSingle<AuthStateService>(container =>
+                    new AuthStateService(
+                        container.Resolve<FirebaseAuth>(),
+                        container.Resolve<IAuthService>()
+                    )
+                ).NonLazy();
+
                 Debug.Log("✅ Аутентификационные сервисы зарегистрированы");
             }
             catch (Exception ex)
