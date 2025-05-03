@@ -1,5 +1,6 @@
 using UnityEngine;
 using JetBrains.Annotations;
+using UnityEngine.Scripting;
 
 namespace App.Develop.CommonServices.CoroutinePerformer
 {
@@ -10,6 +11,8 @@ namespace App.Develop.CommonServices.CoroutinePerformer
     [AddComponentMenu("")]
     [UsedImplicitly]
     [RequireComponent(typeof(Transform))]
+    [DefaultExecutionOrder(-10000)]
+    [Preserve]
     public sealed class CoroutinePerformerProxy : MonoBehaviour
     {
         private void Awake()

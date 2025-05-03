@@ -8,6 +8,7 @@ using App.Develop.CommonServices.Emotion;
 using Newtonsoft.Json;
 using UnityEngine;
 using App.Develop.AppServices.Firebase.Common.SecureStorage;
+using App.Develop.AppServices.Firebase.Common.Cache;
 
 namespace App.Develop.AppServices.Firebase.Database.Services
 {
@@ -21,7 +22,11 @@ namespace App.Develop.AppServices.Firebase.Database.Services
         private readonly List<string> _cacheIndex;
         private EmotionSyncSettings _syncSettings;
         private int _maxCacheSize;
+        private readonly FirebaseCacheManager _cacheManager;
         
+        /// <summary>
+        /// Создает новый экземпляр кэша истории эмоций
+        /// </summary>
         public EmotionHistoryCache()
         {
             try
@@ -31,6 +36,32 @@ namespace App.Develop.AppServices.Firebase.Database.Services
                 _maxCacheSize = _syncSettings?.MaxCacheRecords ?? DEFAULT_MAX_CACHE_SIZE;
                 
                 Debug.Log($"EmotionHistoryCache инициализирован. В кэше {_cacheIndex.Count} записей.");
+            }
+            catch (Exception ex)
+            {
+                // В случае ошибки создаем пустые объекты с значениями по умолчанию
+                Debug.LogError($"Ошибка при инициализации EmotionHistoryCache: {ex.Message}");
+                _cacheIndex = new List<string>();
+                _syncSettings = CreateDefaultSyncSettings();
+                _maxCacheSize = DEFAULT_MAX_CACHE_SIZE;
+            }
+        }
+        
+        /// <summary>
+        /// Создает новый экземпляр кэша истории эмоций с менеджером кэша
+        /// </summary>
+        /// <param name="cacheManager">Менеджер кэша Firebase</param>
+        public EmotionHistoryCache(FirebaseCacheManager cacheManager)
+        {
+            _cacheManager = cacheManager ?? throw new ArgumentNullException(nameof(cacheManager));
+            
+            try
+            {
+                _cacheIndex = LoadCacheIndex();
+                _syncSettings = LoadSyncSettings();
+                _maxCacheSize = _syncSettings?.MaxCacheRecords ?? DEFAULT_MAX_CACHE_SIZE;
+                
+                Debug.Log($"EmotionHistoryCache инициализирован с менеджером кэша. В кэше {_cacheIndex.Count} записей.");
             }
             catch (Exception ex)
             {
@@ -62,16 +93,23 @@ namespace App.Develop.AppServices.Firebase.Database.Services
         }
         
         /// <summary>
-        /// Добавляет запись в кэш
+        /// Добавляет или обновляет запись в кэше
         /// </summary>
-        public void AddRecord(EmotionHistoryRecord record)
+        /// <param name="record">Запись для добавления или обновления</param>
+        public void AddOrUpdateRecord(EmotionHistoryRecord record)
         {
             if (record == null) return;
+            
+            if (string.IsNullOrEmpty(record.Id))
+            {
+                Debug.LogError("Невозможно добавить/обновить запись с пустым ID");
+                return;
+            }
             
             // Проверяем инициализацию SecurePlayerPrefs
             if (!CheckSecurePrefsInitialized())
             {
-                Debug.LogWarning($"Невозможно добавить запись {record.Id} в кэш: SecurePlayerPrefs не инициализирован");
+                Debug.LogWarning($"Невозможно добавить/обновить запись {record.Id} в кэш: SecurePlayerPrefs не инициализирован");
                 return;
             }
             
@@ -92,14 +130,26 @@ namespace App.Develop.AppServices.Firebase.Database.Services
                     {
                         PruneCache();
                     }
+                    
+                    Debug.Log($"Запись {record.Id} добавлена в кэш. Всего записей: {_cacheIndex.Count}");
                 }
-                
-                Debug.Log($"Запись {record.Id} добавлена в кэш. Всего записей: {_cacheIndex.Count}");
+                else
+                {
+                    Debug.Log($"Запись {record.Id} обновлена в кэше.");
+                }
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при добавлении записи в кэш: {ex.Message}");
+                Debug.LogError($"Ошибка при добавлении/обновлении записи в кэш: {ex.Message}");
             }
+        }
+        
+        /// <summary>
+        /// Добавляет запись в кэш
+        /// </summary>
+        public void AddRecord(EmotionHistoryRecord record)
+        {
+            AddOrUpdateRecord(record);
         }
         
         /// <summary>
@@ -138,7 +188,7 @@ namespace App.Develop.AppServices.Firebase.Database.Services
         /// </summary>
         public void UpdateRecord(EmotionHistoryRecord record)
         {
-            AddRecord(record); // Просто перезаписываем
+            AddOrUpdateRecord(record); // Просто перезаписываем
         }
         
         /// <summary>

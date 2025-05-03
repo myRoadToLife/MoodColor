@@ -1,54 +1,106 @@
 using System;
+using System.Collections;
+using App.Develop.CommonServices.CoroutinePerformer;
 using UnityEngine;
 using UnityEngine.Networking;
 
 namespace App.Develop.CommonServices.Networking
 {
-    public class ConnectivityManager : MonoBehaviour
+    /// <summary>
+    /// Сервис для проверки состояния сетевого подключения
+    /// </summary>
+    public class ConnectivityManager : IDisposable
     {
-        [SerializeField] private float _checkInterval = 30f; // Интервал проверки в секундах
-        [SerializeField] private string _connectivityTestUrl = "https://www.google.com";
+        private readonly ICoroutinePerformer _coroutinePerformer;
+        
+        private float _checkInterval = 30f; // Интервал проверки в секундах
+        private string _connectivityTestUrl = "https://www.google.com";
         
         private bool _isConnected;
         private bool _isWifiConnected;
         private float _lastCheckTime;
+        private bool _isRunning;
+        private Coroutine _checkCoroutine;
         
         public bool IsConnected => _isConnected;
         public bool IsWifiConnected => _isWifiConnected;
         
         public event Action<bool> OnConnectivityChanged;
         
-        #region Unity Lifecycle
-        
-        private void Awake()
+        /// <summary>
+        /// Создает экземпляр менеджера подключения
+        /// </summary>
+        /// <param name="coroutinePerformer">Исполнитель корутин</param>
+        public ConnectivityManager(ICoroutinePerformer coroutinePerformer)
         {
-            DontDestroyOnLoad(this);
+            _coroutinePerformer = coroutinePerformer ?? throw new ArgumentNullException(nameof(coroutinePerformer));
+            
+            // Выполняем начальную инициализацию и запускаем проверки
+            Initialize();
         }
         
-        private void Start()
+        /// <summary>
+        /// Инициализирует систему проверки подключения
+        /// </summary>
+        public void Initialize()
         {
+            _lastCheckTime = Time.time;
+            StartMonitoring();
             CheckConnectivity();
         }
         
-        private void Update()
+        /// <summary>
+        /// Освобождает занятые ресурсы
+        /// </summary>
+        public void Dispose()
         {
-            if (Time.time - _lastCheckTime > _checkInterval)
+            StopMonitoring();
+        }
+        
+        /// <summary>
+        /// Начинает мониторинг состояния сети
+        /// </summary>
+        public void StartMonitoring()
+        {
+            if (_isRunning) return;
+            
+            _isRunning = true;
+            _checkCoroutine = _coroutinePerformer.StartCoroutine(MonitorConnectivity());
+        }
+        
+        /// <summary>
+        /// Останавливает мониторинг состояния сети
+        /// </summary>
+        public void StopMonitoring()
+        {
+            if (!_isRunning) return;
+            
+            _isRunning = false;
+            if (_checkCoroutine != null)
             {
-                CheckConnectivity();
-                _lastCheckTime = Time.time;
+                _coroutinePerformer.StopCoroutine(_checkCoroutine);
+                _checkCoroutine = null;
             }
         }
         
-        #endregion
-        
-        #region Public Methods
+        /// <summary>
+        /// Корутина мониторинга подключения
+        /// </summary>
+        private IEnumerator MonitorConnectivity()
+        {
+            while (_isRunning)
+            {
+                yield return new WaitForSeconds(_checkInterval);
+                CheckConnectivity();
+            }
+        }
         
         /// <summary>
         /// Проверяет состояние подключения к сети
         /// </summary>
         public void CheckConnectivity()
         {
-            StartCoroutine(CheckInternetConnection((isConnected) =>
+            _coroutinePerformer.StartCoroutine(CheckInternetConnection((isConnected) =>
             {
                 bool previousState = _isConnected;
                 _isConnected = isConnected;
@@ -78,12 +130,8 @@ namespace App.Develop.CommonServices.Networking
         /// </summary>
         public void CheckServerAvailability(string url, Action<bool> callback)
         {
-            StartCoroutine(CheckInternetConnection(callback, url));
+            _coroutinePerformer.StartCoroutine(CheckInternetConnection(callback, url));
         }
-        
-        #endregion
-        
-        #region Private Methods
         
         /// <summary>
         /// Проверяет тип подключения (WiFi, сотовая связь, нет подключения)
@@ -108,7 +156,7 @@ namespace App.Develop.CommonServices.Networking
         /// <summary>
         /// Корутина для проверки подключения к интернету
         /// </summary>
-        private System.Collections.IEnumerator CheckInternetConnection(Action<bool> callback, string url = null)
+        private IEnumerator CheckInternetConnection(Action<bool> callback, string url = null)
         {
             string testUrl = string.IsNullOrEmpty(url) ? _connectivityTestUrl : url;
             
@@ -124,7 +172,5 @@ namespace App.Develop.CommonServices.Networking
                 callback?.Invoke(isConnected);
             }
         }
-        
-        #endregion
     }
 } 

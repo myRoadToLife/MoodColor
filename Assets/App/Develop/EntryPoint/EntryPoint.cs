@@ -4,6 +4,8 @@ using System.Linq;
 using App.Develop.AppServices.Firebase.Auth;
 using App.Develop.AppServices.Firebase.Auth.Services;
 using App.Develop.AppServices.Firebase.Database.Services;
+using App.Develop.AppServices.Firebase.Database.Validators;
+using App.Develop.AppServices.Firebase.Database.Models;
 using App.Develop.AppServices.Firebase.Common.Cache;
 using App.Develop.CommonServices.AssetManagement;
 using App.Develop.CommonServices.ConfigsManagement;
@@ -24,6 +26,7 @@ using Firebase.Database;
 using UnityEngine;
 using App.Develop.UI.Panels;
 using App.Develop.Scenes.PersonalAreaScene.UI.Components;
+using App.Develop.CommonServices.Networking; // Для ConnectivityManager
 
 // Используем IDatabaseService только из этого пространства имен
 using IDatabaseService = App.Develop.AppServices.Firebase.Database.Services.IDatabaseService;
@@ -316,20 +319,68 @@ namespace App.Develop.EntryPoint
                     )
                 ).NonLazy();
 
-                // Сервис базы данных
-                container.RegisterAsSingle<IDatabaseService>(container =>
-                    new DatabaseService(
-                        container.Resolve<DatabaseReference>(),
-                        container.Resolve<FirebaseCacheManager>()
+                // Регистрация сервиса хранения истории эмоций
+                container.RegisterAsSingle<EmotionHistoryCache>(c => 
+                    new EmotionHistoryCache(
+                        c.Resolve<FirebaseCacheManager>()));
+                
+                // Регистрация сервиса валидации данных
+                container.RegisterAsSingle<DataValidationService>(c => {
+                    Debug.Log("✅ Регистрация сервиса валидации данных");
+                    var validationService = new DataValidationService();
+                    
+                    // Регистрация валидаторов
+                    validationService.RegisterValidator(new EmotionHistoryRecordValidator());
+                    validationService.RegisterValidator(new UserDataValidator());
+                    
+                    return validationService;
+                }).NonLazy();
+                
+                // Регистрация ConnectivityManager для работы с сетью
+                container.RegisterAsSingle<ConnectivityManager>(c => 
+                    new ConnectivityManager(
+                        c.Resolve<ICoroutinePerformer>()
                     )
                 ).NonLazy();
-
-                // Старая регистрация для обратной совместимости
-                container.RegisterAsSingle<DatabaseService>(container => 
-                    (DatabaseService)container.Resolve<IDatabaseService>()
+                
+                // Регистрация основного сервиса работы с базой данных Firebase
+                container.RegisterAsSingle<IDatabaseService>(c => 
+                    new DatabaseService(
+                        c.Resolve<DatabaseReference>(),
+                        c.Resolve<FirebaseCacheManager>(),
+                        c.Resolve<DataValidationService>())
                 ).NonLazy();
+                
+                // Также регистрируем DatabaseService напрямую (для компонентов, которые требуют конкретный тип)
+                container.RegisterAsSingle<DatabaseService>(c => 
+                    c.Resolve<IDatabaseService>() as DatabaseService
+                ).NonLazy();
+                
+                // Загружаем настройки синхронизации
+                var syncSettings = new EmotionSyncSettings();
+                
+                // Менеджер разрешения конфликтов (кастим IDatabaseService к DatabaseService, т.к. это требуется по контракту)
+                container.RegisterAsSingle<ConflictResolutionManager>(c => 
+                    new ConflictResolutionManager(
+                        c.Resolve<IDatabaseService>() as DatabaseService, // Приведение типа
+                        syncSettings)
+                ).NonLazy();
+                    
+                // Сервис синхронизации эмоций (это MonoBehaviour, создаем и инициализируем)
+                container.RegisterAsSingle<EmotionSyncService>(c => {
+                    var syncService = new GameObject("EmotionSyncService").AddComponent<EmotionSyncService>();
+                    
+                    // Инициализируем сервис
+                    syncService.Initialize(
+                        c.Resolve<IDatabaseService>(),
+                        c.Resolve<EmotionHistoryCache>(),
+                        c.Resolve<ConnectivityManager>());
+                    
+                    DontDestroyOnLoad(syncService.gameObject);
+                    return syncService;
+                }).NonLazy();
 
-                Debug.Log("✅ Firebase сервисы зарегистрированы");
+                Debug.Log("✅ Firebase и связанные сервисы зарегистрированы");
             }
             catch (Exception ex)
             {

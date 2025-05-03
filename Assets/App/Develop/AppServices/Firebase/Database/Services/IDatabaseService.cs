@@ -44,6 +44,13 @@ namespace App.Develop.AppServices.Firebase.Database.Services
         Task UpdateCurrentEmotion(string emotionType, float intensity);
         
         /// <summary>
+        /// Сохраняет запись истории эмоций в базе данных
+        /// </summary>
+        /// <param name="record">Запись для сохранения</param>
+        /// <returns>True если запись сохранена успешно, иначе False</returns>
+        Task<bool> SaveEmotionHistoryRecord(EmotionHistoryRecord record);
+        
+        /// <summary>
         /// Обновляет статусы синхронизации нескольких записей одним батчем
         /// </summary>
         Task UpdateEmotionSyncStatusBatch(Dictionary<string, SyncStatus> recordStatusPairs);

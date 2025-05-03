@@ -24,6 +24,8 @@ namespace App.Develop.AppServices.Firebase.Database.Services
         #region Private Fields
         private readonly DatabaseReference _database;
         private readonly FirebaseCacheManager _cacheManager;
+        private readonly EmotionHistoryCache _emotionHistoryCache;
+        private readonly DataValidationService _validationService;
         private readonly FirebaseBatchManager _batchManager;
         private string _userId;
         private readonly List<DatabaseReference> _activeListeners = new List<DatabaseReference>();
@@ -60,17 +62,32 @@ namespace App.Develop.AppServices.Firebase.Database.Services
         /// Создает новый экземпляр сервиса базы данных
         /// </summary>
         /// <param name="database">Ссылка на базу данных</param>
-        /// <param name="cacheManager">Менеджер кэширования</param>
-        public DatabaseService(DatabaseReference database, FirebaseCacheManager cacheManager)
+        /// <param name="cacheManager">Менеджер кэша Firebase</param>
+        /// <param name="validationService">Сервис валидации данных</param>
+        public DatabaseService(
+            DatabaseReference database, 
+            FirebaseCacheManager cacheManager,
+            DataValidationService validationService = null)
         {
             _database = database ?? throw new ArgumentNullException(nameof(database));
             _cacheManager = cacheManager ?? throw new ArgumentNullException(nameof(cacheManager));
+            _emotionHistoryCache = new EmotionHistoryCache(cacheManager);
+            _validationService = validationService; // Может быть null
             _batchManager = new FirebaseBatchManager(_database);
             
             // Подписываемся на события завершения батча
             _batchManager.OnBatchCompleted += OnBatchCompleted;
             
             Debug.Log("✅ DatabaseService инициализирован");
+            
+            if (_validationService == null)
+            {
+                Debug.LogWarning("⚠️ Сервис валидации данных не предоставлен. Валидация будет отключена!");
+            }
+            else
+            {
+                Debug.Log("✅ Валидация данных включена в DatabaseService");
+            }
         }
         
         private void OnBatchCompleted(bool success, string message)
@@ -1631,6 +1648,52 @@ namespace App.Develop.AppServices.Firebase.Database.Services
             {
                 Debug.LogError($"Ошибка пакетного удаления записей из истории эмоций: {ex.Message}");
                 throw;
+            }
+        }
+
+        /// <summary>
+        /// Сохраняет запись истории эмоций в базе данных
+        /// </summary>
+        /// <param name="record">Запись для сохранения</param>
+        /// <returns>True если запись сохранена успешно, иначе False</returns>
+        public async Task<bool> SaveEmotionHistoryRecord(EmotionHistoryRecord record)
+        {
+            if (!CheckAuthentication())
+                return false;
+
+            if (record == null)
+            {
+                Debug.LogError("❌ Запись истории эмоций не может быть пустой");
+                return false;
+            }
+            
+            // Валидация данных перед сохранением
+            if (_validationService != null && _validationService.HasValidator<EmotionHistoryRecord>())
+            {
+                var validationResult = _validationService.Validate<EmotionHistoryRecord>(record);
+                if (!validationResult.IsValid)
+                {
+                    validationResult.CheckAndLogErrors("EmotionHistoryRecord");
+                    Debug.LogError("❌ Валидация записи истории эмоций не пройдена. Запись не будет сохранена.");
+                    return false;
+                }
+            }
+
+            try
+            {
+                var userHistoryRef = _database.Child("users").Child(_userId).Child("emotionHistory").Child(record.Id);
+                await userHistoryRef.SetValueAsync(record.ToDictionary());
+                
+                // Кэширование записи
+                _emotionHistoryCache.AddOrUpdateRecord(record);
+                
+                Debug.Log($"✅ Запись истории эмоций сохранена: {record.Id}, тип: {record.Type}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Ошибка сохранения записи истории эмоций: {ex.Message}");
+                return false;
             }
         }
     }
