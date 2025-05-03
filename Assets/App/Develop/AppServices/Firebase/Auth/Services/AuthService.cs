@@ -8,6 +8,7 @@ using App.Develop.AppServices.Auth;
 using Firebase;
 using UnityEngine;
 using System.Collections.Generic;
+using App.Develop.AppServices.Firebase.Common.SecureStorage;
 
 namespace App.Develop.AppServices.Firebase.Auth.Services
 {
@@ -225,6 +226,11 @@ namespace App.Develop.AppServices.Firebase.Auth.Services
         {
             try
             {
+                // Устанавливаем флаг явного выхода из системы
+                SecurePlayerPrefs.SetBool("explicit_logout", true);
+                SecurePlayerPrefs.Save();
+                Debug.Log("✅ Установлен флаг явного выхода из системы");
+                
                 _auth.SignOut();
                 // Сбрасываем ID пользователя в сервисе базы данных
                 _databaseService.UpdateUserId(null);

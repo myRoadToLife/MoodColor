@@ -3,6 +3,7 @@
 using System;
 using App.Develop.AppServices.Auth;
 using App.Develop.AppServices.Firebase.Auth.Services;
+using App.Develop.AppServices.Firebase.Common.SecureStorage;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
 using UnityEngine;
@@ -120,6 +121,8 @@ namespace App.Develop.AppServices.Firebase.Auth
                 if (result.success)
                 {
                     _credentialStorage.SaveCredentials(email, password, rememberMe);
+                    SecurePlayerPrefs.SetBool("explicit_logout", false);
+                    SecurePlayerPrefs.Save();
                     _uiController.ShowPopup("Вход выполнен!");
                     _sceneSwitcher.ProcessSwitchSceneFor(new OutputAuthSceneArgs(new PersonalAreaInputArgs()));
                 }

@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections;
+using App.Develop.AppServices.Firebase.Common.SecureStorage;
 using App.Develop.AppServices.Firebase.Database.Services;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
@@ -23,6 +24,21 @@ namespace App.Develop.EntryPoint
 
             if (auth.CurrentUser != null)
             {
+                // Проверяем флаг явного выхода - если пользователь сам вышел из системы,
+                // то направляем его на экран авторизации
+                bool explicitLogout = SecurePlayerPrefs.GetBool("explicit_logout", false);
+                if (explicitLogout)
+                {
+                    Debug.Log("⚠️ Обнаружен флаг явного выхода из системы. Переход к экрану авторизации.");
+                    // Сбрасываем флаг
+                    SecurePlayerPrefs.SetBool("explicit_logout", false);
+                    SecurePlayerPrefs.Save();
+                    
+                    auth.SignOut();
+                    sceneSwitcher.ProcessSwitchSceneFor(new OutputBootstrapArgs(new AuthSceneInputArgs()));
+                    yield break;
+                }
+
                 var user = auth.CurrentUser;
                 Debug.Log($"Найден пользователь: {user.Email}. Проверка сессии...");
 

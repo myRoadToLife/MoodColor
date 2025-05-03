@@ -182,10 +182,10 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         /// </summary>
         private void CleanupStoredCredentials()
         {
-            SecurePlayerPrefs.DeleteKey("email");
-            SecurePlayerPrefs.DeleteKey("password");
-            SecurePlayerPrefs.DeleteKey("remember_me");
+            // Устанавливаем флаг явного выхода из системы
+            SecurePlayerPrefs.SetBool("explicit_logout", true);
             SecurePlayerPrefs.Save();
+            Debug.Log("✅ Установлен флаг явного выхода из системы при удалении аккаунта");
         }
         #endregion
     }

@@ -293,6 +293,11 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         {
             Debug.Log("🔘 Logout нажата");
 
+            // Устанавливаем флаг явного выхода из системы
+            SecurePlayerPrefs.SetBool("explicit_logout", true);
+            SecurePlayerPrefs.Save();
+            Debug.Log("✅ Установлен флаг явного выхода из системы");
+
             _auth.SignOut();
             ShowPopup("Вы вышли из аккаунта.");
 
