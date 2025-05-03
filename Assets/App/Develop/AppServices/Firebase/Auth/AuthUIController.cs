@@ -123,5 +123,20 @@ namespace App.Develop.AppServices.Firebase.Auth
         {
             _authManager.ClearStoredCredentials();
         }
+
+        public void OnContinueProfileButtonClicked()
+        {
+            // Находим и вызываем ProfileSetupUI для продолжения заполнения профиля
+            // Используем GetComponent для поиска на том же GameObject
+            var profileSetupUI = GetComponent<ProfileSetupUI>();
+            if (profileSetupUI != null)
+            {
+                profileSetupUI.OnContinueProfile();
+            }
+            else
+            {
+                Debug.LogError("ProfileSetupUI не найден на том же GameObject");
+            }
+        }
     }
 }

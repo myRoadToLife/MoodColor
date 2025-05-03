@@ -165,7 +165,7 @@ namespace App.Develop.AppServices.Firebase.Auth
                 if (isVerified)
                 {
                     _uiController.ShowPopup("Email подтвержден!");
-                    _sceneSwitcher.ProcessSwitchSceneFor(new OutputAuthSceneArgs(new PersonalAreaInputArgs()));
+                    _uiController.ShowProfilePanel();
                 }
                 else
                 {
