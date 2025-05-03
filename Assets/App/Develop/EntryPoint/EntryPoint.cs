@@ -13,6 +13,7 @@ using App.Develop.CommonServices.CoroutinePerformer;
 using App.Develop.CommonServices.DataManagement;
 using App.Develop.CommonServices.DataManagement.DataProviders;
 using App.Develop.CommonServices.Emotion;
+using App.Develop.CommonServices.GameSystem;
 using App.Develop.CommonServices.LoadingScreen;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.CommonServices.UI;
@@ -274,6 +275,9 @@ namespace App.Develop.EntryPoint
                     )
                 ).NonLazy();
 
+                // Регистрация сервиса игровой системы
+                RegisterGameSystem(container);
+
                 Debug.Log("✅ Базовые сервисы зарегистрированы успешно");
             }
             catch (Exception ex)
@@ -281,6 +285,20 @@ namespace App.Develop.EntryPoint
                 Debug.LogError($"❌ Ошибка регистрации базовых сервисов: {ex}");
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Регистрирует сервисы игровой системы
+        /// </summary>
+        private void RegisterGameSystem(DIContainer container)
+        {
+            // Сервис очков
+            container.RegisterAsSingle<IPointsService>(container => 
+                new PointsService(
+                    container.Resolve<PlayerDataProvider>()
+                )
+            ).NonLazy();
+            Debug.Log("✅ Зарегистрирован сервис игровой системы");
         }
 
         /// <summary>
@@ -459,7 +477,8 @@ namespace App.Develop.EntryPoint
                 // Сервис личного кабинета
                 container.RegisterAsSingle<IPersonalAreaService>(container =>
                     new PersonalAreaService(
-                        container.Resolve<EmotionService>()
+                        container.Resolve<EmotionService>(),
+                        container.Resolve<IPointsService>()
                     )
                 );
                 

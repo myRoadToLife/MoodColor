@@ -40,6 +40,21 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
                 return data;
             }
         }
+        
+        /// <summary>
+        /// Получает данные игрока
+        /// </summary>
+        /// <returns>Данные игрока</returns>
+        public PlayerData GetData()
+        {
+            // Загрузка данных, если еще не загружены
+            if (_cachedData == null)
+            {
+                Load();
+            }
+            
+            return _cachedData;
+        }
 
         public List<EmotionData> GetEmotions()
         {
@@ -163,7 +178,29 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
         public new void Load()
         {
             base.Load();
-            // Здесь можно добавить код для обновления _cachedData, если есть доступ к загруженным данным
+            // Получаем доступ к данным через рефлексию, если нужно
+            // Этот код будет вызван только в крайнем случае
+            if (_cachedData == null)
+            {
+                try
+                {
+                    // Используем рефлексию для доступа к защищенным данным
+                    var type = typeof(DataProvider<PlayerData>);
+                    var propInfo = type.GetProperty("Data", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    if (propInfo != null)
+                    {
+                        _cachedData = (PlayerData)propInfo.GetValue(this);
+                    }
+                    else
+                    {
+                        Debug.LogWarning("Не удалось получить доступ к Data через рефлексию");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Ошибка при попытке доступа к Data через рефлексию: {ex.Message}");
+                }
+            }
         }
 
         // Переопределяем метод Save для обновления кэшированных данных

@@ -2,6 +2,7 @@
 
 using App.Develop.CommonServices.DataManagement.DataProviders;
 using App.Develop.CommonServices.Emotion;
+using App.Develop.CommonServices.GameSystem;
 using App.Develop.Utils.Reactive;
 using UnityEngine;
 using System.Collections.Generic;
@@ -44,11 +45,13 @@ namespace App.Develop.Scenes.PersonalAreaScene
     public class PersonalAreaService : IPersonalAreaService
     {
         private readonly EmotionService _emotionService;
+        private readonly IPointsService _pointsService;
         private readonly Dictionary<EmotionTypes, ReactiveEmotionData> _emotionVariables;
 
-        public PersonalAreaService(EmotionService emotionService)
+        public PersonalAreaService(EmotionService emotionService, IPointsService pointsService = null)
         {
             _emotionService = emotionService ?? throw new ArgumentNullException(nameof(emotionService));
+            _pointsService = pointsService;
             _emotionVariables = new Dictionary<EmotionTypes, ReactiveEmotionData>();
         }
 
@@ -87,6 +90,9 @@ namespace App.Develop.Scenes.PersonalAreaScene
             }
 
             _emotionService.AddEmotion(type, amount);
+            
+            // Начисляем очки за отметку эмоции
+            _pointsService?.AddPointsForEmotion();
             
             // Обновляем реактивную переменную
             if (_emotionVariables.TryGetValue(type, out var variable))
