@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using JetBrains.Annotations;
 using UnityEngine;
+using UnityEngine.Scripting;
 
 namespace App.Develop.CommonServices.CoroutinePerformer
 {
@@ -9,24 +10,21 @@ namespace App.Develop.CommonServices.CoroutinePerformer
     /// Реализация интерфейса ICoroutinePerformer для выполнения корутин
     /// </summary>
     [PublicAPI]
-    public sealed class CoroutinePerformer : ICoroutinePerformer
+    [Preserve]
+    [DisallowMultipleComponent]
+    [AddComponentMenu("")]
+    [DefaultExecutionOrder(-10000)]
+    public sealed class CoroutinePerformer : MonoBehaviour, ICoroutinePerformer
     {
-        private readonly MonoBehaviour m_MonoBehaviourProxy;
         private bool m_IsDisposed;
 
-        /// <summary>
-        /// Создает новый экземпляр CoroutinePerformer
-        /// </summary>
-        /// <param name="_monoBehaviourProxy">MonoBehaviour, который будет использоваться для запуска корутин</param>
-        /// <exception cref="ArgumentNullException">Если _monoBehaviourProxy равен null</exception>
-        /// <exception cref="InvalidOperationException">Если создается не в режиме воспроизведения</exception>
-        internal CoroutinePerformer(MonoBehaviour _monoBehaviourProxy)
+        private void Awake()
         {
-            m_MonoBehaviourProxy = _monoBehaviourProxy ?? throw new ArgumentNullException(nameof(_monoBehaviourProxy));
-            
-            if (!Application.isPlaying)
+            if (transform.parent == null)
             {
-                throw new InvalidOperationException("CoroutinePerformer can only be created in play mode");
+                DontDestroyOnLoad(gameObject);
+                gameObject.hideFlags = HideFlags.HideInHierarchy | HideFlags.HideInInspector | HideFlags.DontSave;
+                name = "[CoroutinePerformer]";
             }
         }
 
@@ -40,7 +38,7 @@ namespace App.Develop.CommonServices.CoroutinePerformer
                 throw new ArgumentNullException(nameof(_routine));
             }
             
-            return m_MonoBehaviourProxy.StartCoroutine(_routine);
+            return base.StartCoroutine(_routine);
         }
 
         /// <inheritdoc />
@@ -50,7 +48,7 @@ namespace App.Develop.CommonServices.CoroutinePerformer
             
             if (_coroutine != null)
             {
-                m_MonoBehaviourProxy.StopCoroutine(_coroutine);
+                base.StopCoroutine(_coroutine);
             }
         }
 
@@ -58,7 +56,7 @@ namespace App.Develop.CommonServices.CoroutinePerformer
         public void StopAllCoroutines()
         {
             ThrowIfDisposed();
-            m_MonoBehaviourProxy.StopAllCoroutines();
+            base.StopAllCoroutines();
         }
 
         /// <inheritdoc />
@@ -120,6 +118,12 @@ namespace App.Develop.CommonServices.CoroutinePerformer
             {
                 throw new ObjectDisposedException(nameof(CoroutinePerformer));
             }
+        }
+
+        private void OnDestroy()
+        {
+            m_IsDisposed = true;
+            StopAllCoroutines();
         }
 
         #endregion

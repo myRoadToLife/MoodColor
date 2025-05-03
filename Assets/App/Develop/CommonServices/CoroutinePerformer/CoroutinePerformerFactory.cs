@@ -9,38 +9,38 @@ namespace App.Develop.CommonServices.CoroutinePerformer
     [PublicAPI]
     public static class CoroutinePerformerFactory
     {
-        private const string ProxyGameObjectName = "[CoroutinePerformerProxy]";
+        private const string PerformerGameObjectName = "[CoroutinePerformer]";
         
         /// <summary>
-        /// Создаёт новый экземпляр CoroutinePerformer с автоматически созданным прокси
+        /// Создаёт новый экземпляр CoroutinePerformer
         /// </summary>
         /// <returns>Экземпляр ICoroutinePerformer</returns>
         public static ICoroutinePerformer Create()
         {
-            var proxyGameObject = new GameObject(ProxyGameObjectName);
-            var proxy = proxyGameObject.AddComponent<CoroutinePerformerProxy>();
+            var performerGameObject = new GameObject(PerformerGameObjectName);
+            var performer = performerGameObject.AddComponent<CoroutinePerformer>();
             
             if (Application.isPlaying)
             {
-                Object.DontDestroyOnLoad(proxyGameObject);
+                Object.DontDestroyOnLoad(performerGameObject);
             }
             
-            return new CoroutinePerformer(proxy);
+            return performer;
         }
 
         /// <summary>
-        /// Создаёт новый экземпляр CoroutinePerformer с указанным прокси
+        /// Создаёт новый экземпляр CoroutinePerformer и присоединяет его к указанному GameObject
         /// </summary>
-        /// <param name="_proxy">MonoBehaviour, который будет использоваться как прокси для запуска корутин</param>
+        /// <param name="_targetGameObject">GameObject, к которому будет присоединен CoroutinePerformer</param>
         /// <returns>Экземпляр ICoroutinePerformer</returns>
-        public static ICoroutinePerformer Create(MonoBehaviour _proxy)
+        public static ICoroutinePerformer Create(GameObject _targetGameObject)
         {
-            if (_proxy == null)
+            if (_targetGameObject == null)
             {
-                throw new System.ArgumentNullException(nameof(_proxy));
+                throw new System.ArgumentNullException(nameof(_targetGameObject));
             }
             
-            return new CoroutinePerformer(_proxy);
+            return _targetGameObject.AddComponent<CoroutinePerformer>();
         }
     }
 } 
