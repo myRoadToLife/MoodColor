@@ -30,12 +30,25 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
         /// </summary>
         public DateTime LastDailyBonusDate;
         
+        /// <summary>
+        /// Список достижений пользователя
+        /// </summary>
+        public List<Achievement> Achievements;
+        
+        /// <summary>
+        /// Словарь для быстрого доступа к достижениям по ID
+        /// </summary>
+        [NonSerialized]
+        public Dictionary<string, Achievement> AchievementsMap;
+        
         public GameData()
         {
             Points = 0;
             TotalEarnedPoints = 0;
             PointsTransactions = new List<PointsTransaction>();
             LastDailyBonusDate = DateTime.MinValue;
+            Achievements = new List<Achievement>();
+            AchievementsMap = new Dictionary<string, Achievement>();
         }
     }
 } 

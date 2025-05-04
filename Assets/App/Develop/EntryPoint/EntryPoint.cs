@@ -298,7 +298,16 @@ namespace App.Develop.EntryPoint
                     container.Resolve<PlayerDataProvider>()
                 )
             ).NonLazy();
-            Debug.Log("✅ Зарегистрирован сервис игровой системы");
+            
+            // Сервис достижений
+            container.RegisterAsSingle<IAchievementService>(container => 
+                new AchievementService(
+                    container.Resolve<PlayerDataProvider>(),
+                    container.Resolve<IPointsService>()
+                )
+            ).NonLazy();
+            
+            Debug.Log("✅ Зарегистрированы сервисы игровой системы");
         }
 
         /// <summary>
