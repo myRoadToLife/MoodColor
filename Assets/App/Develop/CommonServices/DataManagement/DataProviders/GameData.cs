@@ -41,6 +41,21 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
         [NonSerialized]
         public Dictionary<string, Achievement> AchievementsMap;
         
+        /// <summary>
+        /// Текущий уровень пользователя
+        /// </summary>
+        public int Level;
+        
+        /// <summary>
+        /// Текущее количество опыта
+        /// </summary>
+        public int XP;
+        
+        /// <summary>
+        /// Последнее обновление опыта
+        /// </summary>
+        public DateTime LastXpUpdateDate;
+        
         public GameData()
         {
             Points = 0;
@@ -49,6 +64,9 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
             LastDailyBonusDate = DateTime.MinValue;
             Achievements = new List<Achievement>();
             AchievementsMap = new Dictionary<string, Achievement>();
+            Level = 1; // Стартовый уровень - 1
+            XP = 0;
+            LastXpUpdateDate = DateTime.MinValue;
         }
     }
 } 

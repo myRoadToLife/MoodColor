@@ -55,7 +55,7 @@ namespace App.Tests.EditMode
                 .GetField("_data", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
                 ?.SetValue(dataProvider, playerData);
 
-            _emotionService = new EmotionService(_mockPlayerDataProvider, _mockConfigsProvider);
+            _emotionService = new EmotionService(_mockPlayerDataProvider, _mockConfigsProvider, null);
             Debug.Log("Setup: Created EmotionService with initial emotions");
 
             // Проверяем начальное состояние истории

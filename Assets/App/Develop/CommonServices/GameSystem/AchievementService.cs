@@ -31,6 +31,7 @@ namespace App.Develop.CommonServices.GameSystem
 
         private readonly PlayerDataProvider _playerDataProvider;
         private readonly IPointsService _pointsService;
+        private readonly ILevelSystem _levelSystem;
         private readonly Dictionary<string, IAchievementCondition> _achievementConditions;
 
         #endregion
@@ -45,10 +46,12 @@ namespace App.Develop.CommonServices.GameSystem
 
         public AchievementService(
             PlayerDataProvider playerDataProvider,
-            IPointsService pointsService)
+            IPointsService pointsService,
+            ILevelSystem levelSystem = null) // Опциональный параметр, чтобы избежать циклических зависимостей
         {
             _playerDataProvider = playerDataProvider;
             _pointsService = pointsService;
+            _levelSystem = levelSystem;
             _achievementConditions = new Dictionary<string, IAchievementCondition>();
         }
 
@@ -323,8 +326,17 @@ namespace App.Develop.CommonServices.GameSystem
             achievement.Progress = 1f;
             achievement.CompletionDate = DateTime.Now;
             
-            // Начисляем награду
+            // Начисляем награду в очках
             _pointsService.AddPoints(achievement.PointsReward, PointsSource.Achievement);
+            
+            // Если доступна система уровней, начисляем опыт
+            if (_levelSystem != null)
+            {
+                // Начисляем опыт в зависимости от награды достижения
+                int xpReward = achievement.PointsReward * 2; // XP = Очки * 2
+                _levelSystem.AddXP(xpReward, XPSource.Achievement);
+                Debug.Log($"Начислено {xpReward} опыта за достижение: {achievement.Name}");
+            }
             
             // Вызываем событие
             OnAchievementCompleted?.Invoke(achievement);

@@ -245,6 +245,11 @@ namespace App.Develop.EntryPoint
                     new ConfigsProviderService(container.Resolve<ResourcesAssetLoader>())
                 ).NonLazy();
                 
+                // Также регистрируем как интерфейс
+                container.RegisterAsSingle<IConfigsProvider>(container =>
+                    container.Resolve<ConfigsProviderService>()
+                ).NonLazy();
+                
                 // Сервис конфигураций эмоций
                 container.RegisterAsSingle(container =>
                     new EmotionConfigService(container.Resolve<ResourcesAssetLoader>())
@@ -258,12 +263,15 @@ namespace App.Develop.EntryPoint
                     )
                 );
 
-                // Сервис эмоций
-                container.RegisterAsSingle(container =>
+                // Сервис эмоций - регистрируем после игровых сервисов,
+                // чтобы он мог использовать сервисы очков и уровней
+                container.RegisterAsSingle<EmotionService>(container =>
                     new EmotionService(
                         container.Resolve<PlayerDataProvider>(),
-                        container.Resolve<ConfigsProviderService>(),
-                        container.Resolve<EmotionConfigService>()
+                        container.Resolve<IConfigsProvider>(),
+                        container.Resolve<EmotionConfigService>(),
+                        container.Resolve<IPointsService>(),
+                        container.Resolve<ILevelSystem>()
                     )
                 ).NonLazy();
 
@@ -299,11 +307,20 @@ namespace App.Develop.EntryPoint
                 )
             ).NonLazy();
             
-            // Сервис достижений
+            // Система уровней
+            container.RegisterAsSingle<ILevelSystem>(container =>
+                new LevelSystem(
+                    container.Resolve<PlayerDataProvider>(),
+                    container.Resolve<IPointsService>()
+                )
+            ).NonLazy();
+            
+            // Сервис достижений (с зависимостью от системы уровней)
             container.RegisterAsSingle<IAchievementService>(container => 
                 new AchievementService(
                     container.Resolve<PlayerDataProvider>(),
-                    container.Resolve<IPointsService>()
+                    container.Resolve<IPointsService>(),
+                    container.Resolve<ILevelSystem>()
                 )
             ).NonLazy();
             

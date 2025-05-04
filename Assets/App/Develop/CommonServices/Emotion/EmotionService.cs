@@ -11,13 +11,15 @@ using App.Develop.CommonServices.Networking;
 using App.Develop.Configs.Common.Emotion;
 using UnityEngine;
 using App.Develop.AppServices.Firebase.Common.SecureStorage;
+using App.Develop.CommonServices.GameSystem;
+using App.Develop.DI;
 
 // Используем IDatabaseService только из пространства имен Services
 using IDatabaseService = App.Develop.AppServices.Firebase.Database.Services.IDatabaseService;
 
 namespace App.Develop.CommonServices.Emotion
 {
-    public class EmotionService : IDataReader<PlayerData>, IDataWriter<PlayerData>
+    public class EmotionService : IDataReader<PlayerData>, IDataWriter<PlayerData>, IEmotionService, IInitializable
     {
         #region Private Fields
         private readonly Dictionary<EmotionTypes, EmotionData> _emotions;
@@ -36,6 +38,14 @@ namespace App.Develop.CommonServices.Emotion
         // Флаги синхронизации
         private bool _isInitialized;
         private bool _isFirebaseInitialized;
+        
+        #region Dependencies
+        
+        private readonly IConfigsProvider _configsProvider;
+        private readonly IPointsService _pointsService;
+        private readonly ILevelSystem _levelSystem;
+        
+        #endregion
         #endregion
         
         #region Events
@@ -49,17 +59,20 @@ namespace App.Develop.CommonServices.Emotion
 
         #region Constructors
         public EmotionService(
-            PlayerDataProvider playerDataProvider, 
+            PlayerDataProvider playerDataProvider,
             IConfigsProvider configsProvider,
-            EmotionConfigService emotionConfigService = null,
-            ConnectivityManager connectivityManager = null)
+            EmotionConfigService emotionConfigService,
+            IPointsService pointsService = null,
+            ILevelSystem levelSystem = null)
         {
             _playerDataProvider = playerDataProvider ?? throw new ArgumentNullException(nameof(playerDataProvider));
+            _configsProvider = configsProvider;
+            _emotionConfigService = emotionConfigService;
+            _pointsService = pointsService;
+            _levelSystem = levelSystem;
             _emotions = new Dictionary<EmotionTypes, EmotionData>();
             _emotionMixingRules = new EmotionMixingRules();
             _emotionConfigs = new Dictionary<EmotionTypes, EmotionConfig>();
-            _emotionConfigService = emotionConfigService;
-            _connectivityManager = connectivityManager;
             
             try
             {
@@ -463,6 +476,20 @@ namespace App.Develop.CommonServices.Emotion
             
             // Вызываем событие
             RaiseEmotionEvent(new EmotionEvent(type, eventType, emotion.Value, emotion.Intensity));
+            
+            // Начисляем очки, если доступен сервис очков и значение положительное
+            if (_pointsService != null && value > 0)
+            {
+                _pointsService.AddPointsForEmotion();
+            }
+            
+            // Начисляем опыт, если доступна система уровней и значение положительное
+            if (_levelSystem != null && value > 0)
+            {
+                // Базовое количество опыта за отметку эмоции
+                int baseXp = 5;
+                _levelSystem.AddXP(baseXp, XPSource.EmotionMarked);
+            }
         }
 
         private void ValidateAndUpdateEmotion(EmotionData emotion, float newValue)
@@ -626,6 +653,126 @@ namespace App.Develop.CommonServices.Emotion
 
         #endregion
 
+        #endregion
+
+        #region IInitializable Implementation
+
+        /// <summary>
+        /// Инициализирует сервис эмоций
+        /// </summary>
+        public void Initialize()
+        {
+            // Загружаем эмоции из провайдера данных
+            InitializeEmotions();
+            
+            Debug.Log("EmotionService инициализирован");
+        }
+
+        #endregion
+
+        #region IEmotionService Implementation
+        
+        /// <summary>
+        /// Получить текущее значение эмоции
+        /// </summary>
+        public float GetEmotionValue(EmotionTypes type)
+        {
+            var emotion = GetEmotion(type);
+            return emotion?.Value ?? 0f;
+        }
+        
+        /// <summary>
+        /// Получить текущую интенсивность эмоции
+        /// </summary>
+        public float GetEmotionIntensity(EmotionTypes type)
+        {
+            var emotion = GetEmotion(type);
+            return emotion?.Intensity ?? 0f;
+        }
+        
+        /// <summary>
+        /// Получить цвет эмоции
+        /// </summary>
+        public Color GetEmotionColor(EmotionTypes type)
+        {
+            var emotion = GetEmotion(type);
+            return emotion?.Color ?? Color.white;
+        }
+        
+        /// <summary>
+        /// Получить данные эмоции
+        /// </summary>
+        public EmotionData GetEmotionData(EmotionTypes type)
+        {
+            return GetEmotion(type);
+        }
+        
+        /// <summary>
+        /// Получить все эмоции
+        /// </summary>
+        public Dictionary<EmotionTypes, EmotionData> GetAllEmotions()
+        {
+            return new Dictionary<EmotionTypes, EmotionData>(_emotions);
+        }
+        
+        /// <summary>
+        /// Установить значение эмоции
+        /// </summary>
+        public void SetEmotionValue(EmotionTypes type, float value, bool needSave = true)
+        {
+            var emotion = GetEmotion(type);
+            if (emotion != null)
+            {
+                UpdateEmotionValue(type, value);
+                
+                if (needSave && _playerDataProvider != null)
+                {
+                    _playerDataProvider.Save();
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Установить интенсивность эмоции
+        /// </summary>
+        public void SetEmotionIntensity(EmotionTypes type, float intensity, bool needSave = true)
+        {
+            var emotion = GetEmotion(type);
+            if (emotion != null)
+            {
+                UpdateEmotionIntensity(type, intensity);
+                
+                if (needSave && _playerDataProvider != null)
+                {
+                    _playerDataProvider.Save();
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Сбросить все эмоции к начальным значениям
+        /// </summary>
+        public void ResetAllEmotions(bool needSave = true)
+        {
+            foreach (var type in Enum.GetValues(typeof(EmotionTypes)).Cast<EmotionTypes>())
+            {
+                var emotion = GetEmotion(type);
+                if (emotion != null)
+                {
+                    emotion.Value = 0f;
+                    emotion.Intensity = 0f;
+                    emotion.LastUpdate = DateTime.UtcNow;
+                }
+            }
+            
+            if (needSave && _playerDataProvider != null)
+            {
+                _playerDataProvider.Save();
+            }
+            
+            Debug.Log("Все эмоции сброшены к начальным значениям");
+        }
+        
         #endregion
 
         #region Private Methods
