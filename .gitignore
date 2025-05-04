@@ -71,3 +71,35 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# Unity Android build files
+.utmp/
+
+# Jetbrains Rider IDE
+.idea/
+
+# Visual Studio Code
+.vscode/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+
+# Android
+*.aar
+*.jar
+/[Aa]ssets/[Pp]lugins/[Aa]ndroid/*.aar
+/[Aa]ssets/[Pp]lugins/[Aa]ndroid/*.jar
+
+# iOS build files
+*.xcworkspace
+xcuserdata/

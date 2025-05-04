@@ -1,0 +1,17 @@
+{
+    "name": "MoodColor.App.Develop.CommonServices.Notifications",
+    "rootNamespace": "MoodColor.App.Develop.CommonServices.Notifications",
+    "references": [
+        "Unity.Notifications.iOS",
+        "Unity.Notifications.Android"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+} 

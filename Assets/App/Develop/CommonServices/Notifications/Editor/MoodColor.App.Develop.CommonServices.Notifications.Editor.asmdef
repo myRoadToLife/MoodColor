@@ -1,0 +1,20 @@
+{
+    "name": "MoodColor.App.Develop.CommonServices.Notifications.Editor",
+    "rootNamespace": "MoodColor.App.Develop.CommonServices.Notifications.Editor",
+    "references": [
+        "MoodColor.App.Develop.CommonServices.Notifications",
+        "Unity.Notifications.iOS.Editor",
+        "Unity.Notifications.Android.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+} 
