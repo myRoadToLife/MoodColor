@@ -65,6 +65,35 @@ namespace App.Develop.CommonServices.Firebase.Database.Models
 
         [JsonProperty("settings")]
         public UserSettings Settings { get; set; } = new UserSettings();
+
+        // Социальные поля
+        [JsonProperty("photoUrl")]
+        public string PhotoUrl { get; set; }
+
+        [JsonProperty("region")]
+        public string Region { get; set; }
+
+        [JsonProperty("isOnline")]
+        public bool IsOnline { get; set; }
+
+        [JsonProperty("stats")]
+        public UserStats Stats { get; set; } = new UserStats();
+    }
+
+    [Serializable]
+    public class UserStats
+    {
+        [JsonProperty("totalEmotions")]
+        public int TotalEmotions { get; set; }
+
+        [JsonProperty("totalReactions")]
+        public int TotalReactions { get; set; }
+
+        [JsonProperty("friendsCount")]
+        public int FriendsCount { get; set; }
+
+        [JsonProperty("achievementsCount")]
+        public int AchievementsCount { get; set; }
     }
 
     [Serializable]

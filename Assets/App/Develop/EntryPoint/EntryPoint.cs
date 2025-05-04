@@ -27,7 +27,8 @@ using Firebase.Database;
 using UnityEngine;
 using App.Develop.UI.Panels;
 using App.Develop.Scenes.PersonalAreaScene.UI.Components;
-using App.Develop.CommonServices.Networking; // Для ConnectivityManager
+using App.Develop.CommonServices.Networking;
+using App.Develop.CommonServices.Social; // Для ConnectivityManager
 
 // Используем IDatabaseService только из этого пространства имен
 using IDatabaseService = App.Develop.CommonServices.Firebase.Database.Services.IDatabaseService;
@@ -181,6 +182,24 @@ namespace App.Develop.EntryPoint
         {
             RegisterFirebase(_projectContainer);
             RegisterAuthServices(_projectContainer);
+            
+            // Регистрация социального сервиса
+            _projectContainer.RegisterAsSingle<ISocialService>(container =>
+            {
+                var socialServiceObject = new GameObject("FirebaseSocialService");
+                DontDestroyOnLoad(socialServiceObject);
+                var socialService = socialServiceObject.AddComponent<FirebaseSocialService>();
+                
+                // Инициализируем сервис с правильными экземплярами Firebase
+                socialService.Initialize(
+                    container.Resolve<FirebaseDatabase>(),
+                    container.Resolve<FirebaseAuth>()
+                );
+                
+                return socialService;
+            }).NonLazy();
+            
+            Debug.Log("✅ Социальный сервис зарегистрирован");
         }
 
         /// <summary>
