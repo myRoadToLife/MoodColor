@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using App.Develop.AppServices.Firebase.Database.Models;
-using App.Develop.AppServices.Firebase.Database.Services;
+using App.Develop.CommonServices.Firebase.Database.Models;
+using App.Develop.CommonServices.Firebase.Database.Services;
 using App.Develop.CommonServices.Emotion;
 using App.Develop.DI;
 using App.Develop.UI.Base;

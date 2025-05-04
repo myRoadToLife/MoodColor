@@ -1,16 +1,15 @@
 // Assets/App/Develop/AppServices/Firebase/Auth/Services/AuthService.cs
 
-using App.Develop.AppServices.Firebase.Database.Services;
-using Firebase.Auth;
 using System;
-using System.Threading.Tasks;
-using App.Develop.AppServices.Auth;
-using Firebase;
-using UnityEngine;
 using System.Collections.Generic;
-using App.Develop.AppServices.Firebase.Common.SecureStorage;
+using App.Develop.CommonServices.Firebase.Database.Services;
+using Firebase;
+using Firebase.Auth;
+using System.Threading.Tasks;
+using UnityEngine;
+using App.Develop.CommonServices.Firebase.Common.SecureStorage;
 
-namespace App.Develop.AppServices.Firebase.Auth.Services
+namespace App.Develop.CommonServices.Firebase.Auth.Services
 {
     public class AuthService : IAuthService
     {

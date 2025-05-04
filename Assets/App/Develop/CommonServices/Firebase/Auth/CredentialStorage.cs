@@ -1,9 +1,10 @@
-// Assets/App/Develop/AppServices/Firebase/Auth/CredentialStorage.cs
+// Assets/App/Develop/CommonServices/Firebase/Auth/CredentialStorage.cs
 using System;
-using App.Develop.AppServices.Firebase.Common.SecureStorage;
+using App.Develop.CommonServices.Firebase.Common.SecureStorage;
+using Firebase.Auth;
 using UnityEngine;
 
-namespace App.Develop.AppServices.Firebase.Auth
+namespace App.Develop.CommonServices.Firebase.Auth
 {
     public class CredentialStorage
     {

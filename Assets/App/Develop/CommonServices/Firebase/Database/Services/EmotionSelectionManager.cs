@@ -1,16 +1,19 @@
 // Assets/App/Develop/MoodColor/UI/EmotionSelectionManager.cs
 
 using System;
-using App.Develop.AppServices.Firebase.Database.Models;
+using System.Collections.Generic;
+using App.Develop.CommonServices.Firebase.Database.Models;
 using App.Develop.CommonServices.DataManagement.DataProviders;
 using App.Develop.CommonServices.Emotion;
+using App.Develop.Configs.Common.Emotion;
 using App.Develop.DI;
+using Firebase.Database;
 using UnityEngine;
 using UnityEngine.UI;
 
 // Используем UnityEngine.UI
 
-namespace App.Develop.AppServices.Firebase.Database.Services
+namespace App.Develop.CommonServices.Firebase.Database.Services
 {
     public class EmotionSelectionManager : MonoBehaviour, IInjectable
     {

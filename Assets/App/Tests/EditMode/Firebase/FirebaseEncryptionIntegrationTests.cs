@@ -1,18 +1,9 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-using App.Develop.AppServices.Firebase.Common.Cache;
-using App.Develop.AppServices.Firebase.Database.Encryption;
-using App.Develop.AppServices.Firebase.Database.Models;
-using App.Develop.AppServices.Firebase.Database.Services;
 using App.Develop.CommonServices.DataManagement.DataProviders;
-using App.Tests.EditMode.Firebase;
-using App.Tests.EditMode.TestHelpers;
+using App.Develop.CommonServices.Firebase.Database.Encryption;
 using Newtonsoft.Json;
 using NUnit.Framework;
 using UnityEngine;
-using UnityEngine.TestTools;
 
 namespace App.Tests.EditMode.Firebase
 {

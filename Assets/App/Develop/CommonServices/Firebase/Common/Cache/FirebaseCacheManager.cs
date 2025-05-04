@@ -6,7 +6,7 @@ using App.Develop.CommonServices.DataManagement.DataProviders;
 using Newtonsoft.Json;
 using UnityEngine;
 
-namespace App.Develop.AppServices.Firebase.Common.Cache
+namespace App.Develop.CommonServices.Firebase.Common.Cache
 {
     /// <summary>
     /// Менеджер кэширования данных Firebase с поддержкой офлайн режима

@@ -1,21 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using App.Develop.AppServices.Firebase.Database.Interfaces;
-using App.Develop.AppServices.Firebase.Database.Models;
-using App.Develop.AppServices.Firebase.Database.Services;
+using App.Develop.CommonServices.Firebase.Database.Models;
+using App.Develop.CommonServices.Firebase.Database.Services;
 using App.Develop.CommonServices.DataManagement;
 using App.Develop.CommonServices.DataManagement.DataProviders;
 using App.Develop.CommonServices.ConfigsManagement;
 using App.Develop.CommonServices.Networking;
 using App.Develop.Configs.Common.Emotion;
 using UnityEngine;
-using App.Develop.AppServices.Firebase.Common.SecureStorage;
+using App.Develop.CommonServices.Firebase.Common.SecureStorage;
 using App.Develop.CommonServices.GameSystem;
 using App.Develop.DI;
 
 // Используем IDatabaseService только из пространства имен Services
-using IDatabaseService = App.Develop.AppServices.Firebase.Database.Services.IDatabaseService;
+using IDatabaseService = App.Develop.CommonServices.Firebase.Database.Services.IDatabaseService;
 
 namespace App.Develop.CommonServices.Emotion
 {

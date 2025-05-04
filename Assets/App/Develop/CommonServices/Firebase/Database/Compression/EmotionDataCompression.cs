@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
-using App.Develop.AppServices.Firebase.Database.Models;
+using App.Develop.CommonServices.Firebase.Database.Models;
 using App.Develop.CommonServices.DataManagement.DataProviders;
 using Firebase.Database;
 using Newtonsoft.Json;
 using UnityEngine;
 
-namespace App.Develop.AppServices.Firebase.Database.Compression
+namespace App.Develop.CommonServices.Firebase.Database.Compression
 {
     /// <summary>
     /// Класс для сжатия данных эмоций перед отправкой в Firebase

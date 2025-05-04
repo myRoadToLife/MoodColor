@@ -1,14 +1,18 @@
 // Assets/App/Develop/AppServices/Firebase/Auth/AuthManager.cs
 
 using System;
+using System.Collections;
+using System.Threading.Tasks;
+using App.Develop.CommonServices.Firebase.Auth.Services;
+using App.Develop.CommonServices.Firebase.Common.SecureStorage;
+using Firebase;
+using Firebase.Auth;
+using UnityEngine;
 using App.Develop.AppServices.Auth;
-using App.Develop.AppServices.Firebase.Auth.Services;
-using App.Develop.AppServices.Firebase.Common.SecureStorage;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
-using UnityEngine;
 
-namespace App.Develop.AppServices.Firebase.Auth
+namespace App.Develop.CommonServices.Firebase.Auth
 {
     public class AuthManager : MonoBehaviour, IInjectable
     {

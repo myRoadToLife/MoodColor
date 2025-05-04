@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
 using App.Develop.CommonServices.DataManagement.DataProviders;
 using App.Develop.CommonServices.Emotion;
 using Newtonsoft.Json;
 
-namespace App.Develop.AppServices.Firebase.Database.Models
+namespace App.Develop.CommonServices.Firebase.Database.Models
 {
     [Serializable]
     public class EmotionHistoryRecord

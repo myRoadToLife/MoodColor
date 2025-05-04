@@ -1,9 +1,10 @@
+using System;
 using System.Threading.Tasks;
 using System.Collections.Generic;
-using App.Develop.AppServices.Firebase.Database.Models;
+using App.Develop.CommonServices.Firebase.Database.Models;
 using Firebase.Database;
 
-namespace App.Develop.AppServices.Firebase.Database.Services
+namespace App.Develop.CommonServices.Firebase.Database.Services
 {
     /// <summary>
     /// Интерфейс базового сервиса для работы с Firebase Realtime Database

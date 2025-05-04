@@ -1,4 +1,4 @@
-namespace App.Develop.AppServices.Firebase.Database.Encryption
+namespace App.Develop.CommonServices.Firebase.Database.Encryption
 {
     /// <summary>
     /// Интерфейс для сервиса шифрования данных Firebase

@@ -1,15 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using App.Develop.AppServices.Firebase.Database.Models;
-using App.Develop.AppServices.Firebase.Database.Services;
+using App.Develop.CommonServices.Firebase.Database.Models;
+using App.Develop.CommonServices.Firebase.Database.Services;
 using App.Develop.CommonServices.DataManagement.DataProviders;
 using App.Develop.DI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace App.Develop.AppServices.Firebase.Database.UI
+namespace App.Develop.CommonServices.Firebase.Database.UI
 {
     /// <summary>
     /// UI для разрешения конфликтов синхронизации данных

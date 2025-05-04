@@ -1,9 +1,10 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using App.Develop.AppServices.Firebase.Auth.Services;
-using App.Develop.AppServices.Firebase.Common.SecureStorage;
+using App.Develop.CommonServices.Firebase.Auth.Services;
+using App.Develop.CommonServices.Firebase.Common.SecureStorage;
 using Firebase.Auth;
 using Firebase.Database;
 using Firebase.Extensions;

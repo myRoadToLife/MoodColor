@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace App.Develop.AppServices.Firebase.Database.Interfaces
+namespace App.Develop.CommonServices.Firebase.Database.Services
 {
     /// <summary>
     /// Базовый интерфейс для валидаторов данных

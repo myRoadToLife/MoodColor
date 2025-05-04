@@ -1,10 +1,10 @@
 using System;
 using System.Threading.Tasks;
-using App.Develop.AppServices.Firebase.Common.SecureStorage;
+using App.Develop.CommonServices.Firebase.Common.SecureStorage;
 using Firebase.Auth;
 using UnityEngine;
 
-namespace App.Develop.AppServices.Firebase.Auth.Services
+namespace App.Develop.CommonServices.Firebase.Auth.Services
 {
     /// <summary>
     /// Сервис для управления состоянием аутентификации Firebase.

@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
-using App.Develop.AppServices.Firebase.Database.Interfaces;
-using App.Develop.AppServices.Firebase.Database.Models;
-using App.Develop.AppServices.Firebase.Database.Services;
+using App.Develop.CommonServices.Firebase.Database.Models;
+using App.Develop.CommonServices.Firebase.Database.Services;
 using UnityEngine;
 
-namespace App.Develop.AppServices.Firebase.Database
+namespace App.Develop.CommonServices.Firebase.Database
 {
     /// <summary>
     /// Расширения для валидации данных в Firebase

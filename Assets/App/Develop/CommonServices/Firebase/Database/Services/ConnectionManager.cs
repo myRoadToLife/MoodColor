@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Firebase;
 using Firebase.Database;
 using UnityEngine;
 
-namespace App.Develop.AppServices.Firebase.Database.Services
+namespace App.Develop.CommonServices.Firebase.Database.Services
 {
     /// <summary>
     /// Класс для управления соединением с Firebase

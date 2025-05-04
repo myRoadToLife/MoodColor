@@ -1,8 +1,8 @@
 using System;
-using App.Develop.AppServices.Firebase.Database.Interfaces;
-using App.Develop.AppServices.Firebase.Database.Models;
+using App.Develop.CommonServices.Firebase.Database.Services;
+using App.Develop.CommonServices.Firebase.Database.Models;
 
-namespace App.Develop.AppServices.Firebase.Database.Validators
+namespace App.Develop.CommonServices.Firebase.Database.Validators
 {
     /// <summary>
     /// Валидатор для записей истории эмоций

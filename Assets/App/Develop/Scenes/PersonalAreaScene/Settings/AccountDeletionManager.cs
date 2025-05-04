@@ -1,5 +1,5 @@
 using System.Collections;
-using App.Develop.AppServices.Firebase.Common.SecureStorage;
+using App.Develop.CommonServices.Firebase.Common.SecureStorage;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
 using Firebase.Auth;
@@ -10,7 +10,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Linq;
 using System;
-using App.Develop.AppServices.Firebase.Auth.Services;
+using App.Develop.CommonServices.Firebase.Auth.Services;
 
 namespace App.Develop.Scenes.PersonalAreaScene.Settings
 {

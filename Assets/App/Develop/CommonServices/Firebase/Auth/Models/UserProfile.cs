@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using App.Develop.AppServices.Firebase.Database.Models;
+using App.Develop.CommonServices.Firebase.Database.Models;
 
-namespace App.Develop.AppServices.Firebase.Auth.Models
+namespace App.Develop.CommonServices.Firebase.Auth.Models
 {
     [Serializable]
     public class UserProfile

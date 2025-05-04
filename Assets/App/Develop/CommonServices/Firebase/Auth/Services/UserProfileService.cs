@@ -1,12 +1,13 @@
 // UserProfileService.cs (полный код)
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
-using App.Develop.AppServices.Firebase.Database.Services;
+using System.Collections.Generic;
+using App.Develop.CommonServices.Firebase.Database.Services;
 using Firebase.Database;
+using Firebase.Extensions;
 using UnityEngine;
 
-namespace App.Develop.AppServices.Firebase.Auth.Services
+namespace App.Develop.CommonServices.Firebase.Auth.Services
 {
     public class UserProfileService
     {

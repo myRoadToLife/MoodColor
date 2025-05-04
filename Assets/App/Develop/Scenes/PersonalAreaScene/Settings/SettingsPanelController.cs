@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using App.Develop.AppServices.Firebase.Auth.Services;
+using App.Develop.CommonServices.Firebase.Auth.Services;
 using App.Develop.CommonServices.AssetManagement;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.CommonServices.UI;

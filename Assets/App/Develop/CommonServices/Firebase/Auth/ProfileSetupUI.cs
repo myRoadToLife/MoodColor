@@ -1,13 +1,15 @@
 // Assets/App/Develop/AppServices/Firebase/Auth/ProfileSetupUI.cs
 using System;
 using System.Collections.Generic;
-using App.Develop.AppServices.Firebase.Auth.Services;
+using System.Threading.Tasks;
+using App.Develop.CommonServices.Firebase.Auth.Services;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
-namespace App.Develop.AppServices.Firebase.Auth
+namespace App.Develop.CommonServices.Firebase.Auth
 {
     public class ProfileSetupUI : MonoBehaviour, IInjectable
     {

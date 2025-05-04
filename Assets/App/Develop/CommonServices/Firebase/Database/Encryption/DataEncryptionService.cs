@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using UnityEngine;
 
-namespace App.Develop.AppServices.Firebase.Database.Encryption
+namespace App.Develop.CommonServices.Firebase.Database.Encryption
 {
     /// <summary>
     /// Сервис для шифрования и дешифрования данных Firebase

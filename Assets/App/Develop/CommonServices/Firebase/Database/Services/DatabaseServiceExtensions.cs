@@ -1,8 +1,8 @@
+using App.Develop.CommonServices.Firebase.Database.Models;
 using System.Threading.Tasks;
-using App.Develop.AppServices.Firebase.Database.Models;
 using UnityEngine;
 
-namespace App.Develop.AppServices.Firebase.Database.Services
+namespace App.Develop.CommonServices.Firebase.Database.Services
 {
     /// <summary>
     /// Расширения для DatabaseService для работы с валидацией данных

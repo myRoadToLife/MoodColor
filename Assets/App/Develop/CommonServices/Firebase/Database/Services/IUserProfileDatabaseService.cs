@@ -1,7 +1,7 @@
+using App.Develop.CommonServices.Firebase.Database.Models;
 using System.Threading.Tasks;
-using App.Develop.AppServices.Firebase.Database.Models;
 
-namespace App.Develop.AppServices.Firebase.Database.Services
+namespace App.Develop.CommonServices.Firebase.Database.Services
 {
     /// <summary>
     /// Интерфейс сервиса для работы с профилем пользователя в базе данных Firebase

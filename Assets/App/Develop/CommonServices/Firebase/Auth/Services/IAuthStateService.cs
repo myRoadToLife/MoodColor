@@ -2,7 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Firebase.Auth;
 
-namespace App.Develop.AppServices.Firebase.Auth.Services
+namespace App.Develop.CommonServices.Firebase.Auth.Services
 {
     /// <summary>
     /// Интерфейс для сервиса управления состоянием аутентификации

@@ -1,12 +1,12 @@
 using System;
 using System.Threading.Tasks;
 using System.Linq;
-using App.Develop.AppServices.Firebase.Auth;
-using App.Develop.AppServices.Firebase.Auth.Services;
-using App.Develop.AppServices.Firebase.Database.Services;
-using App.Develop.AppServices.Firebase.Database.Validators;
-using App.Develop.AppServices.Firebase.Database.Models;
-using App.Develop.AppServices.Firebase.Common.Cache;
+using App.Develop.CommonServices.Firebase.Auth;
+using App.Develop.CommonServices.Firebase.Auth.Services;
+using App.Develop.CommonServices.Firebase.Database.Services;
+using App.Develop.CommonServices.Firebase.Database.Validators;
+using App.Develop.CommonServices.Firebase.Database.Models;
+using App.Develop.CommonServices.Firebase.Common.Cache;
 using App.Develop.CommonServices.AssetManagement;
 using App.Develop.CommonServices.ConfigsManagement;
 using App.Develop.CommonServices.CoroutinePerformer;
@@ -30,7 +30,7 @@ using App.Develop.Scenes.PersonalAreaScene.UI.Components;
 using App.Develop.CommonServices.Networking; // Для ConnectivityManager
 
 // Используем IDatabaseService только из этого пространства имен
-using IDatabaseService = App.Develop.AppServices.Firebase.Database.Services.IDatabaseService;
+using IDatabaseService = App.Develop.CommonServices.Firebase.Database.Services.IDatabaseService;
 
 namespace App.Develop.EntryPoint
 {

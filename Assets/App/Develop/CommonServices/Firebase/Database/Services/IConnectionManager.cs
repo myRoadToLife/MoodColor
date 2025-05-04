@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace App.Develop.AppServices.Firebase.Database.Services
+namespace App.Develop.CommonServices.Firebase.Database.Services
 {
     /// <summary>
     /// Интерфейс для управления соединением с Firebase

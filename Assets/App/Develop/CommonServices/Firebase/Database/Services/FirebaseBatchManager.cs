@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Firebase.Database;
 using UnityEngine;
 
-namespace App.Develop.AppServices.Firebase.Database.Services
+namespace App.Develop.CommonServices.Firebase.Database.Services
 {
     /// <summary>
     /// Менеджер для выполнения пакетных операций в Firebase

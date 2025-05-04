@@ -1,6 +1,6 @@
 using System;
 using System.Threading.Tasks;
-using App.Develop.AppServices.Firebase.Database.Models;
+using App.Develop.CommonServices.Firebase.Database.Models;
 using App.Develop.DI;
 using Firebase.Auth;
 using Firebase.Database;

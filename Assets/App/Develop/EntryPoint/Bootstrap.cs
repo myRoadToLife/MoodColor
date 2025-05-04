@@ -2,13 +2,16 @@
 
 using System;
 using System.Collections;
-using App.Develop.AppServices.Firebase.Common.SecureStorage;
-using App.Develop.AppServices.Firebase.Database.Services;
+using App.Develop.CommonServices.DataManagement.DataProviders;
+using App.Develop.CommonServices.Firebase.Common.SecureStorage;
+using App.Develop.CommonServices.Firebase.Database.Services;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
+using App.Develop.Scenes.AuthScene;
+using App.Develop.Scenes.PersonalAreaScene;
 using Firebase.Auth;
 using UnityEngine;
-using UserProfile = App.Develop.AppServices.Firebase.Database.Models.UserProfile;
+using UserProfile = App.Develop.CommonServices.Firebase.Database.Models.UserProfile;
 
 namespace App.Develop.EntryPoint
 {

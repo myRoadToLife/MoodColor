@@ -1,4 +1,4 @@
-using App.Develop.AppServices.Firebase.Database.Models;
+using App.Develop.CommonServices.Firebase.Database.Models;
 using App.Develop.CommonServices.Emotion;
 using UnityEngine;
 using UnityEngine.UI;

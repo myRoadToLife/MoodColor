@@ -1,4 +1,4 @@
-namespace App.Develop.AppServices.Firebase.Auth
+namespace App.Develop.CommonServices.Firebase.Auth
 {
     public class ValidationService
     {

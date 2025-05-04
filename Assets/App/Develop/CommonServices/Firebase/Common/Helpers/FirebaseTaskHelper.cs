@@ -1,11 +1,10 @@
 using System;
 using System.Threading.Tasks;
 using Firebase;
-using Firebase.Auth;
-using Firebase.Database;
+using Firebase.Extensions;
 using UnityEngine;
 
-namespace App.Develop.AppServices.Firebase.Common.Helpers
+namespace App.Develop.CommonServices.Firebase.Common.Helpers
 {
     /// <summary>
     /// Помощник для работы с Firebase задачами, унифицирующий обработку исключений и асинхронные операции

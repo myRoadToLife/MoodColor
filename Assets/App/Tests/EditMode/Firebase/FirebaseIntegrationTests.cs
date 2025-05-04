@@ -1,15 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using App.Develop.AppServices.Firebase.Common.Cache;
-using App.Develop.AppServices.Firebase.Database.Models;
-using App.Develop.AppServices.Firebase.Database.Services;
-using App.Develop.CommonServices.DataManagement.DataProviders;
-using App.Develop.CommonServices.Emotion;
-using App.Tests.EditMode.TestHelpers;
+using App.Develop.CommonServices.Firebase.Common.Cache;
 using NUnit.Framework;
 using UnityEngine;
-using UnityEngine.TestTools;
 
 namespace App.Tests.EditMode.Firebase
 {

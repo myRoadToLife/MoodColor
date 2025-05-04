@@ -1,7 +1,7 @@
 using System;
 using Newtonsoft.Json;
 
-namespace App.Develop.AppServices.Firebase.Database.Models
+namespace App.Develop.CommonServices.Firebase.Database.Models
 {
     [Serializable]
     public class EmotionSyncSettings

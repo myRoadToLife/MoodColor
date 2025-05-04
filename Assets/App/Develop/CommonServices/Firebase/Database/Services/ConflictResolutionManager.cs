@@ -1,13 +1,14 @@
 using System;
 using System.Threading.Tasks;
 using System.Collections.Generic;
-using App.Develop.AppServices.Firebase.Database.Models;
+using App.Develop.CommonServices.Firebase.Database.Models;
 using App.Develop.CommonServices.Emotion;
 using App.Develop.CommonServices.DataManagement.DataProviders;
 using Newtonsoft.Json;
 using UnityEngine;
+using Firebase.Database;
 
-namespace App.Develop.AppServices.Firebase.Database.Services
+namespace App.Develop.CommonServices.Firebase.Database.Services
 {
     /// <summary>
     /// Менеджер разрешения конфликтов данных при синхронизации

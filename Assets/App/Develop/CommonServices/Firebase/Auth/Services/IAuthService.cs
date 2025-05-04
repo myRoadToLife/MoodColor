@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace App.Develop.AppServices.Firebase.Auth.Services
+namespace App.Develop.CommonServices.Firebase.Auth.Services
 {
     public interface IAuthService
     {

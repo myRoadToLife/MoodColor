@@ -4,17 +4,22 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using App.Develop.AppServices.Firebase.Common.Cache;
-using App.Develop.AppServices.Firebase.Common.Helpers;
-using App.Develop.AppServices.Firebase.Database.Models;
 using App.Develop.CommonServices.DataManagement.DataProviders;
-using App.Develop.CommonServices.Emotion; // Убедись, что EmotionTypes здесь определен
+using App.Develop.CommonServices.Emotion;
 using Firebase.Database;
-using Newtonsoft.Json; // Используется для десериализации
+using App.Develop.CommonServices.Firebase.Common.Cache;
+using App.Develop.CommonServices.Firebase.Common.Helpers;
+using App.Develop.CommonServices.Firebase.Database.Models;
 using UnityEngine;
-using UserProfile = App.Develop.AppServices.Firebase.Database.Models.UserProfile;
+using Firebase.Extensions;
+using Firebase;
+using Firebase.Auth;
+using Newtonsoft.Json;
+using UserProfile = App.Develop.CommonServices.Firebase.Database.Models.UserProfile;
+using EmotionData = App.Develop.CommonServices.DataManagement.DataProviders.EmotionData;
+using EmotionEventType = App.Develop.CommonServices.Emotion.EmotionEventType;
 
-namespace App.Develop.AppServices.Firebase.Database.Services
+namespace App.Develop.CommonServices.Firebase.Database.Services
 {
     /// <summary>
     /// Сервис для работы с базой данных Firebase

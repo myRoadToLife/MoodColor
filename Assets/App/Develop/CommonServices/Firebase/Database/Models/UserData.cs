@@ -2,8 +2,9 @@ using System;
 using System.Collections.Generic;
 using App.Develop.CommonServices.DataManagement.DataProviders;
 using Newtonsoft.Json;
+using UnityEngine;
 
-namespace App.Develop.AppServices.Firebase.Database.Models
+namespace App.Develop.CommonServices.Firebase.Database.Models
 {
     [Serializable]
     public class UserData
