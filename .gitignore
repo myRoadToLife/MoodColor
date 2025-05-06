@@ -103,3 +103,7 @@ ehthumbs_vista.db
 # iOS build files
 *.xcworkspace
 xcuserdata/
+/Assets/TextMesh Pro/Examples & Extras
+/Assets/TextMesh Pro
+Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF - Fallback.asset
+Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF - Fallback.asset

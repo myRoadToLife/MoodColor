@@ -3,15 +3,15 @@ using UnityEngine;
 #if UNITY_ANDROID
 #endif
 #if UNITY_IOS
-using Unity.Mobile.Notifications.iOS;
+using Unity.Notifications.iOS;
 #endif
 
-namespace MoodColor.App.Develop.CommonServices.Notifications
+namespace App.Develop.CommonServices.Notifications
 {
     /// <summary>
     /// Основной менеджер уведомлений, который координирует все типы уведомлений
     /// </summary>
-    public class NotificationManager : MonoBehaviour
+    public class NotificationManager : MonoBehaviour, INotificationManager
     {
         #region Singleton
 
@@ -49,6 +49,8 @@ namespace MoodColor.App.Develop.CommonServices.Notifications
         [SerializeField] private bool _initializeOnAwake = true;
         
         private PushNotificationService _pushService;
+        private InGameNotificationService _inGameService;
+        private EmailNotificationService _emailService;
         private NotificationQueue _notificationQueue;
         private NotificationTriggerSystem _triggerSystem;
         private UserPreferencesManager _preferencesManager;
@@ -63,13 +65,19 @@ namespace MoodColor.App.Develop.CommonServices.Notifications
             
             // Создаем и инициализируем компоненты
             _pushService = gameObject.AddComponent<PushNotificationService>();
-            _notificationQueue = gameObject.AddComponent<NotificationQueue>();
-            _triggerSystem = gameObject.AddComponent<NotificationTriggerSystem>();
-            _preferencesManager = gameObject.AddComponent<UserPreferencesManager>();
+            _inGameService = gameObject.AddComponent<InGameNotificationService>();
+            _emailService = gameObject.AddComponent<EmailNotificationService>();
+            
+            // Создаем компоненты, которые не требуют MonoBehaviour
+            _preferencesManager = new UserPreferencesManager();
+            _triggerSystem = new NotificationTriggerSystem();
+            _notificationQueue = new NotificationQueue(this);
             
             // Последовательность инициализации
             _preferencesManager.Initialize();
             _pushService.Initialize();
+            _inGameService.Initialize();
+            _emailService.Initialize();
             _notificationQueue.Initialize();
             _triggerSystem.Initialize();
             
@@ -78,6 +86,17 @@ namespace MoodColor.App.Develop.CommonServices.Notifications
             
             _isInitialized = true;
             Debug.Log("NotificationManager initialized successfully");
+        }
+
+        private void OnDestroy()
+        {
+            // Отписываемся от событий
+            if (_triggerSystem != null)
+                _triggerSystem.OnNotificationTriggered -= HandleNotificationTriggered;
+            
+            // Освобождаем ресурсы
+            _triggerSystem?.Dispose();
+            _notificationQueue?.Dispose();
         }
 
         /// <summary>
@@ -108,23 +127,32 @@ namespace MoodColor.App.Develop.CommonServices.Notifications
                     _pushService.SendPushNotification(notification);
                     break;
                 case NotificationDeliveryType.InGame:
-                    ShowInGameNotification(notification);
+                    _inGameService.ShowNotification(notification);
                     break;
                 case NotificationDeliveryType.Email:
-                    // TODO: Реализовать отправку email
-                    Debug.Log("Email notifications not implemented yet");
+                    SendEmailNotification(notification);
                     break;
             }
         }
 
         /// <summary>
-        /// Отображает внутриигровое уведомление
+        /// Отправляет email-уведомление пользователю
         /// </summary>
-        private void ShowInGameNotification(NotificationData notification)
+        private void SendEmailNotification(NotificationData notification)
         {
-            // TODO: Реализовать показ внутриигрового UI
-            Debug.Log($"Showing in-game notification: {notification.Title} - {notification.Message}");
+            // Получаем email пользователя из настроек или аккаунта
+            string userEmail = _preferencesManager.GetUserEmail();
+            
+            if (string.IsNullOrEmpty(userEmail))
+            {
+                Debug.LogWarning("Cannot send email notification: user email is not set");
+                return;
+            }
+            
+            _emailService.SendEmailNotification(notification, userEmail);
         }
+        
+        #region INotificationManager Implementation
         
         /// <summary>
         /// Планирует отправку уведомления
@@ -158,6 +186,27 @@ namespace MoodColor.App.Develop.CommonServices.Notifications
         {
             _triggerSystem.CancelAllScheduledNotifications();
             _pushService.CancelAllPushNotifications();
+        }
+        
+        #endregion
+    }
+    
+    /// <summary>
+    /// Фабрика для создания менеджера уведомлений
+    /// </summary>
+    public static class NotificationManagerFactory
+    {
+        /// <summary>
+        /// Создает и возвращает экземпляр менеджера уведомлений
+        /// </summary>
+        public static INotificationManager Create()
+        {
+            // Проверяем существующий экземпляр
+            if (NotificationManager.Instance != null)
+                return NotificationManager.Instance;
+                
+            // Создаем новый экземпляр
+            return NotificationManager.CreateInstance();
         }
     }
 }

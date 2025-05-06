@@ -2,8 +2,11 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace MoodColor.App.Develop.CommonServices.Notifications
+namespace App.Develop.CommonServices.Notifications
 {
+    /// <summary>
+    /// Менеджер пользовательских настроек для уведомлений
+    /// </summary>
     [Serializable]
     public class NotificationPreferences
     {
@@ -35,11 +38,11 @@ namespace MoodColor.App.Develop.CommonServices.Notifications
         }
     }
     
-    public class UserPreferencesManager : MonoBehaviour
+    public class UserPreferencesManager
     {
         private const string PREFS_KEY = "notification_preferences";
         
-        [SerializeField] private NotificationPreferences _preferences = new NotificationPreferences();
+        private NotificationPreferences _preferences = new NotificationPreferences();
         private Dictionary<NotificationCategory, bool> _categoryEnabledCache = new Dictionary<NotificationCategory, bool>();
         private Dictionary<string, int> _dailyNotificationCount = new Dictionary<string, int>();
         
@@ -252,6 +255,45 @@ namespace MoodColor.App.Develop.CommonServices.Notifications
             {
                 Debug.LogError($"Failed to save notification preferences: {e.Message}");
             }
+        }
+
+        /// <summary>
+        /// Возвращает email пользователя для отправки уведомлений
+        /// </summary>
+        public string GetUserEmail()
+        {
+            // Приоритет 1: Проверяем сохраненное значение
+            string savedEmail = PlayerPrefs.GetString("UserEmail", "");
+            if (!string.IsNullOrEmpty(savedEmail))
+            {
+                return savedEmail;
+            }
+            
+            // Приоритет 2: Пытаемся получить из системы авторизации
+            // Пример интеграции с Firebase Auth:
+            /*
+            if (FirebaseAuth.DefaultInstance.CurrentUser != null && 
+                !string.IsNullOrEmpty(FirebaseAuth.DefaultInstance.CurrentUser.Email))
+            {
+                return FirebaseAuth.DefaultInstance.CurrentUser.Email;
+            }
+            */
+            
+            // Временная логика для тестирования
+            #if UNITY_EDITOR
+            return "test@example.com";
+            #else
+            return "";
+            #endif
+        }
+
+        /// <summary>
+        /// Устанавливает email пользователя для отправки уведомлений
+        /// </summary>
+        public void SetUserEmail(string email)
+        {
+            PlayerPrefs.SetString("UserEmail", email);
+            PlayerPrefs.Save();
         }
     }
 } 

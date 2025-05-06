@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using System.Linq;
 using App.Develop.CommonServices.Firebase.Auth;
 using App.Develop.CommonServices.Firebase.Auth.Services;
 using App.Develop.CommonServices.Firebase.Database.Services;
@@ -20,12 +19,10 @@ using App.Develop.CommonServices.UI;
 using App.Develop.DI;
 using App.Develop.Scenes.PersonalAreaScene;
 using App.Develop.Scenes.PersonalAreaScene.Settings;
-using App.Develop.Scenes.PersonalAreaScene.UI;
 using Firebase;
 using Firebase.Auth;
 using Firebase.Database;
 using UnityEngine;
-using App.Develop.UI.Panels;
 using App.Develop.Scenes.PersonalAreaScene.UI.Components;
 using App.Develop.CommonServices.Networking;
 using App.Develop.CommonServices.Social; // Для ConnectivityManager
@@ -254,6 +251,14 @@ namespace App.Develop.EntryPoint
                     )
                 );
 
+                // UI Factory
+                container.RegisterAsSingle(container =>
+                    new UIFactory(
+                        container.Resolve<ResourcesAssetLoader>(),
+                        new MonoFactory(container)
+                    )
+                ).NonLazy();
+
                 // Сервис сохранения/загрузки
                 container.RegisterAsSingle<ISaveLoadService>(container =>
                     new SaveLoadService(new JsonSerializer(), new LocalDataRepository())
@@ -302,6 +307,9 @@ namespace App.Develop.EntryPoint
                     )
                 ).NonLazy();
 
+                // Регистрация системы уведомлений в контейнере
+                RegisterNotificationSystem(container);
+
                 // Регистрация сервиса игровой системы
                 RegisterGameSystem(container);
 
@@ -310,6 +318,154 @@ namespace App.Develop.EntryPoint
             catch (Exception ex)
             {
                 Debug.LogError($"❌ Ошибка регистрации базовых сервисов: {ex}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Регистрирует систему уведомлений в контейнере
+        /// </summary>
+        private void RegisterNotificationSystem(DIContainer container)
+        {
+            try
+            {
+                // Создаем GameObject для менеджера уведомлений
+                GameObject notificationManagerObject = new GameObject("NotificationManager");
+                
+                // Получаем тип по имени через рефлексию, так как не все файлы могли быть полностью скомпилированы
+                Type notificationManagerType = Type.GetType("App.Develop.CommonServices.Notifications.NotificationManager, App.Develop.CommonServices.Notifications");
+                if (notificationManagerType == null)
+                {
+                    Debug.LogError("Не удалось найти тип NotificationManager. Убедитесь, что сборка App.Develop.CommonServices.Notifications скомпилирована.");
+                    return;
+                }
+                
+                // Добавляем компонент через рефлексию
+                Component manager = notificationManagerObject.AddComponent(notificationManagerType);
+                
+                // Не уничтожать при переходе между сценами
+                DontDestroyOnLoad(notificationManagerObject);
+                
+                // Регистрируем через лямбду, чтобы избежать проблем с типами
+                container.RegisterAsSingle(c => manager).NonLazy();
+                
+                Debug.Log("✅ Система уведомлений зарегистрирована");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Ошибка регистрации системы уведомлений: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Регистрирует сервисы аутентификации в контейнере
+        /// </summary>
+        private void RegisterAuthServices(DIContainer container)
+        {
+            try
+            {
+                // Сервис валидации
+                container.RegisterAsSingle<ValidationService>(container => new ValidationService()).NonLazy();
+
+                // CredentialStorage уже зарегистрирован в InitializeSecureStorage
+                // Оставим эту часть в комментариях для понимания изменений
+                /*
+                // Хранилище учетных данных
+                container.RegisterAsSingle<CredentialStorage>(container =>
+                    new CredentialStorage("UltraSecretKey!🔥")
+                ).NonLazy();
+                */
+
+                // Сервис аутентификации
+                container.RegisterAsSingle<IAuthService>(container =>
+                    new AuthService(
+                        container.Resolve<FirebaseAuth>(),
+                        container.Resolve<DatabaseService>(),
+                        container.Resolve<ValidationService>()
+                    )
+                ).NonLazy();
+
+                // Сервис профиля пользователя
+                container.RegisterAsSingle<UserProfileService>(container =>
+                    new UserProfileService(
+                        container.Resolve<DatabaseService>()
+                    )
+                ).NonLazy();
+
+                // Сервис отслеживания состояния аутентификации
+                container.RegisterAsSingle<IAuthStateService>(container =>
+                    new AuthStateService(
+                        container.Resolve<FirebaseAuth>(),
+                        container.Resolve<IAuthService>()
+                    )
+                ).NonLazy();
+
+                Debug.Log("✅ Аутентификационные сервисы зарегистрированы");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Ошибка регистрации аутентификационных сервисов: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Регистрирует сервисы для личного кабинета
+        /// </summary>
+        private void RegisterPersonalAreaServices(DIContainer container)
+        {
+            try
+            {
+                // Регистрируем SettingsManager для работы панели настроек
+                container.RegisterAsSingle<ISettingsManager>(container =>
+                {
+                    var settingsManager = new SettingsManager();
+                    settingsManager.Inject(container);
+                    return settingsManager;
+                }).NonLazy();
+
+                // Сервис личного кабинета
+                container.RegisterAsSingle<IPersonalAreaService>(container =>
+                    new PersonalAreaService(
+                        container.Resolve<EmotionService>(),
+                        container.Resolve<IPointsService>()
+                    )
+                );
+                
+                // Регистрируем EmotionJarView с отложенным созданием
+                container.RegisterAsSingle<EmotionJarView>(container =>
+                {
+                    // Создаем префаб только когда это действительно нужно
+                    // Логика регистрации упрощена, чтобы избежать проблем на этапе загрузки
+                    Debug.Log("⚠️ Создаем EmotionJarView через AssetPaths");
+                    return Instantiate(container.Resolve<ResourcesAssetLoader>().LoadAsset<EmotionJarView>(AssetPaths.EmotionJarView));
+                });
+
+                Debug.Log("✅ Сервисы личного кабинета зарегистрированы");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Ошибка регистрации сервисов личного кабинета: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Инициализирует SecurePlayerPrefs до регистрации других сервисов
+        /// </summary>
+        private void InitializeSecureStorage(DIContainer container)
+        {
+            try
+            {
+                // Используем тип без полного квалификатора
+                var credentialStorage = new CredentialStorage("UltraSecretKey!🔥");
+                container.RegisterAsSingle<CredentialStorage>(c => credentialStorage).NonLazy();
+                Debug.Log("✅ SecurePlayerPrefs инициализирован");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Ошибка инициализации SecurePlayerPrefs: {ex.Message}");
                 throw;
             }
         }
@@ -448,118 +604,6 @@ namespace App.Develop.EntryPoint
             catch (Exception ex)
             {
                 Debug.LogError($"❌ Ошибка регистрации Firebase сервисов: {ex.Message}");
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Регистрирует сервисы аутентификации в контейнере
-        /// </summary>
-        private void RegisterAuthServices(DIContainer container)
-        {
-            try
-            {
-                // Сервис валидации
-                container.RegisterAsSingle<ValidationService>(container => new ValidationService()).NonLazy();
-
-                // CredentialStorage уже зарегистрирован в InitializeSecureStorage
-                // Оставим эту часть в комментариях для понимания изменений
-                /*
-                // Хранилище учетных данных
-                container.RegisterAsSingle<CredentialStorage>(container =>
-                    new CredentialStorage("UltraSecretKey!🔥")
-                ).NonLazy();
-                */
-
-                // Сервис аутентификации
-                container.RegisterAsSingle<IAuthService>(container =>
-                    new AuthService(
-                        container.Resolve<FirebaseAuth>(),
-                        container.Resolve<DatabaseService>(),
-                        container.Resolve<ValidationService>()
-                    )
-                ).NonLazy();
-
-                // Сервис профиля пользователя
-                container.RegisterAsSingle<UserProfileService>(container =>
-                    new UserProfileService(
-                        container.Resolve<DatabaseService>()
-                    )
-                ).NonLazy();
-
-                // Сервис отслеживания состояния аутентификации
-                container.RegisterAsSingle<IAuthStateService>(container =>
-                    new AuthStateService(
-                        container.Resolve<FirebaseAuth>(),
-                        container.Resolve<IAuthService>()
-                    )
-                ).NonLazy();
-
-                Debug.Log("✅ Аутентификационные сервисы зарегистрированы");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"❌ Ошибка регистрации аутентификационных сервисов: {ex.Message}");
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Регистрирует сервисы для личного кабинета
-        /// </summary>
-        private void RegisterPersonalAreaServices(DIContainer container)
-        {
-            try
-            {
-                // Регистрируем SettingsManager для работы панели настроек
-                container.RegisterAsSingle<ISettingsManager>(container =>
-                {
-                    var settingsManager = new SettingsManager();
-                    settingsManager.Inject(container);
-                    return settingsManager;
-                }).NonLazy();
-
-                // Сервис личного кабинета
-                container.RegisterAsSingle<IPersonalAreaService>(container =>
-                    new PersonalAreaService(
-                        container.Resolve<EmotionService>(),
-                        container.Resolve<IPointsService>()
-                    )
-                );
-                
-                // Регистрируем EmotionJarView с отложенным созданием
-                container.RegisterAsSingle<EmotionJarView>(container =>
-                {
-                    // Создаем префаб только когда это действительно нужно
-                    // Логика регистрации упрощена, чтобы избежать проблем на этапе загрузки
-                    Debug.Log("⚠️ Создаем EmotionJarView через AssetPaths");
-                    return Instantiate(container.Resolve<ResourcesAssetLoader>().LoadAsset<EmotionJarView>(AssetPaths.EmotionJarView));
-                });
-
-                Debug.Log("✅ Сервисы личного кабинета зарегистрированы");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"❌ Ошибка регистрации сервисов личного кабинета: {ex.Message}");
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Инициализирует SecurePlayerPrefs до регистрации других сервисов
-        /// </summary>
-        private void InitializeSecureStorage(DIContainer container)
-        {
-            try
-            {
-                // Используем тип без полного квалификатора
-                var credentialStorage = new CredentialStorage("UltraSecretKey!🔥");
-                container.RegisterAsSingle<CredentialStorage>(c => credentialStorage).NonLazy();
-                Debug.Log("✅ SecurePlayerPrefs инициализирован");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"❌ Ошибка инициализации SecurePlayerPrefs: {ex.Message}");
                 throw;
             }
         }

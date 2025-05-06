@@ -1,16 +1,21 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 
-namespace MoodColor.App.Develop.CommonServices.Notifications
+namespace App.Develop.CommonServices.Notifications
 {
-    public class NotificationTriggerSystem : MonoBehaviour
+    /// <summary>
+    /// Система триггеров уведомлений, отвечающая за запуск уведомлений по расписанию
+    /// </summary>
+    public class NotificationTriggerSystem : IDisposable
     {
         public event Action<NotificationData> OnNotificationTriggered;
         
         private Dictionary<string, ScheduledNotification> _scheduledNotifications = new Dictionary<string, ScheduledNotification>();
         private bool _isInitialized = false;
+        private Timer _checkTimer;
         
         private class ScheduledNotification
         {
@@ -31,11 +36,17 @@ namespace MoodColor.App.Develop.CommonServices.Notifications
             if (_isInitialized) return;
             
             Debug.Log("Initializing NotificationTriggerSystem");
-            
-            StartCoroutine(CheckScheduledNotifications());
+
+            // Запускаем таймер, который будет проверять уведомления каждую секунду
+            _checkTimer = new Timer(CheckScheduledNotificationsCallback, null, 0, 1000);
             
             _isInitialized = true;
             Debug.Log("NotificationTriggerSystem initialized successfully");
+        }
+
+        public void Dispose()
+        {
+            _checkTimer?.Dispose();
         }
         
         public void AddScheduledNotification(NotificationData notification, DateTime scheduledTime)
@@ -67,13 +78,14 @@ namespace MoodColor.App.Develop.CommonServices.Notifications
             Debug.Log("Cancelled all scheduled notifications");
         }
         
-        private IEnumerator CheckScheduledNotifications()
+        private void CheckScheduledNotificationsCallback(object state)
         {
-            while (true)
+            var now = DateTime.Now;
+            List<string> triggeredNotificationIds = new List<string>();
+            List<NotificationData> triggeredNotifications = new List<NotificationData>();
+            
+            lock (_scheduledNotifications)
             {
-                var now = DateTime.Now;
-                List<string> triggeredNotificationIds = new List<string>();
-                
                 foreach (var kvp in _scheduledNotifications)
                 {
                     var scheduledNotification = kvp.Value;
@@ -89,7 +101,7 @@ namespace MoodColor.App.Develop.CommonServices.Notifications
                             continue;
                         }
                         
-                        OnNotificationTriggered?.Invoke(scheduledNotification.Data);
+                        triggeredNotifications.Add(scheduledNotification.Data);
                         triggeredNotificationIds.Add(kvp.Key);
                     }
                 }
@@ -99,9 +111,13 @@ namespace MoodColor.App.Develop.CommonServices.Notifications
                 {
                     _scheduledNotifications.Remove(id);
                 }
-                
-                // Проверяем раз в секунду
-                yield return new WaitForSeconds(1f);
+            }
+            
+            // Вызываем событие для каждого сработавшего уведомления
+            // Делаем это вне блока lock, чтобы не блокировать другие операции
+            foreach (var notification in triggeredNotifications)
+            {
+                OnNotificationTriggered?.Invoke(notification);
             }
         }
     }

@@ -1,12 +1,19 @@
 using System;
 using UnityEngine;
+using System.Collections.Generic;
 #if UNITY_ANDROID
 using Unity.Notifications.Android;
 #endif
+#if UNITY_IOS
+using Unity.Notifications.iOS;
+#endif
 
-namespace MoodColor.App.Develop.CommonServices.Notifications
+namespace App.Develop.CommonServices.Notifications
 {
-    public class PushNotificationService : MonoBehaviour
+    /// <summary>
+    /// Сервис для работы с push-уведомлениями на устройствах
+    /// </summary>
+    public class PushNotificationService : MonoBehaviour, INotificationService
     {
         private const string CHANNEL_ID_DEFAULT = "mood_color_default";
         private const string CHANNEL_ID_REMINDER = "mood_color_reminder";
@@ -17,6 +24,11 @@ namespace MoodColor.App.Develop.CommonServices.Notifications
         private const string LARGE_ICON_NAME = "notification_large_icon";
         
         private bool _isInitialized = false;
+
+        /// <summary>
+        /// Имя сервиса для идентификации
+        /// </summary>
+        public string ServiceName => "PushNotifications";
 
         public void Initialize()
         {

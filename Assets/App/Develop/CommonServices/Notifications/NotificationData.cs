@@ -1,6 +1,6 @@
 using System;
 
-namespace MoodColor.App.Develop.CommonServices.Notifications
+namespace App.Develop.CommonServices.Notifications
 {
     /// <summary>
     /// Перечисление типов доставки уведомлений

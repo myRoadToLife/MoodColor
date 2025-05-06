@@ -3,10 +3,10 @@ using System.Collections;
 using UnityEngine;
 using System.IO;
 
-namespace MoodColor.App.Develop.CommonServices.Notifications
+namespace App.Develop.CommonServices.Notifications
 {
     /// <summary>
-    /// Пример использования системы уведомлений
+    /// Пример использования системы уведомлений в приложении
     /// </summary>
     public class NotificationExampleUsage : MonoBehaviour
     {

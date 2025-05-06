@@ -1,8 +1,8 @@
 {
-    "name": "MoodColor.App.Develop.CommonServices.Notifications.Editor",
-    "rootNamespace": "MoodColor.App.Develop.CommonServices.Notifications.Editor",
+    "name": "App.Develop.CommonServices.Notifications.Editor",
+    "rootNamespace": "App.Develop.CommonServices.Notifications.Editor",
     "references": [
-        "MoodColor.App.Develop.CommonServices.Notifications",
+        "App.Develop.CommonServices.Notifications",
         "Unity.Notifications.iOS.Editor",
         "Unity.Notifications.Android.Editor"
     ],

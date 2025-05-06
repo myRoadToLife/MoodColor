@@ -11,6 +11,6 @@ namespace App.Develop.DI
         /// Регистрирует группу сервисов в контейнере
         /// </summary>
         /// <param name="container">Контейнер зависимостей</param>
-        void Register(DIContainer container);
+        void RegisterServices(DIContainer container);
     }
 } 
