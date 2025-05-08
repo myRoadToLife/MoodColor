@@ -67,7 +67,7 @@ namespace App.Develop.CommonServices.Notifications
         {
             #if UNITY_ANDROID && UNITY_EDITOR
             // Путь сохранения для Android
-            string directoryPath = Application.dataPath + "/Plugins/Android/res/drawable";
+            string directoryPath = Application.dataPath + "/Plugins/Android/FirebaseApp.androidlib/res/drawable";
             
             // Создаем директорию, если она не существует
             if (!Directory.Exists(directoryPath))

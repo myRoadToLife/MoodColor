@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 13e9dcdc858458b4e95e3dfc877481cd
+guid: ec82fdc4f64d4184f93a3e5be4fe88ee
 labels:
 - gpsr
 PluginImporter:
   externalObjects: {}
-  serializedVersion: 3
+  serializedVersion: 2
   iconMap: {}
   executionOrder: {}
   defineConstraints: []
@@ -13,13 +13,19 @@ PluginImporter:
   isExplicitlyReferenced: 0
   validateReferences: 1
   platformData:
-    Android:
+  - first:
+      Android: Android
+    second:
       enabled: 0
       settings: {}
-    Any:
+  - first:
+      Any: 
+    second:
       enabled: 0
       settings: {}
-    Editor:
+  - first:
+      Editor: Editor
+    second:
       enabled: 0
       settings:
         DefaultValueInitialized: true

@@ -6,9 +6,7 @@ using App.Develop.CommonServices.UI;
 using App.Develop.DI;
 using App.Develop.Scenes.PersonalAreaScene.Settings;
 using App.Develop.Scenes.PersonalAreaScene.UI;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace App.Develop.Scenes.PersonalAreaScene
 {
@@ -24,23 +22,26 @@ namespace App.Develop.Scenes.PersonalAreaScene
         private SceneSwitcher _sceneSwitcher;
         private MonoFactory _factory;
         private PanelManager _panelManager;
+        private bool _isInitialized;
 
         public void Inject(DIContainer container, MonoFactory factory)
         {
             if (container == null) throw new ArgumentNullException(nameof(container));
             if (factory == null) throw new ArgumentNullException(nameof(factory));
-            if (_ui == null) throw new MissingComponentException("PersonalAreaUIController не назначен в инспекторе");
+            if (_ui == null) throw new ArgumentNullException(nameof(_ui), "PersonalAreaUIController не назначен в инспекторе");
 
             _service = container.Resolve<IPersonalAreaService>();
             _sceneSwitcher = container.Resolve<SceneSwitcher>();
             _factory = factory;
             _panelManager = container.Resolve<PanelManager>();
 
-            InitializeUI();
+            Initialize();
         }
 
-        private void InitializeUI()
+        private void Initialize()
         {
+            if (_isInitialized) return;
+
             try
             {
                 _ui.Initialize();
@@ -48,6 +49,7 @@ namespace App.Develop.Scenes.PersonalAreaScene
                 SetupEmotionJars();
                 SetupStatistics();
                 SetupButtons();
+                _isInitialized = true;
             }
             catch (Exception ex)
             {
@@ -58,12 +60,17 @@ namespace App.Develop.Scenes.PersonalAreaScene
 
         private void SetupButtons()
         {
-            _ui.OnLogEmotion += () => Debug.Log("📝 Логируем эмоцию");
-            _ui.OnOpenHistory += () => Debug.Log("📜 История");
-            _ui.OnOpenFriends += () => Debug.Log("👥 Друзья");
-            _ui.OnOpenWorkshop += () => Debug.Log("🛠️ Мастерская");
+            _ui.OnLogEmotion += HandleLogEmotion;
+            _ui.OnOpenHistory += HandleOpenHistory;
+            _ui.OnOpenFriends += HandleOpenFriends;
+            _ui.OnOpenWorkshop += HandleOpenWorkshop;
             _ui.OnOpenSettings += ShowSettingsPanel;
         }
+
+        private void HandleLogEmotion() => Debug.Log("📝 Логируем эмоцию");
+        private void HandleOpenHistory() => Debug.Log("📜 История");
+        private void HandleOpenFriends() => Debug.Log("👥 Друзья");
+        private void HandleOpenWorkshop() => Debug.Log("🛠️ Мастерская");
 
         private void ShowSettingsPanel()
         {
@@ -101,7 +108,6 @@ namespace App.Develop.Scenes.PersonalAreaScene
         {
             foreach (EmotionTypes type in Enum.GetValues(typeof(EmotionTypes)))
             {
-                // Подписываемся на изменения эмоций
                 var variable = _service.GetEmotionVariable(type);
                 if (variable != null)
                 {
@@ -119,35 +125,19 @@ namespace App.Develop.Scenes.PersonalAreaScene
 
         private void OnDestroy()
         {
+            if (!_isInitialized) return;
+
             if (_ui != null)
             {
+                _ui.OnLogEmotion -= HandleLogEmotion;
+                _ui.OnOpenHistory -= HandleOpenHistory;
+                _ui.OnOpenFriends -= HandleOpenFriends;
+                _ui.OnOpenWorkshop -= HandleOpenWorkshop;
+                _ui.OnOpenSettings -= ShowSettingsPanel;
                 _ui.ClearAll();
             }
 
-            // Отписываемся от событий
-            _ui.OnLogEmotion -= () => Debug.Log("📝 Логируем эмоцию");
-            _ui.OnOpenHistory -= () => Debug.Log("📜 История");
-            _ui.OnOpenFriends -= () => Debug.Log("👥 Друзья");
-            _ui.OnOpenWorkshop -= () => Debug.Log("🛠️ Мастерская");
-            _ui.OnOpenSettings -= ShowSettingsPanel;
-        }
-
-        private void OnEnable()
-        {
-            // Подписываемся на событие выгрузки сцены
-            SceneManager.sceneUnloaded += OnSceneUnloaded;
-        }
-
-        private void OnDisable()
-        {
-            // Отписываемся от события выгрузки сцены
-            SceneManager.sceneUnloaded -= OnSceneUnloaded;
-        }
-
-        private void OnSceneUnloaded(Scene scene)
-        {
-            // Очищаем ссылки при выгрузке сцены
-            _service = null;
+            _isInitialized = false;
         }
     }
 }

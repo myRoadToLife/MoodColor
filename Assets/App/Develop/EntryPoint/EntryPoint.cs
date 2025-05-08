@@ -401,6 +401,14 @@ namespace App.Develop.EntryPoint
                     )
                 ).NonLazy();
 
+                // Регистрируем AuthManager как обычный сервис, а не MonoBehaviour
+                container.RegisterAsSingle<IAuthManager>(container =>
+                {
+                    var authManager = new AuthManager();
+                    authManager.Inject(container);
+                    return authManager;
+                }).NonLazy();
+
                 Debug.Log("✅ Аутентификационные сервисы зарегистрированы");
             }
             catch (Exception ex)

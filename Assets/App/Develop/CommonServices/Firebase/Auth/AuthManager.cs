@@ -1,12 +1,9 @@
 // Assets/App/Develop/AppServices/Firebase/Auth/AuthManager.cs
 
 using System;
-using System.Collections;
 using System.Threading.Tasks;
 using App.Develop.CommonServices.Firebase.Auth.Services;
 using App.Develop.CommonServices.Firebase.Common.SecureStorage;
-using Firebase;
-using Firebase.Auth;
 using UnityEngine;
 using App.Develop.AppServices.Auth;
 using App.Develop.CommonServices.SceneManagement;
@@ -14,16 +11,34 @@ using App.Develop.DI;
 
 namespace App.Develop.CommonServices.Firebase.Auth
 {
-    public class AuthManager : MonoBehaviour, IInjectable
+    // Определяем интерфейс для AuthManager
+    public interface IAuthManager
     {
-        [SerializeField] private AuthUIController _uiController;
+        void Initialize(AuthUIController uiController);
+        void RegisterUser(string email, string password, bool rememberMe);
+        void LoginUser(string email, string password, bool rememberMe);
+        string GetLastUsedEmail();
+        void CheckEmailVerification();
+        void SendEmailVerification();
+        void ClearStoredCredentials();
+        void Logout();
+    }
 
+    // Реализация AuthManager как обычного класса
+    public class AuthManager : IAuthManager, IInjectable, IDisposable
+    {
+        private AuthUIController _uiController;
         private IAuthService _authService;
         private UserProfileService _profileService;
         private CredentialStorage _credentialStorage;
         private ValidationService _validationService;
         private SceneSwitcher _sceneSwitcher;
         private bool _isProcessing;
+
+        // Конструктор по умолчанию для DI-контейнера
+        public AuthManager()
+        {
+        }
 
         public void Inject(DIContainer container)
         {
@@ -37,14 +52,6 @@ namespace App.Develop.CommonServices.Firebase.Auth
                 _profileService = container.Resolve<UserProfileService>();
                 _credentialStorage = container.Resolve<CredentialStorage>();
                 _validationService = container.Resolve<ValidationService>();
-
-                if (_uiController == null)
-                {
-                    Debug.LogError("🔴 AuthUIController не присвоен в инспекторе!");
-                    return;
-                }
-
-                InitializeUI();
             }
             catch (Exception ex)
             {
@@ -52,8 +59,12 @@ namespace App.Develop.CommonServices.Firebase.Auth
             }
         }
 
-        private void InitializeUI()
+        public void Initialize(AuthUIController uiController)
         {
+            if (uiController == null)
+                throw new ArgumentNullException(nameof(uiController));
+
+            _uiController = uiController;
             _uiController.Initialize(this);
             _uiController.ShowAuthPanel();
 
@@ -73,12 +84,14 @@ namespace App.Develop.CommonServices.Firebase.Auth
                 if (!_validationService.IsValidEmail(email))
                 {
                     _uiController.ShowPopup("Введите корректный email");
+                    _isProcessing = false;
                     return;
                 }
 
                 if (!_validationService.IsValidPassword(password))
                 {
                     _uiController.ShowPopup("Пароль должен содержать 8–12 символов, цифры, строчные и заглавные буквы");
+                    _isProcessing = false;
                     return;
                 }
 
@@ -117,6 +130,7 @@ namespace App.Develop.CommonServices.Firebase.Auth
                 if (!_validationService.IsValidEmail(email))
                 {
                     _uiController.ShowPopup("Введите корректный email");
+                    _isProcessing = false;
                     return;
                 }
 
@@ -158,7 +172,6 @@ namespace App.Develop.CommonServices.Firebase.Auth
                 return string.Empty;
             }
         }
-
 
         public async void CheckEmailVerification()
         {
@@ -230,22 +243,29 @@ namespace App.Develop.CommonServices.Firebase.Auth
             }
             catch (Exception ex)
             {
-                Debug.LogError($"🔴 Ошибка при очистке учетных данных: {ex}");
-
-                if (_uiController != null)
-                {
-                    _uiController.ShowPopup("Произошла ошибка при очистке данных");
-                }
+                Debug.LogError($"🔴 Ошибка при очистке сохраненных данных: {ex}");
             }
         }
 
-        private void OnDestroy()
+        public void Logout()
         {
-            _authService = null;
-            _profileService = null;
-            _credentialStorage = null;
-            _validationService = null;
-            _sceneSwitcher = null;
+            try
+            {
+                if (_authService != null)
+                {
+                    _authService.SignOut();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"🔴 Ошибка при выходе: {ex}");
+            }
+        }
+
+        public void Dispose()
+        {
+            Logout();
+            _uiController = null;
         }
     }
 }

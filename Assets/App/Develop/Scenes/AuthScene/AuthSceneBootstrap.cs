@@ -31,12 +31,33 @@ namespace App.Develop.Scenes.AuthScene
 
             GameObject authPanelInstance = Instantiate(authPanelPrefab);
     
-            // Внедряем зависимости
-            factory.CreateOn<AuthManager>(authPanelInstance);
-            factory.CreateOn<ProfileSetupUI>(authPanelInstance);
+            // Получаем IAuthManager из контейнера (больше не компонент)
+            var authManager = _container.Resolve<IAuthManager>();
+            
+            // Находим компонент AuthUIController, который уже должен быть на префабе
+            var authUIController = authPanelInstance.GetComponent<AuthUIController>();
+            if (authUIController == null)
+            {
+                Debug.LogError("❌ Не найден компонент AuthUIController на префабе AuthPanel");
+            }
+            else
+            {
+                // Инициализируем AuthUIController через IAuthManager
+                authManager.Initialize(authUIController);
+            }
+            
+            // Обрабатываем ProfileSetupUI
+            var profileSetupUI = authPanelInstance.GetComponent<ProfileSetupUI>();
+            if (profileSetupUI == null)
+            {
+                Debug.LogError("❌ Не найден компонент ProfileSetupUI на префабе AuthPanel");
+            }
+            else if (profileSetupUI is IInjectable injectableProfile)
+            {
+                injectableProfile.Inject(_container);
+            }
 
             yield return null;
         }
-
     }
 }

@@ -1,4 +1,5 @@
 using App.Develop.AppServices.Auth.UI;
+using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -21,37 +22,64 @@ namespace App.Develop.CommonServices.Firebase.Auth
         [SerializeField] private GameObject _popupPanel;
         [SerializeField] private TMP_Text _popupText;
 
-        private AuthManager _authManager;
+        // Событие для слабого связывания с ProfileSetupUI
+        public event Action OnProfileSetupRequested;
 
-        public void Initialize(AuthManager authManager)
+        private IAuthManager _authManager;
+
+        public void Initialize(IAuthManager authManager)
         {
-            _authManager = authManager;
+            _authManager = authManager ?? throw new ArgumentNullException(nameof(authManager));
             
-            _authPanelAnimator.Hide();
-            _emailVerificationAnimator.Hide();
-            _profilePanelAnimator.Hide();
-            _popupPanel.SetActive(false);
+            // Инициализируем панели в безопасном режиме 
+            // (без анимации и без попыток запуска корутин на неактивных объектах)
+            if (_authPanelAnimator != null)
+                _authPanelAnimator.SetVisibleState();
+                
+            if (_emailVerificationAnimator != null)
+                _emailVerificationAnimator.SetHiddenState();
+                
+            if (_profilePanelAnimator != null)
+                _profilePanelAnimator.SetHiddenState();
+                
+            if (_popupPanel != null)
+                _popupPanel.SetActive(false);
         }
 
         public void ShowAuthPanel()
         {
-            _authPanelAnimator.Show();
-            _emailVerificationAnimator.Hide();
-            _profilePanelAnimator.Hide();
+            if (_authPanelAnimator != null)
+                _authPanelAnimator.Show();
+                
+            if (_emailVerificationAnimator != null && _emailVerificationAnimator.gameObject.activeSelf)
+                _emailVerificationAnimator.Hide();
+                
+            if (_profilePanelAnimator != null && _profilePanelAnimator.gameObject.activeSelf)
+                _profilePanelAnimator.Hide();
         }
 
         public void ShowEmailVerificationPanel()
         {
-            _authPanelAnimator.Hide();
-            _emailVerificationAnimator.Show();
-            _profilePanelAnimator.Hide();
+            if (_authPanelAnimator != null && _authPanelAnimator.gameObject.activeSelf)
+                _authPanelAnimator.Hide();
+                
+            if (_emailVerificationAnimator != null)
+                _emailVerificationAnimator.Show();
+                
+            if (_profilePanelAnimator != null && _profilePanelAnimator.gameObject.activeSelf)
+                _profilePanelAnimator.Hide();
         }
 
         public void ShowProfilePanel()
         {
-            _authPanelAnimator.Hide();
-            _emailVerificationAnimator.Hide();
-            _profilePanelAnimator.Show();
+            if (_authPanelAnimator != null && _authPanelAnimator.gameObject.activeSelf)
+                _authPanelAnimator.Hide();
+                
+            if (_emailVerificationAnimator != null && _emailVerificationAnimator.gameObject.activeSelf)
+                _emailVerificationAnimator.Hide();
+                
+            if (_profilePanelAnimator != null)
+                _profilePanelAnimator.Show();
         }
 
         public void LoadSavedCredentials(string email, string password, bool rememberMe)
@@ -126,17 +154,8 @@ namespace App.Develop.CommonServices.Firebase.Auth
 
         public void OnContinueProfileButtonClicked()
         {
-            // Находим и вызываем ProfileSetupUI для продолжения заполнения профиля
-            // Используем GetComponent для поиска на том же GameObject
-            var profileSetupUI = GetComponent<ProfileSetupUI>();
-            if (profileSetupUI != null)
-            {
-                profileSetupUI.OnContinueProfile();
-            }
-            else
-            {
-                Debug.LogError("ProfileSetupUI не найден на том же GameObject");
-            }
+            // Вместо прямого GetComponent используем систему событий
+            OnProfileSetupRequested?.Invoke();
         }
     }
 }

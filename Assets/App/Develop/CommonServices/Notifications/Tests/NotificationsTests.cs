@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using System.Collections;
 using System.Collections.Generic;
 using NUnit.Framework;
@@ -221,4 +222,5 @@ namespace App.Tests.EditMode
             Assert.Pass("Тест очереди уведомлений успешно выполнен");
         }
     }
-} 
+}
+#endif 

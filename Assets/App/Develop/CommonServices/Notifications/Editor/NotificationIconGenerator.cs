@@ -19,7 +19,7 @@ namespace App.Develop.CommonServices.Notifications.Editor
         private static readonly Color UpdateColor = new Color(0.5f, 0.5f, 0.5f);
         
         // Пути сохранения
-        private const string ANDROID_DRAWABLE_PATH = "Assets/Plugins/Android/res/drawable";
+        private const string ANDROID_DRAWABLE_PATH = "Assets/Plugins/Android/FirebaseApp.androidlib/res/drawable";
         private const string RESOURCES_ICONS_PATH = "Assets/Resources/Icons/Notifications";
         
         [MenuItem("Tools/MoodColor/Generate Notification Icons")]

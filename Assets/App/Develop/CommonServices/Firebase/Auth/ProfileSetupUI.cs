@@ -1,4 +1,4 @@
-// Assets/App/Develop/AppServices/Firebase/Auth/ProfileSetupUI.cs
+// Assets/App/Develop/CommonServices/Firebase/Auth/ProfileSetupUI.cs
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -18,10 +18,34 @@ namespace App.Develop.CommonServices.Firebase.Auth
         [SerializeField] private TMP_Dropdown _genderDropdown;
         [SerializeField] private GameObject _popupPanel;
         [SerializeField] private TMP_Text _popupText;
+        
+        [Header("References")]
+        [SerializeField] private AuthUIController _authUIController;
 
         private UserProfileService _profileService;
         private SceneSwitcher _sceneSwitcher;
         private bool _isProcessing;
+
+        private void Awake()
+        {
+            // Если ссылка на контроллер не задана, ищем его на том же GameObject
+            if (_authUIController == null)
+                _authUIController = GetComponent<AuthUIController>();
+        }
+        
+        private void OnEnable()
+        {
+            // Подписываемся на событие, если контроллер найден
+            if (_authUIController != null)
+                _authUIController.OnProfileSetupRequested += OnContinueProfile;
+        }
+        
+        private void OnDisable()
+        {
+            // Отписываемся от события, если контроллер найден
+            if (_authUIController != null)
+                _authUIController.OnProfileSetupRequested -= OnContinueProfile;
+        }
 
         public void Inject(DIContainer container)
         {
