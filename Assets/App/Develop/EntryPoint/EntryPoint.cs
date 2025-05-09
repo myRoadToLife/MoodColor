@@ -25,7 +25,9 @@ using Firebase.Database;
 using UnityEngine;
 using App.Develop.Scenes.PersonalAreaScene.UI.Components;
 using App.Develop.CommonServices.Networking;
-using App.Develop.CommonServices.Social; // Для ConnectivityManager
+using App.Develop.CommonServices.Social;
+using App.Develop.Scenes.PersonalAreaScene.Infrastructure;
+using App.Develop.Scenes.PersonalAreaScene.UI; // Для ConnectivityManager
 
 // Используем IDatabaseService только из этого пространства имен
 using IDatabaseService = App.Develop.CommonServices.Firebase.Database.Services.IDatabaseService;
@@ -449,7 +451,7 @@ namespace App.Develop.EntryPoint
                     Debug.Log("⚠️ Создаем EmotionJarView через AssetPaths");
                     return Instantiate(container.Resolve<ResourcesAssetLoader>().LoadAsset<EmotionJarView>(AssetPaths.EmotionJarView));
                 });
-
+                
                 Debug.Log("✅ Сервисы личного кабинета зарегистрированы");
             }
             catch (Exception ex)

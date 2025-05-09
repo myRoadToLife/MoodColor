@@ -1,5 +1,3 @@
-// PersonalAreaService.cs
-
 using App.Develop.CommonServices.DataManagement.DataProviders;
 using App.Develop.CommonServices.Emotion;
 using App.Develop.CommonServices.GameSystem;
@@ -8,7 +6,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using System;
 
-namespace App.Develop.Scenes.PersonalAreaScene
+namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
 {
     public interface IPersonalAreaService
     {
@@ -124,4 +122,4 @@ namespace App.Develop.Scenes.PersonalAreaScene
             }
         }
     }
-}
+} 
