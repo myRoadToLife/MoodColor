@@ -8,10 +8,29 @@ namespace App.Develop.CommonServices.Firebase.Auth
 {
     public class AuthUIController : MonoBehaviour
     {
-        [Header("UI Elements")]
+        [Header("UI Elements - Common")]
         [SerializeField] private TMP_InputField _emailInput;
         [SerializeField] private TMP_InputField _passwordInput;
         [SerializeField] private Toggle _rememberMeToggle;
+        [SerializeField] private TMP_Text _messageText; // For errors or info
+
+        [Header("Login Panel")]
+        [SerializeField] private GameObject _loginPanel;
+        [SerializeField] private Button _loginButton;
+        [SerializeField] private Button _switchToRegisterButton; // From login to register form
+        [SerializeField] private Button _forgotPasswordButton;
+
+        [Header("Register Panel")]
+        [SerializeField] private GameObject _registerPanel;
+        [SerializeField] private TMP_InputField _confirmPasswordInput;
+        [SerializeField] private Button _registerButton;
+        [SerializeField] private Button _switchToLoginButton; // From register to login form
+
+        [Header("Reset Password Panel")]
+        [SerializeField] private GameObject _resetPasswordPanel;
+        [SerializeField] private TMP_InputField _resetPasswordEmailInput;
+        [SerializeField] private Button _sendResetEmailButton;
+        [SerializeField] private Button _backToLoginButton; // From reset password to login
 
         [Header("Animators")]
         [SerializeField] private UIAnimator _authPanelAnimator;

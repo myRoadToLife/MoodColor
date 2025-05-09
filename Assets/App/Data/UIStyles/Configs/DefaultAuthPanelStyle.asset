@@ -1,0 +1,150 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d28d8f1571e3da845a1276f07456c727, type: 3}
+  m_Name: DefaultAuthPanelStyle
+  m_EditorClassIdentifier: 
+  DefaultFont: {fileID: 0}
+  TitleFont: {fileID: 0}
+  GlobalBackgroundColor: {r: 0.95, g: 0.9, b: 0.85, a: 1}
+  DefaultTextColor: {r: 0.2, g: 0.15, b: 0.1, a: 1}
+  LoginPanelStyle:
+    BackgroundColor: {r: 0.82, g: 0.71, b: 0.55, a: 1}
+    BackgroundSprite: {fileID: 0}
+    BackgroundImageType: 1
+    BorderColor: {r: 0, g: 0, b: 0, a: 0}
+    BorderWidth: 0
+    FrameSprite: {fileID: 0}
+    FrameColor: {r: 0.75, g: 0.64, b: 0.48, a: 1}
+    FrameImageType: 1
+  RegisterPanelStyle:
+    BackgroundColor: {r: 0.82, g: 0.71, b: 0.55, a: 1}
+    BackgroundSprite: {fileID: 0}
+    BackgroundImageType: 1
+    BorderColor: {r: 0, g: 0, b: 0, a: 0}
+    BorderWidth: 0
+    FrameSprite: {fileID: 0}
+    FrameColor: {r: 0.75, g: 0.64, b: 0.48, a: 1}
+    FrameImageType: 1
+  ResetPasswordPanelStyle:
+    BackgroundColor: {r: 0.82, g: 0.71, b: 0.55, a: 1}
+    BackgroundSprite: {fileID: 0}
+    BackgroundImageType: 1
+    BorderColor: {r: 0, g: 0, b: 0, a: 0}
+    BorderWidth: 0
+    FrameSprite: {fileID: 0}
+    FrameColor: {r: 0.75, g: 0.64, b: 0.48, a: 1}
+    FrameImageType: 1
+  EmailVerificationPanelStyle:
+    BackgroundColor: {r: 0.82, g: 0.71, b: 0.55, a: 1}
+    BackgroundSprite: {fileID: 0}
+    BackgroundImageType: 1
+    BorderColor: {r: 0, g: 0, b: 0, a: 0}
+    BorderWidth: 0
+    FrameSprite: {fileID: 0}
+    FrameColor: {r: 0.75, g: 0.64, b: 0.48, a: 1}
+    FrameImageType: 1
+  ProfilePanelStyle:
+    BackgroundColor: {r: 0.82, g: 0.71, b: 0.55, a: 1}
+    BackgroundSprite: {fileID: 0}
+    BackgroundImageType: 1
+    BorderColor: {r: 0, g: 0, b: 0, a: 0}
+    BorderWidth: 0
+    FrameSprite: {fileID: 0}
+    FrameColor: {r: 0.75, g: 0.64, b: 0.48, a: 1}
+    FrameImageType: 1
+  DefaultInputFieldStyle:
+    BackgroundColor: {r: 1, g: 0.98, b: 0.95, a: 1}
+    BackgroundSprite: {fileID: 0}
+    BackgroundImageType: 1
+    PlaceholderBackgroundColor: {r: 0.9, g: 0.88, b: 0.85, a: 0.3}
+    InputStateColors:
+      m_NormalColor: {r: 0.9, g: 0.85, b: 0.8, a: 1}
+      m_HighlightedColor: {r: 1, g: 0.95, b: 0.9, a: 1}
+      m_PressedColor: {r: 0.85, g: 0.8, b: 0.75, a: 1}
+      m_SelectedColor: {r: 1, g: 0.95, b: 0.9, a: 1}
+      m_DisabledColor: {r: 0.8, g: 0.8, b: 0.8, a: 0.5}
+      m_ColorMultiplier: 1
+      m_FadeDuration: 0.1
+  DefaultButtonStyle:
+    BackgroundColor: {r: 0.75, g: 0.64, b: 0.48, a: 1}
+    BackgroundSprite: {fileID: 0}
+    BackgroundImageType: 1
+    ButtonStateColors:
+      m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
+      m_HighlightedColor: {r: 0.9, g: 0.9, b: 0.9, a: 1}
+      m_PressedColor: {r: 0.75, g: 0.75, b: 0.75, a: 1}
+      m_SelectedColor: {r: 0.9, g: 0.9, b: 0.9, a: 1}
+      m_DisabledColor: {r: 0.5, g: 0.5, b: 0.5, a: 0.5}
+      m_ColorMultiplier: 1
+      m_FadeDuration: 0.1
+    TextColor: {r: 1, g: 1, b: 1, a: 1}
+  DestructiveButtonStyle:
+    BackgroundColor: {r: 0.75, g: 0.64, b: 0.48, a: 1}
+    BackgroundSprite: {fileID: 0}
+    BackgroundImageType: 1
+    ButtonStateColors:
+      m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
+      m_HighlightedColor: {r: 0.9, g: 0.9, b: 0.9, a: 1}
+      m_PressedColor: {r: 0.75, g: 0.75, b: 0.75, a: 1}
+      m_SelectedColor: {r: 0.9, g: 0.9, b: 0.9, a: 1}
+      m_DisabledColor: {r: 0.5, g: 0.5, b: 0.5, a: 0.5}
+      m_ColorMultiplier: 1
+      m_FadeDuration: 0.1
+    TextColor: {r: 1, g: 1, b: 1, a: 1}
+  DefaultToggleStyle:
+    BoxBackgroundColor: {r: 1, g: 0.98, b: 0.95, a: 1}
+    BoxBackgroundSprite: {fileID: 0}
+    CheckmarkColor: {r: 0.3, g: 0.2, b: 0.15, a: 1}
+    CheckmarkSprite: {fileID: 0}
+  TitleTextStyle:
+    Font: {fileID: 0}
+    FontSize: 24
+    TextColor: {r: 0, g: 0, b: 0, a: 0}
+    FontStyle: 0
+    Alignment: 513
+  LabelTextStyle:
+    Font: {fileID: 0}
+    FontSize: 24
+    TextColor: {r: 0, g: 0, b: 0, a: 0}
+    FontStyle: 0
+    Alignment: 513
+  MessageTextStyle:
+    Font: {fileID: 0}
+    FontSize: 24
+    TextColor: {r: 0, g: 0, b: 0, a: 0}
+    FontStyle: 0
+    Alignment: 513
+  ButtonTextStyle:
+    Font: {fileID: 0}
+    FontSize: 24
+    TextColor: {r: 0, g: 0, b: 0, a: 0}
+    FontStyle: 0
+    Alignment: 513
+  InputPlaceholderTextStyle:
+    Font: {fileID: 0}
+    FontSize: 24
+    TextColor: {r: 0, g: 0, b: 0, a: 0}
+    FontStyle: 0
+    Alignment: 513
+  InputValueTextStyle:
+    Font: {fileID: 0}
+    FontSize: 24
+    TextColor: {r: 0, g: 0, b: 0, a: 0}
+    FontStyle: 0
+    Alignment: 513
+  DefaultPadding: 20
+  ItemSpacing: 25
+  DefaultButtonSize: {x: 350, y: 70}
+  DefaultInputSize: {x: 500, y: 60}
+  EyeIconOpened: {fileID: 0}
+  EyeIconClosed: {fileID: 0}
+  CheckmarkIcon: {fileID: 0}
