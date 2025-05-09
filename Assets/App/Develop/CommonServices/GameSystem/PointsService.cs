@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using App.Develop.CommonServices.DataManagement.DataProviders;
 using App.Develop.DI;
 using UnityEngine;
@@ -62,72 +63,87 @@ namespace App.Develop.CommonServices.GameSystem
 
         public void Initialize()
         {
+            Debug.Log("[PointsService] Синхронная часть Initialize вызвана.");
+        }
+
+        public async Task InitializeAsync()
+        {
+            await _playerDataProvider.Load();
             var playerData = _playerDataProvider.GetData();
             
-            // Проверяем наличие данных игры, создаем если еще нет
+            if (playerData == null)
+            {
+                Debug.LogError("[PointsService] PlayerData is null after Load. Это не должно происходить.");
+                playerData = _playerDataProvider.GetData();
+                 if (playerData == null) {
+                    Debug.LogError("[PointsService] PlayerData все еще null. Сервис не может быть инициализирован.");
+                    return;
+                 }
+            }
+
             if (playerData.GameData == null)
             {
+                Debug.LogWarning("[PointsService] GameData is null. Создаем новый GameData.");
                 playerData.GameData = new GameData();
-                _playerDataProvider.Save();
+                await _playerDataProvider.Save();
             }
             
             _playerData = playerData.GameData;
             
-            Debug.Log($"Инициализирована система очков. Текущее количество: {CurrentPoints}");
+            Debug.Log($"[PointsService] Асинхронная инициализация системы очков завершена. Текущее количество: {CurrentPoints}");
         }
 
         #endregion
 
         #region Public Methods
 
-        /// <summary>
-        /// Добавить очки пользователю
-        /// </summary>
-        /// <param name="amount">Количество очков</param>
-        /// <param name="source">Источник очков</param>
-        public void AddPoints(int amount, PointsSource source)
+        public async Task AddPoints(int amount, PointsSource source, string description = null)
         {
+            Debug.Log($"[PointsService] AddPoints вызван. Amount: {amount}, Source: {source}, Description: '{description}'"); 
             if (amount <= 0)
             {
                 Debug.LogWarning($"Попытка добавить отрицательное число очков: {amount}");
                 return;
             }
-
-            // Применяем множитель в зависимости от источника
-            int finalAmount = ApplyMultiplier(amount, source);
             
+            if (_playerData == null) 
+            {
+                 Debug.LogError("[PointsService] _playerData is null in AddPoints. Убедитесь, что InitializeAsync был вызван.");
+                 return;
+            }
+
+            int finalAmount = ApplyMultiplier(amount, source);
             _playerData.Points += finalAmount;
             _playerData.TotalEarnedPoints += finalAmount;
             
-            // Записываем транзакцию
             _playerData.PointsTransactions.Add(new PointsTransaction
             {
                 Amount = finalAmount, 
                 Source = source,
-                Timestamp = DateTime.Now
+                Timestamp = DateTime.Now,
+                Description = description
             });
             
-            // Сохраняем изменения
-            _playerDataProvider.Save();
+            await _playerDataProvider.Save();
             
-            // Вызываем события
             OnPointsChanged?.Invoke(CurrentPoints);
             OnPointsEarned?.Invoke(finalAmount, source);
             
             Debug.Log($"Добавлено {finalAmount} очков из источника {source}. Текущее количество: {CurrentPoints}");
         }
 
-        /// <summary>
-        /// Использовать очки (списать)
-        /// </summary>
-        /// <param name="amount">Количество очков</param>
-        /// <returns>True, если списание выполнено успешно</returns>
-        public bool SpendPoints(int amount)
+        public async Task<bool> SpendPoints(int amount)
         {
             if (amount <= 0)
             {
                 Debug.LogWarning($"Попытка списать отрицательное число очков: {amount}");
                 return false;
+            }
+
+            if (_playerData == null) 
+            {
+                 Debug.LogError("[PointsService] _playerData is null in SpendPoints. Убедитесь, что InitializeAsync был вызван.");
+                 return false;
             }
 
             if (CurrentPoints < amount)
@@ -138,7 +154,6 @@ namespace App.Develop.CommonServices.GameSystem
 
             _playerData.Points -= amount;
             
-            // Записываем транзакцию
             _playerData.PointsTransactions.Add(new PointsTransaction
             {
                 Amount = -amount, 
@@ -146,10 +161,8 @@ namespace App.Develop.CommonServices.GameSystem
                 Timestamp = DateTime.Now
             });
             
-            // Сохраняем изменения
-            _playerDataProvider.Save();
+            await _playerDataProvider.Save();
             
-            // Вызываем событие
             OnPointsChanged?.Invoke(CurrentPoints);
             
             Debug.Log($"Списано {amount} очков. Текущее количество: {CurrentPoints}");
@@ -179,20 +192,23 @@ namespace App.Develop.CommonServices.GameSystem
             return transactions;
         }
 
-        /// <summary>
-        /// Добавить очки за отметку эмоции
-        /// </summary>
-        public void AddPointsForEmotion()
+        public async Task AddPointsForEmotion()
         {
-            AddPoints(c_BaseEmotionPoints, PointsSource.EmotionMarked);
+            if (_playerData == null) 
+            {
+                 Debug.LogError("[PointsService] _playerData is null in AddPointsForEmotion. Убедитесь, что InitializeAsync был вызван.");
+                 return;
+            }
+            await AddPoints(c_BaseEmotionPoints, PointsSource.EmotionMarked, "Emotion Marked");
         }
 
-        /// <summary>
-        /// Добавить бонусные очки за ежедневное использование
-        /// </summary>
-        public void AddDailyBonus()
+        public async Task AddDailyBonus()
         {
-            // Проверяем, получал ли пользователь бонус сегодня
+            if (_playerData == null) 
+            {
+                 Debug.LogError("[PointsService] _playerData is null in AddDailyBonus. Убедитесь, что InitializeAsync был вызван.");
+                 return;
+            }
             var today = DateTime.Today;
             if (_playerData.LastDailyBonusDate.Date == today)
             {
@@ -200,9 +216,8 @@ namespace App.Develop.CommonServices.GameSystem
                 return;
             }
             
-            AddPoints(c_DefaultDailyBonus, PointsSource.DailyBonus);
+            await AddPoints(c_DefaultDailyBonus, PointsSource.DailyBonus);
             _playerData.LastDailyBonusDate = today;
-            _playerDataProvider.Save();
         }
 
         #endregion

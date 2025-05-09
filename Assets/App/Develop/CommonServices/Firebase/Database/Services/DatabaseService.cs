@@ -18,6 +18,7 @@ using Newtonsoft.Json;
 using UserProfile = App.Develop.CommonServices.Firebase.Database.Models.UserProfile;
 using EmotionData = App.Develop.CommonServices.DataManagement.DataProviders.EmotionData;
 using EmotionEventType = App.Develop.CommonServices.Emotion.EmotionEventType;
+using App.Develop.CommonServices.DataManagement.DataProviders; // Убедимся, что GameData доступен
 
 namespace App.Develop.CommonServices.Firebase.Database.Services
 {
@@ -1701,5 +1702,77 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 return false;
             }
         }
+
+        #region GameData Management
+
+        public async Task SaveUserGameData(GameData gameData)
+        {
+            if (!IsAuthenticated)
+            {
+                Debug.LogError("[DatabaseService] Невозможно сохранить GameData: пользователь не аутентифицирован.");
+                return;
+            }
+            if (gameData == null)
+            {
+                Debug.LogError("[DatabaseService] Невозможно сохранить GameData: передан null объект.");
+                return;
+            }
+
+            try
+            {
+                string jsonData = JsonConvert.SerializeObject(gameData, Formatting.Indented); // Formatting.Indented для читаемости в Firebase
+                DatabaseReference gameDataRef = _database.Child("users").Child(_userId).Child("gameData");
+                await gameDataRef.SetRawJsonValueAsync(jsonData);
+                Debug.Log($"[DatabaseService] GameData для пользователя {_userId} успешно сохранено в Firebase.");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[DatabaseService] Ошибка при сохранении GameData в Firebase: {ex.Message}\n{ex.StackTrace}");
+                // Можно добавить обработку исключений, например, повторную попытку или уведомление пользователя
+            }
+        }
+
+        public async Task<GameData> LoadUserGameData()
+        {
+            if (!IsAuthenticated)
+            {
+                Debug.LogWarning("[DatabaseService] Невозможно загрузить GameData: пользователь не аутентифицирован.");
+                return null;
+            }
+
+            try
+            {
+                DatabaseReference gameDataRef = _database.Child("users").Child(_userId).Child("gameData");
+                DataSnapshot snapshot = await gameDataRef.GetValueAsync();
+
+                if (snapshot.Exists)
+                {
+                    string jsonData = snapshot.GetRawJsonValue();
+                    if (!string.IsNullOrEmpty(jsonData))
+                    {
+                        GameData gameData = JsonConvert.DeserializeObject<GameData>(jsonData);
+                        Debug.Log($"[DatabaseService] GameData для пользователя {_userId} успешно загружено из Firebase.");
+                        return gameData;
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[DatabaseService] GameData для пользователя {_userId} существует в Firebase, но содержит пустые данные.");
+                        return new GameData(); // Возвращаем новый экземпляр, чтобы избежать null
+                    }
+                }
+                else
+                {
+                    Debug.Log($"[DatabaseService] GameData для пользователя {_userId} не найдено в Firebase. Будут использованы данные по умолчанию.");
+                    return new GameData(); // Возвращаем новый экземпляр, если данных нет
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[DatabaseService] Ошибка при загрузке GameData из Firebase: {ex.Message}\n{ex.StackTrace}");
+                return new GameData(); // В случае ошибки возвращаем новый экземпляр
+            }
+        }
+
+        #endregion
     }
 }

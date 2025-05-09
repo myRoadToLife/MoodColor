@@ -3,6 +3,7 @@ using System.Collections;
 using App.Develop.CommonServices.AssetManagement;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
+using App.Develop.Scenes.PersonalAreaScene.Handlers;
 using App.Develop.Scenes.PersonalAreaScene.UI;
 using UnityEngine;
 
@@ -70,6 +71,30 @@ namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
                 {
                     instance = Instantiate(personalAreaPrefab);
                     Debug.Log("✅ [PersonalAreaBootstrap] Экземпляр PersonalAreaCanvas создан");
+
+                    // --- НАЧАЛО ИЗМЕНЕНИЙ ДЛЯ DI ---
+                    if (instance != null)
+                    {
+                        JarInteractionHandler jarHandler = instance.GetComponentInChildren<JarInteractionHandler>(true);
+                        if (jarHandler != null)
+                        {
+                            // Используем _container, который был передан в метод Run
+                            if (this._container != null) 
+                            {
+                                Debug.Log($"[PersonalAreaBootstrap] Пытаемся внедрить зависимости в JarInteractionHandler с контейнером: {this._container.GetHashCode()}");
+                                jarHandler.Inject(this._container); 
+                            }
+                            else
+                            {
+                                Debug.LogError("[PersonalAreaBootstrap] DI контейнер (например, _activeSceneContainer) не доступен для JarInteractionHandler.Inject!");
+                            }
+                        }
+                        else
+                        {
+                            Debug.LogWarning("[PersonalAreaBootstrap] JarInteractionHandler не найден на экземпляре PersonalAreaCanvas.");
+                        }
+                    }
+                    // --- КОНЕЦ ИЗМЕНЕНИЙ ДЛЯ DI ---
                 }
                 catch (Exception e)
                 {

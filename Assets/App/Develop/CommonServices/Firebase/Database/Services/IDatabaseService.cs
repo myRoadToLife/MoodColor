@@ -81,5 +81,15 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         /// </summary>
         /// <returns>True если подключение установлено, иначе False</returns>
         Task<bool> CheckConnection();
+
+        /// <summary>
+        /// Сохраняет (или обновляет) игровые данные пользователя (очки, транзакции, уровень и т.д.)
+        /// </summary>
+        Task SaveUserGameData(DataManagement.DataProviders.GameData gameData);
+
+        /// <summary>
+        /// Загружает игровые данные пользователя
+        /// </summary>
+        Task<DataManagement.DataProviders.GameData> LoadUserGameData();
     }
 } 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace App.Develop.CommonServices.GameSystem
 {
@@ -28,14 +29,15 @@ namespace App.Develop.CommonServices.GameSystem
         /// </summary>
         /// <param name="amount">Количество очков</param>
         /// <param name="source">Источник очков</param>
-        void AddPoints(int amount, PointsSource source);
+        /// <param name="description">Детальное описание источника (опционально)</param>
+        Task AddPoints(int amount, PointsSource source, string description = null);
         
         /// <summary>
         /// Использовать очки (списать)
         /// </summary>
         /// <param name="amount">Количество очков</param>
         /// <returns>True, если списание выполнено успешно</returns>
-        bool SpendPoints(int amount);
+        Task<bool> SpendPoints(int amount);
         
         /// <summary>
         /// Получить историю транзакций очков
@@ -47,11 +49,17 @@ namespace App.Develop.CommonServices.GameSystem
         /// <summary>
         /// Добавить очки за отметку эмоции
         /// </summary>
-        void AddPointsForEmotion();
+        Task AddPointsForEmotion();
         
         /// <summary>
         /// Добавить бонусные очки за ежедневное использование
         /// </summary>
-        void AddDailyBonus();
+        Task AddDailyBonus();
+
+        /// <summary>
+        /// Асинхронный метод инициализации сервиса.
+        /// Должен быть вызван после загрузки данных провайдером.
+        /// </summary>
+        Task InitializeAsync();
     }
 } 

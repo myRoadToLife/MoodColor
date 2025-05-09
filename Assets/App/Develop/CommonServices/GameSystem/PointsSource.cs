@@ -38,6 +38,11 @@ namespace App.Develop.CommonServices.GameSystem
         /// <summary>
         /// Трата очков
         /// </summary>
-        Spending
+        Spending,
+
+        /// <summary>
+        /// Взаимодействие с банкой (клик)
+        /// </summary>
+        JarInteraction
     }
 } 

@@ -86,7 +86,7 @@ namespace App.Develop.EntryPoint
                 RegisterFirebaseServices();
                 
                 // Инициализация контейнера и загрузка данных
-                InitializeContainerAndLoadData();
+                await InitializeContainerAndLoadData();
                 
                 // Запуск основного процесса приложения
                 StartBootstrapProcess();
@@ -204,11 +204,41 @@ namespace App.Develop.EntryPoint
         /// <summary>
         /// Инициализирует контейнер и загружает данные
         /// </summary>
-        private void InitializeContainerAndLoadData()
+        private async Task InitializeContainerAndLoadData()
         {
             RegisterPersonalAreaServices(_projectContainer);
-            _projectContainer.Initialize();
-            _projectContainer.Resolve<PlayerDataProvider>().Load();
+            
+            Debug.Log("[EntryPoint] Начало асинхронной загрузки PlayerDataProvider...");
+            await _projectContainer.Resolve<PlayerDataProvider>().Load();
+            Debug.Log("[EntryPoint] PlayerDataProvider загружен.");
+
+            Debug.Log("[EntryPoint] Начало асинхронной инициализации IPointsService...");
+            var pointsService = _projectContainer.Resolve<IPointsService>();
+            if (pointsService != null)
+            {
+                await pointsService.InitializeAsync();
+                Debug.Log("[EntryPoint] IPointsService инициализирован асинхронно.");
+            }
+            else
+            {
+                Debug.LogError("[EntryPoint] IPointsService не удалось разрезолвить из контейнера.");
+            }
+            
+            // Здесь можно продолжить асинхронную инициализацию других сервисов, если они есть
+            // Например, IAchievementService, ILevelSystem, если их Initialize методы тоже стали async
+
+            // Если _projectContainer.Initialize() вызывал Initialize() для всех, и какие-то сервисы
+            // все еще имеют важную синхронную логику в Initialize(), можно вызвать ее здесь:
+            // var allInitializables = _projectContainer.ResolveAll<IInitializable>();
+            // foreach (var initializable in allInitializables)
+            // {
+            //     if (!(initializable is PointsService)) // PointsService уже имеет InitializeAsync
+            //     { 
+            // initializable.Initialize();
+            //     }
+            // }
+            // Либо, если ваш DI контейнер поддерживает это, вызвать метод, который инициализирует все оставшиеся неинициализированные.
+            // Пока предполагаем, что основная инициализация теперь в InitializeAsync для затронутых сервисов.
         }
 
         /// <summary>
@@ -217,7 +247,21 @@ namespace App.Develop.EntryPoint
         private void StartBootstrapProcess()
         {
             _projectContainer.Resolve<ICoroutinePerformer>()
-                .StartCoroutine(_appBootstrap.Run(_projectContainer));
+                .StartCoroutine(InitializeAndRunBootstrap());
+        }
+
+        private System.Collections.IEnumerator InitializeAndRunBootstrap()
+        {
+            // Проверяем, что контейнер успешно инициализирован и данные загружены
+            // (это уже должно было произойти в InitializeApplication)
+            if (_projectContainer == null)
+            {
+                Debug.LogError("[EntryPoint] Контейнер не инициализирован или данные не загружены перед запуском Bootstrap!");
+                yield break;
+            }
+
+            Debug.Log("✅ Bootstrap запущен");
+            yield return _appBootstrap.Run(_projectContainer);
         }
 
         /// <summary>
@@ -285,7 +329,8 @@ namespace App.Develop.EntryPoint
                 container.RegisterAsSingle(container =>
                     new PlayerDataProvider(
                         container.Resolve<ISaveLoadService>(),
-                        container.Resolve<ConfigsProviderService>()
+                        container.Resolve<IConfigsProvider>(),
+                        container.Resolve<IDatabaseService>()
                     )
                 );
 

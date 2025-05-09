@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks; // Добавлено для Task
 using App.Develop.CommonServices.ConfigsManagement;
 using App.Develop.CommonServices.Emotion;
+using App.Develop.CommonServices.Firebase.Database.Services; // Добавлено для IDatabaseService
 using UnityEngine;
 
 namespace App.Develop.CommonServices.DataManagement.DataProviders
@@ -9,12 +11,15 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
     public class PlayerDataProvider : DataProvider<PlayerData>
     {
         private readonly IConfigsProvider _configsProvider;
-        private PlayerData _cachedData; // Добавим кэшированные данные
+        private readonly IDatabaseService _databaseService;
+        private PlayerData _cachedData;
 
         public PlayerDataProvider(ISaveLoadService saveLoadService,
-            IConfigsProvider configsProvider) : base(saveLoadService)
+            IConfigsProvider configsProvider,
+            IDatabaseService databaseService) : base(saveLoadService)
         {
             _configsProvider = configsProvider ?? throw new ArgumentNullException(nameof(configsProvider));
+            _databaseService = databaseService ?? throw new ArgumentNullException(nameof(databaseService));
         }
 
         protected override PlayerData GetOriginData()
@@ -31,7 +36,6 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
             catch (Exception ex)
             {
                 Debug.LogError($"❌ Ошибка при создании начальных данных: {ex.Message}");
-                // Возвращаем данные с пустым словарем эмоций, чтобы избежать NullReferenceException
                 var data = new PlayerData
                 {
                     EmotionData = new Dictionary<EmotionTypes, EmotionData>()
@@ -41,173 +45,187 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
             }
         }
         
-        /// <summary>
-        /// Получает данные игрока
-        /// </summary>
-        /// <returns>Данные игрока</returns>
         public PlayerData GetData()
         {
-            // Загрузка данных, если еще не загружены
             if (_cachedData == null)
             {
-                Load();
+                Debug.LogError("[PlayerDataProvider] GetData() вызван, но _cachedData is null. Убедитесь, что Load() был вызван и завершен ранее. Возвращаются данные по умолчанию.");
+                return GetOriginData(); // Возвращаем данные по умолчанию, чтобы избежать null
             }
-            
             return _cachedData;
         }
 
         public List<EmotionData> GetEmotions()
         {
-            try
+            if (_cachedData == null)
             {
-                // Загрузка данных, если не загружены
-                if (_cachedData == null)
+                Debug.LogError("[PlayerDataProvider] GetEmotions() вызван, но _cachedData is null. Убедитесь, что Load() был вызван и завершен ранее. Возвращается пустой список.");
+                return new List<EmotionData>();
+            }
+
+            var result = new List<EmotionData>();
+            if (_cachedData.EmotionData != null)
+            {
+                foreach (var pair in _cachedData.EmotionData)
                 {
-                    Load();
-                    // Если _cachedData все еще null после загрузки,
-                    // создаем новые данные через GetOriginData
-                    if (_cachedData == null)
+                    if (pair.Value != null)
                     {
-                        _cachedData = GetOriginData();
+                        result.Add(pair.Value);
                     }
                 }
-                
-                // Создаем список для результата
-                var result = new List<EmotionData>();
-                
-                if (_cachedData?.EmotionData != null)
-                {
-                    foreach (var pair in _cachedData.EmotionData)
-                    {
-                        if (pair.Value != null)
-                        {
-                            result.Add(pair.Value);
-                        }
-                    }
-                }
-                else
-                {
-                    Debug.LogWarning("⚠️ EmotionData отсутствуют или null!");
-                }
-                
-                return result;
             }
-            catch (Exception ex)
+            else
             {
-                Debug.LogError($"❌ Ошибка получения эмоций: {ex.Message}");
-                return new List<EmotionData>(); // Возвращаем пустой список
+                Debug.LogWarning("⚠️ _cachedData.EmotionData is null в PlayerDataProvider.GetEmotions!");
             }
+            return result;
         }
 
         private Dictionary<EmotionTypes, EmotionData> InitEmotionData()
         {
             var emotionData = new Dictionary<EmotionTypes, EmotionData>();
-
             try
             {
-                if (_configsProvider == null)
-                {
-                    Debug.LogError("❌ ConfigsProvider is null!");
-                    throw new NullReferenceException("ConfigsProvider is null");
-                }
-
-                if (_configsProvider.StartEmotionConfig == null)
-                {
-                    Debug.LogError("❌ StartEmotionConfig is null!");
-                    throw new NullReferenceException("StartEmotionConfig is null");
-                }
+                if (_configsProvider == null) throw new NullReferenceException("ConfigsProvider is null");
+                if (_configsProvider.StartEmotionConfig == null) throw new NullReferenceException("StartEmotionConfig is null");
 
                 foreach (EmotionTypes emotionType in Enum.GetValues(typeof(EmotionTypes)))
                 {
                     try
                     {
                         var (value, color) = _configsProvider.StartEmotionConfig.GetStartValueFor(emotionType);
-                        
-                        var newEmotionData = new EmotionData
-                        {
-                            Type = emotionType.ToString(),
-                            Value = value,
-                            Intensity = 0,
-                            Color = color // Прямое присвоение цвета
-                        };
-                        
-                        emotionData.Add(emotionType, newEmotionData);
-                        
-                        Debug.Log($"✅ Эмоция {emotionType} успешно добавлена в InitEmotionData");
+                        emotionData.Add(emotionType, new EmotionData { Type = emotionType.ToString(), Value = value, Intensity = 0, Color = color });
                     }
-                    catch (Exception ex)
+                    catch (Exception ex_inner)
                     {
-                        Debug.LogError($"❌ Ошибка при добавлении эмоции {emotionType}: {ex.Message}");
-                        
-                        // Добавляем эмоцию с дефолтными значениями
-                        var defaultEmotionData = new EmotionData
-                        {
-                            Type = emotionType.ToString(),
-                            Value = 0,
-                            Intensity = 0,
-                            Color = Color.white
-                        };
-                        
-                        emotionData.Add(emotionType, defaultEmotionData);
+                        Debug.LogError($"❌ Ошибка при добавлении эмоции {emotionType}: {ex_inner.Message}");
+                        emotionData.Add(emotionType, new EmotionData { Type = emotionType.ToString(), Value = 0, Intensity = 0, Color = Color.white });
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex_outer)
             {
-                Debug.LogError($"❌ Критическая ошибка в InitEmotionData: {ex.Message}");
-                
-                // Создаем базовые эмоции с дефолтными значениями
+                Debug.LogError($"❌ Критическая ошибка в InitEmotionData: {ex_outer.Message}. Создаем дефолтные эмоции.");
+                emotionData.Clear(); // Очищаем, если что-то успело добавиться до критической ошибки
                 foreach (EmotionTypes emotionType in Enum.GetValues(typeof(EmotionTypes)))
                 {
-                    var defaultEmotionData = new EmotionData
-                    {
-                        Type = emotionType.ToString(),
-                        Value = 0,
-                        Intensity = 0,
-                        Color = Color.white
-                    };
-                    
-                    emotionData.Add(emotionType, defaultEmotionData);
+                    emotionData.Add(emotionType, new EmotionData { Type = emotionType.ToString(), Value = 0, Intensity = 0, Color = Color.white });
                 }
             }
-
             return emotionData;
         }
 
-        // Переопределяем метод Load для обновления кэшированных данных
-        public new void Load()
+        public new async Task Load()
         {
-            base.Load();
-            // Получаем доступ к данным через рефлексию, если нужно
-            // Этот код будет вызван только в крайнем случае
-            if (_cachedData == null)
+            bool cloudLoadAttempted = false;
+            if (_databaseService != null && _databaseService.IsAuthenticated)
             {
                 try
                 {
-                    // Используем рефлексию для доступа к защищенным данным
-                    var type = typeof(DataProvider<PlayerData>);
-                    var propInfo = type.GetProperty("Data", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    if (propInfo != null)
+                    Debug.Log("[PlayerDataProvider] Пытаемся загрузить GameData из облака...");
+                    GameData cloudGameData = await _databaseService.LoadUserGameData();
+                    if (cloudGameData != null)
                     {
-                        _cachedData = (PlayerData)propInfo.GetValue(this);
+                        if (_cachedData == null) 
+                        {
+                            base.Load(); 
+                            var baseDataProperty = typeof(DataProvider<PlayerData>).GetProperty("Data", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                            if (baseDataProperty != null) _cachedData = (PlayerData)baseDataProperty.GetValue(this);
+                            if (_cachedData == null) _cachedData = GetOriginData();
+                        }
+                        _cachedData.GameData = cloudGameData; 
+                        Debug.Log("[PlayerDataProvider] GameData успешно загружены из облака.");
                     }
                     else
                     {
-                        Debug.LogWarning("Не удалось получить доступ к Data через рефлексию");
+                        Debug.LogWarning("[PlayerDataProvider] GameData из облака не найдено или пусто. Используем локальные/дефолтные.");
+                        base.Load(); 
+                        var baseDataProperty = typeof(DataProvider<PlayerData>).GetProperty("Data", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                        if (baseDataProperty != null) _cachedData = (PlayerData)baseDataProperty.GetValue(this);
+                        if (_cachedData == null) _cachedData = GetOriginData();
                     }
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogError($"Ошибка при попытке доступа к Data через рефлексию: {ex.Message}");
+                    Debug.LogError($"[PlayerDataProvider] Ошибка при загрузке GameData из облака: {ex.Message}. Используем локальные/дефолтные.");
+                    base.Load(); 
+                    var baseDataProperty = typeof(DataProvider<PlayerData>).GetProperty("Data", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    if (baseDataProperty != null) _cachedData = (PlayerData)baseDataProperty.GetValue(this);
+                    if (_cachedData == null) _cachedData = GetOriginData();
                 }
+                cloudLoadAttempted = true;
+            }
+            
+            if (!cloudLoadAttempted) 
+            {
+                 base.Load();
+                var baseDataProperty = typeof(DataProvider<PlayerData>).GetProperty("Data", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (baseDataProperty != null) _cachedData = (PlayerData)baseDataProperty.GetValue(this);
+                if (_cachedData == null) _cachedData = GetOriginData();
+            }
+
+            if (_cachedData == null)
+            {
+                try
+                {
+                    var type = typeof(DataProvider<PlayerData>);
+                    var propInfo = type.GetProperty("Data", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    if (propInfo != null) _cachedData = (PlayerData)propInfo.GetValue(this);
+                    else Debug.LogWarning("[PlayerDataProvider] Не удалось получить доступ к Data через рефлексию в Load");
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"[PlayerDataProvider] Ошибка при попытке доступа к Data через рефлексию в Load: {ex.Message}");
+                }
+            }
+            
+            if (_cachedData == null)
+            {
+                Debug.LogWarning("[PlayerDataProvider] _cachedData остался null после всех попыток загрузки. Создаем GetOriginData().");
+                _cachedData = GetOriginData();
             }
         }
 
-        // Переопределяем метод Save для обновления кэшированных данных
-        public new void Save()
+        public new async Task Save()
         {
-            base.Save();
-            // Здесь можно добавить код для обновления _cachedData после сохранения
+            Debug.Log("[PlayerDataProvider] Save() вызван."); 
+            if (_cachedData == null)
+            {
+                Debug.LogWarning("[PlayerDataProvider] _cachedData is null in Save(). Попытка загрузить/создать.");
+                await Load(); 
+                if (_cachedData == null) 
+                {
+                     Debug.LogError("[PlayerDataProvider] _cachedData все еще null после Load() в Save(). Нечего сохранять.");
+                     return;
+                }
+            }
+            if (_cachedData.GameData == null)
+            {
+                 Debug.LogWarning("[PlayerDataProvider] _cachedData.GameData is null in Save(). Инициализируем новым GameData().");
+                _cachedData.GameData = new GameData();
+            }
+
+            Debug.Log("[PlayerDataProvider] Попытка локального сохранения (base.Save())."); 
+            base.Save(); 
+            Debug.Log("[PlayerDataProvider] Локальное сохранение (base.Save()) завершено."); 
+
+            if (_databaseService != null && _databaseService.IsAuthenticated)
+            {
+                try
+                {
+                    Debug.Log($"[PlayerDataProvider] Пытаемся сохранить GameData в облако. Текущие очки для сохранения: {_cachedData.GameData.Points}"); 
+                    await _databaseService.SaveUserGameData(_cachedData.GameData);
+                    Debug.Log("[PlayerDataProvider] GameData успешно сохранено в облако.");
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"[PlayerDataProvider] Ошибка при сохранении GameData в облако: {ex.Message}");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"[PlayerDataProvider] IDatabaseService не доступен ({_databaseService == null}) или пользователь не аутентифицирован ({(_databaseService != null ? !_databaseService.IsAuthenticated : "N/A")}). GameData не будет сохранено в облако."); 
+            }
         }
     }
 }
