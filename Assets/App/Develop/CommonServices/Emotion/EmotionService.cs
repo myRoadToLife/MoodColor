@@ -464,6 +464,7 @@ namespace App.Develop.CommonServices.Emotion
             EmotionEventType eventType = oldValue < emotion.BubbleThreshold && value >= emotion.BubbleThreshold ? 
                 EmotionEventType.CapacityExceeded : EmotionEventType.ValueChanged;
             
+            Debug.Log($"[EmotionService] Before AddEntry in UpdateEmotionValue: EmotionType='{emotion.Type}', LastUpdate='{emotion.LastUpdate}', CurrentTime='{DateTime.Now}'");
             // Добавляем в историю
             _emotionHistory.AddEntry(emotion, eventType, emotion.LastUpdate);
             
@@ -504,17 +505,12 @@ namespace App.Develop.CommonServices.Emotion
             if (emotion == null) return;
 
             emotion.Intensity = Mathf.Clamp01(intensity);
-            emotion.LastUpdate = DateTime.UtcNow;
+            emotion.LastUpdate = DateTime.Now;
+
+            Debug.Log($"[EmotionService] Before AddEntry in UpdateEmotionIntensity: EmotionType='{emotion.Type}', LastUpdate='{emotion.LastUpdate}', CurrentTime='{DateTime.Now}'");
             _emotionHistory.AddEntry(emotion, EmotionEventType.IntensityChanged, emotion.LastUpdate);
             
-            // Синхронизируем с Firebase
-            if (_isFirebaseInitialized && _databaseService != null)
-            {
-                SyncEmotionWithFirebase(emotion, EmotionEventType.IntensityChanged);
-            }
-            
-            RaiseEmotionEvent(new EmotionEvent(type, EmotionEventType.IntensityChanged, 
-                emotion.Value, emotion.Intensity));
+            RaiseEmotionEvent(new EmotionEvent(type, EmotionEventType.IntensityChanged, emotion.Value, emotion.Intensity));
         }
 
         public bool TryMixEmotions(EmotionTypes source1, EmotionTypes source2)
@@ -535,6 +531,7 @@ namespace App.Develop.CommonServices.Emotion
                         resultEmotion.Note = $"{source1} + {source2}";
                         resultEmotion.LastUpdate = DateTime.UtcNow;
                         ValidateAndUpdateEmotion(resultEmotion, newValue);
+                        Debug.Log($"[EmotionService] Before AddEntry in TryMixEmotions: EmotionType='{resultEmotion.Type}', LastUpdate='{resultEmotion.LastUpdate}', CurrentTime='{DateTime.Now}'");
                         _emotionHistory.AddEntry(resultEmotion, EmotionEventType.EmotionMixed, resultEmotion.LastUpdate);
                         
                         // Синхронизируем с Firebase
@@ -807,5 +804,25 @@ namespace App.Develop.CommonServices.Emotion
             }
         }
         #endregion
+
+        // МЕТОД ДЛЯ ЛОГИРОВАНИЯ СОБЫТИЙ (ПЕРЕЗАПИСЬ ДЛЯ ГАРАНТИИ ПОРЯДКА АРГУМЕНТОВ)
+        public void LogEmotionEvent(EmotionTypes type, EmotionEventType eventType, string note = null)
+        {
+            var emotion = GetEmotion(type);
+            if (emotion == null)
+            {
+                Debug.LogWarning($"[EmotionService.LogEmotionEvent] Emotion type '{type}' not found.");
+                return;
+            }
+
+            if (_emotionHistory == null)
+            {
+                Debug.LogError("[EmotionService.LogEmotionEvent] _emotionHistory is null. Cannot log event.");
+                return;
+            }
+            // Убедимся в правильном порядке: emotion, eventType, DateTime.Now, note
+            _emotionHistory.AddEntry(emotion, eventType, DateTime.Now, note); 
+            Debug.Log($"[EmotionService.LogEmotionEvent] Logged event: Type='{type}', EventType='{eventType}', Timestamp='{DateTime.Now:O}'{(string.IsNullOrEmpty(note) ? "" : $", Note='{note}'")}");
+        }
     }
 }

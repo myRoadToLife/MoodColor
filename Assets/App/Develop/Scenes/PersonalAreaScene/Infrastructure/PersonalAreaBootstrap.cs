@@ -1,6 +1,10 @@
 using System;
 using System.Collections;
 using App.Develop.CommonServices.AssetManagement;
+using App.Develop.CommonServices.ConfigsManagement;
+using App.Develop.CommonServices.DataManagement.DataProviders;
+using App.Develop.CommonServices.Emotion;
+using App.Develop.CommonServices.GameSystem;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
 using App.Develop.Scenes.PersonalAreaScene.Handlers;
@@ -47,6 +51,48 @@ namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
 
                 var factory = new MonoFactory(_container);
 
+                // РЕГИСТРАЦИЯ СЕРВИСОВ ПЕРЕД ИНСТАНЦИИРОВАНИЕМ UI
+                Debug.Log("🔄 [PersonalAreaBootstrap] Попытка регистрации EmotionService...");
+                bool emotionServiceRegistered = false;
+                try
+                {
+                    // Получаем обязательные зависимости для EmotionService
+                    var playerDataProvider = _container.Resolve<PlayerDataProvider>();
+                    var configsProvider = _container.Resolve<IConfigsProvider>();
+                    var emotionConfigService = _container.Resolve<EmotionConfigService>();
+
+                    // Получаем опциональные зависимости для EmotionService
+                    IPointsService pointsService = null;
+                    try { pointsService = _container.Resolve<IPointsService>(); }
+                    catch (InvalidOperationException) { Debug.LogWarning("[PersonalAreaBootstrap] IPointsService не зарегистрирован, EmotionService будет работать без него."); }
+
+                    ILevelSystem levelSystem = null;
+                    try { levelSystem = _container.Resolve<ILevelSystem>(); }
+                    catch (InvalidOperationException) { Debug.LogWarning("[PersonalAreaBootstrap] ILevelSystem не зарегистрирован, EmotionService будет работать без него."); }
+
+                    // Регистрируем EmotionService как синглтон с фабричным методом
+                    _container.RegisterAsSingle<IEmotionService>(c => 
+                        new EmotionService(playerDataProvider, configsProvider, emotionConfigService, pointsService, levelSystem)
+                    );
+                    Debug.Log("✅ [PersonalAreaBootstrap] EmotionService успешно зарегистрирован через RegisterAsSingle.");
+                    emotionServiceRegistered = true;
+                }
+                catch (InvalidOperationException ioe) // Ловим ошибки резолва ОБЯЗАТЕЛЬНЫХ зависимостей
+                {
+                    Debug.LogError($"❌ [PersonalAreaBootstrap] Не удалось разрешить ОБЯЗАТЕЛЬНУЮ зависимость для EmotionService: {ioe.Message}\n{ioe.StackTrace}");
+                }
+                catch (Exception e) // Ловим другие возможные ошибки при регистрации
+                {
+                    Debug.LogError($"❌ [PersonalAreaBootstrap] Общая ошибка при создании или регистрации EmotionService: {e.Message}\n{e.StackTrace}");
+                }
+
+                // Если EmotionService критически важен, и не был зарегистрирован из-за отсутствия ОБЯЗАТЕЛЬНЫХ зависимостей:
+                // if (!emotionServiceRegistered)
+                // {
+                //     Debug.LogError("❌ [PersonalAreaBootstrap] EmotionService не был зарегистрирован. Прерывание загрузки сцены.");
+                //     yield break;
+                // }
+
                 Debug.Log($"🔄 [PersonalAreaBootstrap] Загрузка префаба PersonalAreaCanvas из {AssetPaths.PersonalAreaCanvas}...");
                 GameObject personalAreaPrefab = null;
                 try
@@ -67,34 +113,29 @@ namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
 
                 Debug.Log("✅ [PersonalAreaBootstrap] Префаб PersonalAreaCanvas загружен, создаем экземпляр...");
                 GameObject instance = null;
+
                 try
                 {
                     instance = Instantiate(personalAreaPrefab);
-                    Debug.Log("✅ [PersonalAreaBootstrap] Экземпляр PersonalAreaCanvas создан");
 
-                    // --- НАЧАЛО ИЗМЕНЕНИЙ ДЛЯ DI ---
-                    if (instance != null)
+                    JarInteractionHandler jarHandler = instance.GetComponentInChildren<JarInteractionHandler>(true);
+                    if (jarHandler != null)
                     {
-                        JarInteractionHandler jarHandler = instance.GetComponentInChildren<JarInteractionHandler>(true);
-                        if (jarHandler != null)
+                        // Используем _container, который был передан в метод Run
+                        if (this._container != null) 
                         {
-                            // Используем _container, который был передан в метод Run
-                            if (this._container != null) 
-                            {
-                                Debug.Log($"[PersonalAreaBootstrap] Пытаемся внедрить зависимости в JarInteractionHandler с контейнером: {this._container.GetHashCode()}");
-                                jarHandler.Inject(this._container); 
-                            }
-                            else
-                            {
-                                Debug.LogError("[PersonalAreaBootstrap] DI контейнер (например, _activeSceneContainer) не доступен для JarInteractionHandler.Inject!");
-                            }
+                            Debug.Log($"[PersonalAreaBootstrap] Пытаемся внедрить зависимости в JarInteractionHandler с контейнером: {this._container.GetHashCode()}");
+                            jarHandler.Inject(this._container); 
                         }
                         else
                         {
-                            Debug.LogWarning("[PersonalAreaBootstrap] JarInteractionHandler не найден на экземпляре PersonalAreaCanvas.");
+                            Debug.LogError("[PersonalAreaBootstrap] DI контейнер (например, _activeSceneContainer) не доступен для JarInteractionHandler.Inject!");
                         }
                     }
-                    // --- КОНЕЦ ИЗМЕНЕНИЙ ДЛЯ DI ---
+                    else
+                    {
+                        Debug.LogWarning("[PersonalAreaBootstrap] JarInteractionHandler не найден на экземпляре PersonalAreaCanvas.");
+                    }
                 }
                 catch (Exception e)
                 {

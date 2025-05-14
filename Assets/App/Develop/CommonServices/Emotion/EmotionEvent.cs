@@ -9,7 +9,8 @@ namespace App.Develop.CommonServices.Emotion
         CapacityExceeded,
         BubbleCreated,
         EmotionMixed,
-        EmotionDepleted
+        EmotionDepleted,
+        JarClicked
     }
 
     public class EmotionEvent : EventArgs

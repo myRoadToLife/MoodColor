@@ -11,6 +11,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Handlers
     {
         private IPointsService _pointsService;
         private const int POINTS_PER_JAR_CLICK = 10; // Количество очков за клик по банке (можно вынести в конфиг)
+        private IEmotionService _emotionService;
 
         public void Inject(DIContainer container)
         {
@@ -29,6 +30,16 @@ namespace App.Develop.Scenes.PersonalAreaScene.Handlers
             else
             {
                 Debug.Log("[JarInteractionHandler] IPointsService успешно внедрен.");
+            }
+
+            _emotionService = container.Resolve<IEmotionService>();
+            if (_emotionService == null)
+            {
+                Debug.LogError("[JarInteractionHandler] EmotionService не удалось получить из DI контейнера!");
+            }
+            else
+            {
+                Debug.Log("[JarInteractionHandler] EmotionService успешно внедрен.");
             }
         }
 
@@ -52,9 +63,18 @@ namespace App.Develop.Scenes.PersonalAreaScene.Handlers
                 _pointsService.AddPoints(POINTS_PER_JAR_CLICK, PointsSource.JarInteraction, detailedDescription);
                 Debug.Log($"[JarInteractionHandler] Клик по банке {emotionType}. Начислено {POINTS_PER_JAR_CLICK} очков. Источник: {PointsSource.JarInteraction}, Описание: {detailedDescription}. Текущие очки: {_pointsService.CurrentPoints}");
 
-                // Опционально: можно вызвать событие, если EmotionJarView или другие системы должны отреагировать
-                // Например: public static event Action<EmotionTypes> OnVisualJarClicked;
-                // OnVisualJarClicked?.Invoke(emotionType);
+                // Вместо прямого изменения значения эмоции, логируем событие клика
+                if (_emotionService != null)
+                {
+                    _emotionService.LogEmotionEvent(emotionType, EmotionEventType.JarClicked, "Jar Clicked");
+                }
+                else
+                {
+                    Debug.LogError("[JarInteractionHandler] EmotionService is not injected!");
+                }
+
+                // Опционально: если нужно немедленно увидеть какое-то изменение (например, анимацию банки),
+                // но основное значение эмоции будет обновляться через другие механики или не будет меняться вовсе от простого клика.
             }
             else
             {

@@ -80,19 +80,19 @@ namespace App.Develop.CommonServices.Firebase.Database.Models
             Tags = new List<string>();
         }
 
-        public EmotionHistoryRecord(EmotionHistoryEntry entry)
+        public EmotionHistoryRecord(EmotionHistoryEntry entryToSave)
         {
-            Id = Guid.NewGuid().ToString();
-            Type = entry.EmotionData.Type;
-            Value = entry.EmotionData.Value;
-            Intensity = entry.EmotionData.Intensity;
-            ColorHex = entry.EmotionData.ColorHex;
-            Note = entry.EmotionData.Note;
-            RegionId = entry.EmotionData.RegionId;
-            Timestamp = entry.EmotionData.Timestamp;
-            EventType = entry.EventType.ToString();
-            LocalId = entry.EmotionData.Id;
-            SyncStatus = SyncStatus.NotSynced;
+            Id = entryToSave.SyncId;
+            Type = entryToSave.EmotionData.Type;
+            Value = entryToSave.EmotionData.Value;
+            Intensity = entryToSave.EmotionData.Intensity;
+            ColorHex = entryToSave.EmotionData.ColorHex;
+            Note = entryToSave.Note;
+            RegionId = entryToSave.EmotionData.RegionId;
+            Timestamp = entryToSave.Timestamp.ToFileTimeUtc();
+            EventType = entryToSave.EventType.ToString();
+            LocalId = entryToSave.EmotionData.Id;
+            SyncStatus = entryToSave.IsSynced ? SyncStatus.Synced : SyncStatus.NotSynced;
             Tags = new List<string>();
         }
 

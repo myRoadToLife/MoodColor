@@ -54,5 +54,8 @@ namespace App.Develop.CommonServices.Emotion
         /// Сбросить все эмоции к начальным значениям
         /// </summary>
         void ResetAllEmotions(bool needSave = true);
+
+        // Метод для логирования событий эмоций, таких как клик по банке
+        void LogEmotionEvent(EmotionTypes type, EmotionEventType eventType, string note = null);
     }
 } 
