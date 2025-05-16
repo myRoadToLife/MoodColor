@@ -72,7 +72,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         {
             if (_panelManager != null)
             {
-                _panelManager.TogglePanel<WorkshopPanelController>(AssetPaths.PanelWorkshop);
+                _panelManager.TogglePanelAsync<WorkshopPanelController>(AssetAddresses.WorkshopPanel);
             }
         }
         #endregion

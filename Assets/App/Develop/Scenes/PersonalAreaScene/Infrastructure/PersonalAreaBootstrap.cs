@@ -10,6 +10,9 @@ using App.Develop.DI;
 using App.Develop.Scenes.PersonalAreaScene.Handlers;
 using App.Develop.Scenes.PersonalAreaScene.UI;
 using UnityEngine;
+using System.Threading.Tasks; // Для Task
+// Добавляем using для AsyncOperationStatus, если он понадобится, но скорее всего нет при работе с Task<T>
+// using UnityEngine.ResourceManagement.AsyncOperations;
 
 namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
 {
@@ -17,36 +20,30 @@ namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
     {
         private DIContainer _container;
 
-        public IEnumerator Run(DIContainer container, PersonalAreaInputArgs inputArgs)
+        public async Task Run(DIContainer container, PersonalAreaInputArgs inputArgs)
         {
             try
             {
                 if (container == null)
                 {
                     Debug.LogError("❌ DIContainer не может быть null");
-                    yield break;
+                    return;
                 }
 
                 _container = container;
-                
-                Debug.Log("🔄 [PersonalAreaBootstrap] Инициализация контейнера...");
-                _container.Initialize();
-                Debug.Log("✅ [PersonalAreaBootstrap] Контейнер инициализирован");
-
                 Debug.Log("✅ [PersonalAreaBootstrap] Сцена загружена");
 
-                // Пытаемся резолвить загрузчик ресурсов
-                Debug.Log("🔄 [PersonalAreaBootstrap] Получение ResourcesAssetLoader...");
-                ResourcesAssetLoader assetLoader = null;
+                Debug.Log("🔄 [PersonalAreaBootstrap] Получение IAssetLoader...");
+                IAssetLoader assetLoader = null;
                 try 
                 {
-                    assetLoader = _container.Resolve<ResourcesAssetLoader>();
-                    Debug.Log("✅ [PersonalAreaBootstrap] ResourcesAssetLoader получен");
+                    assetLoader = _container.Resolve<IAssetLoader>();
+                    Debug.Log("✅ [PersonalAreaBootstrap] IAssetLoader получен");
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError($"❌ [PersonalAreaBootstrap] Ошибка резолва ResourcesAssetLoader: {e.Message}\n{e.StackTrace}");
-                    yield break;
+                    Debug.LogError($"❌ [PersonalAreaBootstrap] Ошибка резолва IAssetLoader: {e.Message}\n{e.StackTrace}");
+                    return;
                 }
 
                 var factory = new MonoFactory(_container);
@@ -83,45 +80,40 @@ namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
                 }
                 catch (Exception e) // Ловим другие возможные ошибки при регистрации
                 {
-                    Debug.LogError($"❌ [PersonalAreaBootstrap] Общая ошибка при создании или регистрации EmotionService: {e.Message}\n{e.StackTrace}");
+                    Debug.LogError($"❌ [PersonalAreaBootstrap] Ошибка при создании или регистрации EmotionService: {e.Message}\n{e.StackTrace}");
                 }
 
-                // Если EmotionService критически важен, и не был зарегистрирован из-за отсутствия ОБЯЗАТЕЛЬНЫХ зависимостей:
-                // if (!emotionServiceRegistered)
-                // {
-                //     Debug.LogError("❌ [PersonalAreaBootstrap] EmotionService не был зарегистрирован. Прерывание загрузки сцены.");
-                //     yield break;
-                // }
-
-                Debug.Log($"🔄 [PersonalAreaBootstrap] Загрузка префаба PersonalAreaCanvas из {AssetPaths.PersonalAreaCanvas}...");
+                Debug.Log($"🔄 [PersonalAreaBootstrap] Загрузка префаба PersonalAreaCanvas из {AssetAddresses.PersonalAreaCanvas}...");
                 GameObject personalAreaPrefab = null;
                 try
                 {
-                    personalAreaPrefab = assetLoader.LoadAsset<GameObject>(AssetPaths.PersonalAreaCanvas);
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError($"❌ [PersonalAreaBootstrap] Ошибка загрузки префаба: {e.Message}\n{e.StackTrace}");
-                    yield break;
-                }
+                    // Асинхронная загрузка префаба
+                    var loadHandle = assetLoader.LoadAssetAsync<GameObject>(AssetAddresses.PersonalAreaCanvas);
+                    personalAreaPrefab = await loadHandle; // Ожидаем завершения загрузки и получаем результат
 
-                if (personalAreaPrefab == null)
+                    // Проверяем, что префаб успешно загружен
+                    if (personalAreaPrefab == null) // Если Task вернул null (например, ассет не найден или ошибка при загрузке)
+                    {
+                        Debug.LogError($"❌ [PersonalAreaBootstrap] Не удалось загрузить префаб PersonalAreaCanvas по ключу {AssetAddresses.PersonalAreaCanvas}. LoadAssetAsync вернул null.");
+                        return;
+                    }
+                    // Если IAssetLoader.LoadAssetAsync кидает исключение при ошибке, то этот код не выполнится,
+                    // и мы попадем в блок catch ниже.
+                }
+                catch (Exception e) // Ловим ошибки, которые мог выбросить LoadAssetAsync или await
                 {
-                    Debug.LogError($"❌ [PersonalAreaBootstrap] Не удалось загрузить префаб по пути: {AssetPaths.PersonalAreaCanvas}");
-                    yield break;
+                    Debug.LogError($"❌ [PersonalAreaBootstrap] Исключение при загрузке префаба {AssetAddresses.PersonalAreaCanvas}: {e.Message}\n{e.StackTrace}");
+                    return;
                 }
 
                 Debug.Log("✅ [PersonalAreaBootstrap] Префаб PersonalAreaCanvas загружен, создаем экземпляр...");
                 GameObject instance = null;
-
                 try
                 {
                     instance = Instantiate(personalAreaPrefab);
-
                     JarInteractionHandler jarHandler = instance.GetComponentInChildren<JarInteractionHandler>(true);
                     if (jarHandler != null)
                     {
-                        // Используем _container, который был передан в метод Run
                         if (this._container != null) 
                         {
                             Debug.Log($"[PersonalAreaBootstrap] Пытаемся внедрить зависимости в JarInteractionHandler с контейнером: {this._container.GetHashCode()}");
@@ -129,7 +121,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
                         }
                         else
                         {
-                            Debug.LogError("[PersonalAreaBootstrap] DI контейнер (например, _activeSceneContainer) не доступен для JarInteractionHandler.Inject!");
+                            Debug.LogError("[PersonalAreaBootstrap] DI контейнер не доступен для JarInteractionHandler.Inject!");
                         }
                     }
                     else
@@ -140,7 +132,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
                 catch (Exception e)
                 {
                     Debug.LogError($"❌ [PersonalAreaBootstrap] Ошибка создания экземпляра префаба: {e.Message}\n{e.StackTrace}");
-                    yield break;
+                    return;
                 }
 
                 Debug.Log("🔄 [PersonalAreaBootstrap] Инициализация компонентов...");
@@ -156,7 +148,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
             }
             catch (Exception e)
             {
-                Debug.LogError($"❌ [PersonalAreaBootstrap] Общая ошибка: {e.Message}\n{e.StackTrace}");
+                Debug.LogError($"❌ [PersonalAreaBootstrap] Общая ошибка в Run: {e.Message}\n{e.StackTrace}");
             }
         }
 

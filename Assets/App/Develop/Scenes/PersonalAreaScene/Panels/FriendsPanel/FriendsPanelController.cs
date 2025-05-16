@@ -83,9 +83,15 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         
         private void ClosePanel()
         {
+            Debug.Log($"[FriendsPanelController] Кнопка ClosePanel нажата!");
             if (_panelManager != null)
             {
-                _panelManager.TogglePanel<FriendsPanelController>(AssetPaths.PanelFriends);
+                Debug.Log($"[FriendsPanelController] Вызов TogglePanelAsync для {AssetAddresses.FriendsPanel}");
+                _ = _panelManager.TogglePanelAsync<FriendsPanelController>(AssetAddresses.FriendsPanel);
+            }
+            else
+            {
+                Debug.LogError("[FriendsPanelController] _panelManager is null!");
             }
         }
         #endregion

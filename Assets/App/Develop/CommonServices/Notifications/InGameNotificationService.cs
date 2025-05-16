@@ -1,7 +1,10 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using App.Develop.CommonServices.AssetManagement;
+using System.Threading.Tasks;
 
 namespace App.Develop.CommonServices.Notifications
 {
@@ -29,11 +32,17 @@ namespace App.Develop.CommonServices.Notifications
         private Queue<NotificationData> _pendingNotifications = new Queue<NotificationData>();
         private List<GameObject> _activeNotifications = new List<GameObject>();
         private bool _isInitialized = false;
+        private IAssetLoader _assetLoader;
         
         #endregion
         
         #region Unity Lifecycle
         
+        public void SetAssetLoader(IAssetLoader assetLoader)
+        {
+            _assetLoader = assetLoader;
+        }
+
         private void Awake()
         {
             if (NotificationManager.Instance != null)
@@ -56,37 +65,20 @@ namespace App.Develop.CommonServices.Notifications
         /// </summary>
         public string ServiceName => "InGameNotifications";
         
-        #endregion
-        
-        #region Public Methods
-        
         /// <summary>
-        /// Инициализация сервиса с параметрами
+        /// Инициализирует сервис уведомлений
         /// </summary>
-        public void Initialize()
+        public async Task Initialize()
         {
             if (_isInitialized) return;
             
-            // Создаем контейнер для уведомлений, если его нет
+            // Создаем контейнер для уведомлений, если не указан
             if (_notificationContainer == null)
             {
-                Canvas canvas = FindObjectOfType<Canvas>();
-                if (canvas == null)
-                {
-                    Debug.Log("Canvas не найден, создаем новый для уведомлений");
-                    // Создаем новый Canvas
-                    GameObject canvasObject = new GameObject("NotificationsCanvas");
-                    canvas = canvasObject.AddComponent<Canvas>();
-                    canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-                    canvasObject.AddComponent<CanvasScaler>();
-                    canvasObject.AddComponent<GraphicRaycaster>();
-                    
-                    // Не уничтожаем при переходе между сценами
-                    DontDestroyOnLoad(canvasObject);
-                }
+                GameObject containerObj = new GameObject("NotificationContainer");
+                containerObj.transform.SetParent(transform, false);
+                _notificationContainer = containerObj.transform;
                 
-                _notificationContainer = new GameObject("NotificationContainer").transform;
-                _notificationContainer.SetParent(canvas.transform, false);
                 RectTransform containerRect = _notificationContainer.gameObject.AddComponent<RectTransform>();
                 containerRect.anchorMin = new Vector2(1, 1);
                 containerRect.anchorMax = new Vector2(1, 1);
@@ -94,10 +86,19 @@ namespace App.Develop.CommonServices.Notifications
                 containerRect.anchoredPosition = new Vector2(-20, -20);
             }
             
-            // Загружаем префаб уведомления, если он не указан
+            // Загружаем префаб уведомления через Addressables, если он не указан
             if (_notificationPrefab == null)
             {
-                _notificationPrefab = Resources.Load<GameObject>("Prefabs/UI/InGameNotification");
+                try
+                {
+                    // Используем адрес "UI/Notifications/InGameNotification" (или другой подходящий адрес)
+                    _notificationPrefab = await _assetLoader.LoadAssetAsync<GameObject>("UI/Notifications/InGameNotification");
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"Не удалось загрузить префаб уведомления через Addressables: {ex.Message}");
+                }
+                
                 if (_notificationPrefab == null)
                 {
                     Debug.Log("Префаб уведомления не найден, создаем простой префаб");
@@ -123,7 +124,7 @@ namespace App.Develop.CommonServices.Notifications
                     RectTransform titleRect = titleObj.AddComponent<RectTransform>();
                     titleObj.AddComponent<CanvasRenderer>();
                     Text titleText = titleObj.AddComponent<Text>();
-                    titleText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                    titleText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"); // Это встроенный ресурс, оставляем как есть
                     titleText.fontSize = 14;
                     titleText.color = Color.white;
                     titleText.alignment = TextAnchor.MiddleLeft;
@@ -138,7 +139,7 @@ namespace App.Develop.CommonServices.Notifications
                     RectTransform msgRect = msgObj.AddComponent<RectTransform>();
                     msgObj.AddComponent<CanvasRenderer>();
                     Text msgText = msgObj.AddComponent<Text>();
-                    msgText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                    msgText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"); // Это встроенный ресурс, оставляем как есть
                     msgText.fontSize = 12;
                     msgText.color = Color.white;
                     msgText.alignment = TextAnchor.MiddleLeft;
@@ -171,11 +172,11 @@ namespace App.Develop.CommonServices.Notifications
         /// <summary>
         /// Показывает внутриигровое уведомление
         /// </summary>
-        public void ShowNotification(NotificationData notification)
+        public async void ShowNotification(NotificationData notification)
         {
             if (!_isInitialized)
             {
-                Initialize();
+                await Initialize();
             }
             
             if (_notificationPrefab == null)
@@ -213,7 +214,7 @@ namespace App.Develop.CommonServices.Notifications
             // Устанавливаем иконку в зависимости от категории
             if (categoryIcon != null)
             {
-                Sprite iconSprite = GetIconForCategory(notification.Category);
+                Sprite iconSprite = await GetIconForCategoryAsync(notification.Category);
                 if (iconSprite != null)
                 {
                     categoryIcon.sprite = iconSprite;
@@ -265,10 +266,41 @@ namespace App.Develop.CommonServices.Notifications
         /// <summary>
         /// Получает иконку для категории уведомления
         /// </summary>
+        private async Task<Sprite> GetIconForCategoryAsync(NotificationCategory category)
+        {
+            string iconAddress = $"UI/Icons/Notifications/{category.ToString()}";
+            
+            try
+            {
+                return await _assetLoader.LoadAssetAsync<Sprite>(iconAddress);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"Не удалось загрузить иконку для категории {category}: {ex.Message}");
+                return null;
+            }
+        }
+        
+        /// <summary>
+        /// Получает иконку для категории уведомления (синхронная версия для совместимости)
+        /// </summary>
         private Sprite GetIconForCategory(NotificationCategory category)
         {
-            string iconPath = $"Icons/Notifications/{category.ToString()}";
-            return Resources.Load<Sprite>(iconPath);
+            string iconAddress = $"UI/Icons/Notifications/{category.ToString()}";
+            
+            // Запускаем асинхронную задачу и ожидаем её завершения синхронно
+            // Примечание: это не идеальный подход, лучше переделать всю логику на асинхронную
+            var task = _assetLoader.LoadAssetAsync<Sprite>(iconAddress);
+            try
+            {
+                task.Wait();
+                return task.Result;
+            }
+            catch
+            {
+                Debug.LogWarning($"Не удалось загрузить иконку для категории {category}");
+                return null;
+            }
         }
         
         /// <summary>

@@ -20,4 +20,5 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/App/Scenes/PersonalArea.unity
     guid: 0aba709b12522b947a1265a9865caaef
-  m_configObjects: {}
+  m_configObjects:
+    com.unity.addressableassets: {fileID: 11400000, guid: 29b1d829dd7824444afc511dc5c8b781, type: 2}

@@ -3,7 +3,9 @@
     "rootNamespace": "App.Develop.CommonServices.Notifications",
     "references": [
         "Unity.Notifications.iOS",
-        "Unity.Notifications.Android"
+        "Unity.Notifications.Android",
+        "App.CommonServices.AssetManagement",
+        "App"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

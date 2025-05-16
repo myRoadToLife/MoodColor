@@ -191,7 +191,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         {
             if (_panelManager != null)
             {
-                _panelManager.TogglePanel<HistoryPanelController>(AssetPaths.PanelHistory);
+                _ = _panelManager.TogglePanelAsync<HistoryPanelController>(AssetAddresses.HistoryPanel);
             }
         }
         #endregion

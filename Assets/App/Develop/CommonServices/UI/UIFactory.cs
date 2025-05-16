@@ -1,6 +1,7 @@
 using App.Develop.CommonServices.AssetManagement;
 using App.Develop.DI;
 using UnityEngine;
+using System.Threading.Tasks;
 
 namespace App.Develop.CommonServices.UI
 {
@@ -9,28 +10,37 @@ namespace App.Develop.CommonServices.UI
     /// </summary>
     public class UIFactory
     {
-        private readonly ResourcesAssetLoader _assetLoader;
+        private readonly IAssetLoader _assetLoader;
         private readonly MonoFactory _monoFactory;
 
-        public UIFactory(ResourcesAssetLoader assetLoader, MonoFactory monoFactory)
+        public UIFactory(IAssetLoader assetLoader, MonoFactory monoFactory)
         {
             _assetLoader = assetLoader;
             _monoFactory = monoFactory;
         }
 
         /// <summary>
-        /// Создает UI компонент указанного типа
+        /// Асинхронно создает и инстанцирует UI компонент указанного типа из Addressables.
         /// </summary>
-        public T Create<T>(string assetPath, Transform parent = null) where T : Component
+        public async Task<T> CreateAsync<T>(string addressableKey, Transform parent = null) where T : Component
         {
-            var prefab = _assetLoader.LoadAsset<T>(assetPath);
-            if (prefab == null)
+            GameObject instance = await _assetLoader.InstantiateAsync(addressableKey, parent);
+            if (instance == null)
             {
-                Debug.LogError($"Failed to load UI prefab: {assetPath}");
+                Debug.LogError($"Failed to instantiate UI prefab from address: {addressableKey}");
                 return null;
             }
 
-            return Object.Instantiate(prefab, parent);
+            T component = instance.GetComponent<T>();
+            if (component == null)
+            {
+                Debug.LogError($"Instantiated UI prefab from address: {addressableKey} does not have component {typeof(T).Name}");
+                // Важно: Addressables.ReleaseInstance нужно вызывать для инстанцированного GameObject,
+                // если компонент не найден и объект больше не нужен.
+                _assetLoader.ReleaseAsset(instance); // Используем ReleaseAsset, так как AddressablesLoader обрабатывает и инстансы
+                return null;
+            }
+            return component;
         }
     }
 } 

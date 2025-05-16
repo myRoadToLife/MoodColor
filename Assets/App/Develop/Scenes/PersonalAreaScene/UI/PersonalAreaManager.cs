@@ -8,6 +8,7 @@ using App.Develop.Scenes.PersonalAreaScene.Infrastructure;
 using App.Develop.Scenes.PersonalAreaScene.Settings;
 using App.Develop.Scenes.PersonalAreaScene.UI;
 using UnityEngine;
+using System.Threading.Tasks;
 
 namespace App.Develop.Scenes.PersonalAreaScene.UI
 {
@@ -61,164 +62,80 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
 
         private void SetupButtons()
         {
-            _ui.OnLogEmotion += HandleLogEmotion;
-            _ui.OnOpenHistory += HandleOpenHistory;
-            _ui.OnOpenFriends += HandleOpenFriends;
-            _ui.OnOpenWorkshop += HandleOpenWorkshop;
-            _ui.OnOpenSettings += ShowSettingsPanel;
+            _ui.OnLogEmotion += async () => await HandleLogEmotionAsync();
+            _ui.OnOpenHistory += async () => await HandleOpenHistoryAsync();
+            _ui.OnOpenFriends += async () => await HandleOpenFriendsAsync();
+            _ui.OnOpenWorkshop += async () => await HandleOpenWorkshopAsync();
+            _ui.OnOpenSettings += async () => await ShowSettingsPanelAsync();
         }
 
-        private void HandleLogEmotion() 
+        private async Task HandleLogEmotionAsync() 
         {
-            Debug.Log("📝 Логируем эмоцию");
-            ShowLogEmotionPanel();
+            await ShowLogEmotionPanelAsync();
         }
         
-        private void HandleOpenHistory() 
+        private async Task HandleOpenHistoryAsync() 
         {
-            Debug.Log("📜 История");
-            ShowHistoryPanel();
+            await ShowHistoryPanelAsync();
         }
         
-        private void HandleOpenFriends() 
+        private async Task HandleOpenFriendsAsync() 
         {
-            Debug.Log("👥 Друзья");
-            ShowFriendsPanel();
+            await ShowFriendsPanelAsync();
         }
         
-        private void HandleOpenWorkshop() 
+        private async Task HandleOpenWorkshopAsync() 
         {
-            Debug.Log("🛠️ Мастерская");
-            ShowWorkshopPanel();
+            await ShowWorkshopPanelAsync();
         }
 
-        private void ShowLogEmotionPanel()
+        private async Task ShowLogEmotionPanelAsync()
         {
-            Debug.Log("🔄 [PersonalAreaManager] Показываем панель записи эмоций...");
-            
-            try
+            bool panelShown = await _panelManager.TogglePanelAsync<LogEmotionPanelController>(AssetAddresses.LogEmotionPanel);
+
+            if (!panelShown)
             {
-                if (_panelManager == null)
-                {
-                    Debug.LogError("❌ [PersonalAreaManager] PanelManager отсутствует!");
-                    return;
-                }
-                
-                Debug.Log($"🔄 [PersonalAreaManager] Переключаем панель по пути: {AssetPaths.PanelLogEmotion}");
-                
-                bool panelShown = _panelManager.TogglePanel<LogEmotionPanelController>(AssetPaths.PanelLogEmotion);
-                
-                Debug.Log(panelShown 
-                    ? "✅ [PersonalAreaManager] Панель записи эмоций успешно отображена" 
-                    : "❌ [PersonalAreaManager] Не удалось отобразить панель записи эмоций");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"❌ [PersonalAreaManager] Ошибка при отображении панели записи эмоций: {ex.Message}\n{ex.StackTrace}");
+                Debug.LogError("❌ [PersonalAreaManager] Не удалось отобразить/скрыть панель логирования эмоций.");
             }
         }
 
-        private void ShowHistoryPanel()
+        private async Task ShowHistoryPanelAsync()
         {
-            Debug.Log("🔄 [PersonalAreaManager] Показываем панель истории...");
-            
-            try
+            bool panelShown = await _panelManager.TogglePanelAsync<HistoryPanelController>(AssetAddresses.HistoryPanel);
+
+            if (!panelShown)
             {
-                if (_panelManager == null)
-                {
-                    Debug.LogError("❌ [PersonalAreaManager] PanelManager отсутствует!");
-                    return;
-                }
-                
-                Debug.Log($"🔄 [PersonalAreaManager] Переключаем панель по пути: {AssetPaths.PanelHistory}");
-                
-                bool panelShown = _panelManager.TogglePanel<HistoryPanelController>(AssetPaths.PanelHistory);
-                
-                Debug.Log(panelShown 
-                    ? "✅ [PersonalAreaManager] Панель истории успешно отображена" 
-                    : "❌ [PersonalAreaManager] Не удалось отобразить панель истории");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"❌ [PersonalAreaManager] Ошибка при отображении панели истории: {ex.Message}\n{ex.StackTrace}");
+                Debug.LogError("❌ [PersonalAreaManager] Не удалось отобразить/скрыть панель истории.");
             }
         }
 
-        private void ShowFriendsPanel()
+        private async Task ShowFriendsPanelAsync()
         {
-            Debug.Log("🔄 [PersonalAreaManager] Показываем панель друзей...");
-            
-            try
+            bool panelShown = await _panelManager.TogglePanelAsync<FriendsPanelController>(AssetAddresses.FriendsPanel);
+
+            if (!panelShown)
             {
-                if (_panelManager == null)
-                {
-                    Debug.LogError("❌ [PersonalAreaManager] PanelManager отсутствует!");
-                    return;
-                }
-                
-                Debug.Log($"🔄 [PersonalAreaManager] Переключаем панель по пути: {AssetPaths.PanelFriends}");
-                
-                bool panelShown = _panelManager.TogglePanel<FriendsPanelController>(AssetPaths.PanelFriends);
-                
-                Debug.Log(panelShown 
-                    ? "✅ [PersonalAreaManager] Панель друзей успешно отображена" 
-                    : "❌ [PersonalAreaManager] Не удалось отобразить панель друзей");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"❌ [PersonalAreaManager] Ошибка при отображении панели друзей: {ex.Message}\n{ex.StackTrace}");
+                Debug.LogError("❌ [PersonalAreaManager] Не удалось отобразить/скрыть панель друзей.");
             }
         }
 
-        private void ShowWorkshopPanel()
+        private async Task ShowWorkshopPanelAsync()
         {
-            Debug.Log("🔄 [PersonalAreaManager] Показываем панель мастерской...");
-            
-            try
+            bool panelShown = await _panelManager.TogglePanelAsync<WorkshopPanelController>(AssetAddresses.WorkshopPanel);
+
+            if (!panelShown)
             {
-                if (_panelManager == null)
-                {
-                    Debug.LogError("❌ [PersonalAreaManager] PanelManager отсутствует!");
-                    return;
-                }
-                
-                Debug.Log($"🔄 [PersonalAreaManager] Переключаем панель по пути: {AssetPaths.PanelWorkshop}");
-                
-                bool panelShown = _panelManager.TogglePanel<WorkshopPanelController>(AssetPaths.PanelWorkshop);
-                
-                Debug.Log(panelShown 
-                    ? "✅ [PersonalAreaManager] Панель мастерской успешно отображена" 
-                    : "❌ [PersonalAreaManager] Не удалось отобразить панель мастерской");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"❌ [PersonalAreaManager] Ошибка при отображении панели мастерской: {ex.Message}\n{ex.StackTrace}");
+                Debug.LogError("❌ [PersonalAreaManager] Не удалось отобразить/скрыть панель мастерской.");
             }
         }
 
-        private void ShowSettingsPanel()
+        private async Task ShowSettingsPanelAsync()
         {
-            Debug.Log("🔄 [PersonalAreaManager] Показываем панель настроек...");
-            
-            try
+            bool panelShown = await _panelManager.TogglePanelAsync<SettingsPanelController>(AssetAddresses.SettingsPanel);
+
+            if (!panelShown)
             {
-                if (_panelManager == null)
-                {
-                    Debug.LogError("❌ [PersonalAreaManager] PanelManager отсутствует!");
-                    return;
-                }
-                
-                Debug.Log($"🔄 [PersonalAreaManager] Переключаем панель по пути: {AssetPaths.PanelSettings}");
-                
-                bool panelShown = _panelManager.TogglePanel<SettingsPanelController>(AssetPaths.PanelSettings);
-                
-                Debug.Log(panelShown 
-                    ? "✅ [PersonalAreaManager] Панель настроек успешно отображена" 
-                    : "❌ [PersonalAreaManager] Не удалось отобразить панель настроек");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"❌ [PersonalAreaManager] Ошибка при отображении панели настроек: {ex.Message}\n{ex.StackTrace}");
+                Debug.LogError("❌ [PersonalAreaManager] Не удалось отобразить/скрыть панель настроек.");
             }
         }
 
@@ -251,11 +168,11 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         {
             if (_ui != null)
             {
-                _ui.OnLogEmotion -= HandleLogEmotion;
-                _ui.OnOpenHistory -= HandleOpenHistory;
-                _ui.OnOpenFriends -= HandleOpenFriends;
-                _ui.OnOpenWorkshop -= HandleOpenWorkshop;
-                _ui.OnOpenSettings -= ShowSettingsPanel;
+                _ui.OnLogEmotion -= async () => await HandleLogEmotionAsync();
+                _ui.OnOpenHistory -= async () => await HandleOpenHistoryAsync();
+                _ui.OnOpenFriends -= async () => await HandleOpenFriendsAsync();
+                _ui.OnOpenWorkshop -= async () => await HandleOpenWorkshopAsync();
+                _ui.OnOpenSettings -= async () => await ShowSettingsPanelAsync();
             }
         }
     }

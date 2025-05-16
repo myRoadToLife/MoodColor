@@ -1,0 +1,109 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: Configs
+  m_EditorClassIdentifier: 
+  m_GroupName: Configs
+  m_Data:
+    m_SerializedData: []
+  m_GUID: 14aa97ee89ed77340bb50d7479b014e0
+  m_SerializeEntries:
+  - m_GUID: 0a584b929accc3f48b9680492da54cfe
+    m_Address: Config_DisgustEmotion
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Configs
+    - ScriptableObject
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 0a8e16a778967a4439f63829a76eba82
+    m_Address: Config_JoyEmotion
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Configs
+    - ScriptableObject
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3c2a1f888134a9e44b14e2e3dcdc2f55
+    m_Address: Config_StartEmotion
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Configs
+    - ScriptableObject
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 583ef0889ba58744fa353d15a32fbb69
+    m_Address: Config_FearEmotion
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Configs
+    - ScriptableObject
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5eec1103716b42e45a4005868c3f0593
+    m_Address: Config_TrustEmotion
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Configs
+    - ScriptableObject
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5f212015ac0b0ea488f1b39a11ebcb2e
+    m_Address: Config_SurpriseEmotion
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Configs
+    - ScriptableObject
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 78d0c361516492c40bf7556d6a302721
+    m_Address: Config_SadnessEmotion
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Configs
+    - ScriptableObject
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a40f68807a52b0d47a1e91f6416b00a8
+    m_Address: Config_LoveEmotion
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Configs
+    - ScriptableObject
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: aabb07de42c8c2d44bd3de8621e2aba0
+    m_Address: Config_AnticipationEmotion
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Configs
+    - ScriptableObject
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b716e68fece23e04bb90ddc508be91b8
+    m_Address: Config_AnxietyEmotion
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Configs
+    - ScriptableObject
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c8984afd448cef14999109884f035479
+    m_Address: Config_NeutralEmotion
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Configs
+    - ScriptableObject
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f3db5ab815fde614686cbcd3bb8eb92a
+    m_Address: Config_AngerEmotion
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Configs
+    - ScriptableObject
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 0c640574629fea14a956b2948388e239, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: eeae3085fe217f447833c59bf8a27b5b, type: 2}
+    - {fileID: 11400000, guid: ba415ee57cb6f3b4280b64be0543d49d, type: 2}

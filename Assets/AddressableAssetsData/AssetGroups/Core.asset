@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: Core
+  m_EditorClassIdentifier: 
+  m_GroupName: Core
+  m_Data:
+    m_SerializedData: []
+  m_GUID: c2608834152c3614f8fc13c5e133048c
+  m_SerializeEntries:
+  - m_GUID: 7a0c1351e7f28bc47a1f3ae235d0a812
+    m_Address: CoroutinePerformer
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Core
+    - Prefab
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ea45ee4e70c97f647b73ceb248a447d6
+    m_Address: LoadingScreen
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Core
+    - Prefab
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 0c640574629fea14a956b2948388e239, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: ef818aa3b32d09e439c80ee1cdcfd2f9, type: 2}
+    - {fileID: 11400000, guid: d2d2ad7fa7b916f41bfcc866fea79687, type: 2}

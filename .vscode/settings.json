@@ -1,19 +1,20 @@
 {
     "explorer.excludes": ["**/*.meta"],
     "files.exclude": {
-      "**/*.meta": true,
-      "**/Assets/**/*.meta": true,
-      "**/Packages/**/*.meta": true,
-      "**/ProjectSettings/**/*.meta": true,
-      "**/.DS_Store": true,
-      "**/.git": true,
-      "**/.gitignore": false,
-      "**/.gitmodules": false,
-      "**/node_modules": true,
-      "**/Thumbs.db": true
+        "**/*.meta": true,
+        "**/Assets/**/*.meta": true,
+        "**/Packages/**/*.meta": true,
+        "**/ProjectSettings/**/*.meta": true,
+        "**/.DS_Store": true,
+        "**/.git": true,
+        "**/.gitignore": false,
+        "**/.gitmodules": false,
+        "**/node_modules": true,
+        "**/Thumbs.db": true
     },
     "search.exclude": {
-      "**/*.meta": true
+        "**/*.meta": true
     },
-    "dotnet.preferCSharpExtension": true
-  } 
+    "dotnet.preferCSharpExtension": true,
+    "dotnet.defaultSolution": "MoodColor.sln"
+}

@@ -1,0 +1,109 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: UI
+  m_EditorClassIdentifier: 
+  m_GroupName: UI
+  m_Data:
+    m_SerializedData: []
+  m_GUID: 9a5a82789d88de44fa8acf6eaf3b2855
+  m_SerializeEntries:
+  - m_GUID: 0216bd6fa70743043ad6cb6cc477a7e0
+    m_Address: UIComponent_EmotionJarView
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Prefab
+    - UI
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 0b0ce040c73254249ab44f0c4184072b
+    m_Address: UIPanel_History
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Prefab
+    - UI
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1a1f4fa490345ab4fa26342b5bf7625e
+    m_Address: UIComponent_HistoryItemEntry
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Prefab
+    - UI
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4f47e33153457b440a6fadfaf025beb7
+    m_Address: UIPanel_DeletionAccount
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Prefab
+    - UI
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 52d07e4dd0ef23b40b5e7c8561359572
+    m_Address: UIComponent_Bubble
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Prefab
+    - UI
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5933540c115e7684baae9dac78cc5fa3
+    m_Address: UIPanel_Auth
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Prefab
+    - UI
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6f4368fb280452349a5ca0705d0f6278
+    m_Address: UIComponent_InGameNotification
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Prefab
+    - UI
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 79174e9e04872b2409eed4a8a0cb382f
+    m_Address: UIPanel_Settings
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Prefab
+    - UI
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 95502f995780f7344bef1b55fbfa2bae
+    m_Address: UICanvas_PersonalArea
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Prefab
+    - UI
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b6d5d208f0a5d1149961889e15de4840
+    m_Address: UIPanel_Workshop
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Prefab
+    - UI
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e4418978ebb99634ab35caf7b365d266
+    m_Address: UIPanel_LogEmotion
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Prefab
+    - UI
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f3183ae8043ad2d4b9ea57084394c4a9
+    m_Address: UIPanel_Friends
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Prefab
+    - UI
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 0c640574629fea14a956b2948388e239, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 54bec2665f61be840b7eb5dbf25b9621, type: 2}
+    - {fileID: 11400000, guid: e62bef5f43b9d21479f7f7edb8e855f0, type: 2}

@@ -5,115 +5,133 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace App.Develop.CommonServices.ConfigsManagement
 {
     public class ConfigsProviderService : IConfigsProvider
     {
-        private readonly IResourcesLoader _resourcesLoader;
+        private readonly IAssetLoader _assetLoader;
         private readonly Dictionary<EmotionTypes, EmotionConfig> _emotionConfigs;
 
-        private const string EmotionConfigsPath = "Configs/Common/Emotion/";
-        private const string StartConfigPath = EmotionConfigsPath + "StartEmotionConfig";
+        private const string EmotionConfigsAddressableGroup = "Configs/Common/Emotion/";
+        // Используем константу из AssetAddresses вместо создания своей
+        private const string StartConfigAddressableKey = AssetAddresses.StartEmotionConfig;
 
         public StartEmotionConfig StartEmotionConfig { get; private set; }
+        private bool _isInitialized = false;
 
-        public ConfigsProviderService(IResourcesLoader resourcesLoader)
+        public ConfigsProviderService(IAssetLoader assetLoader)
         {
-            _resourcesLoader = resourcesLoader ?? throw new ArgumentNullException(nameof(resourcesLoader));
+            _assetLoader = assetLoader ?? throw new ArgumentNullException(nameof(assetLoader));
             _emotionConfigs = new Dictionary<EmotionTypes, EmotionConfig>();
-            
-            LoadStartEmotionConfig();
-            LoadEmotionConfigs();
         }
 
-        private void LoadStartEmotionConfig()
+        public async Task InitializeAsync()
+        {
+            if (_isInitialized) return;
+
+            await LoadStartEmotionConfigAsync();
+            await LoadAllEmotionConfigsAsync();
+            _isInitialized = true;
+            Debug.Log("✅ ConfigsProviderService инициализирован и все конфиги загружены.");
+        }
+
+        private async Task LoadStartEmotionConfigAsync()
         {
             try
             {
-                StartEmotionConfig = _resourcesLoader.LoadAsset<StartEmotionConfig>(StartConfigPath);
+                StartEmotionConfig = await _assetLoader.LoadAssetAsync<StartEmotionConfig>(StartConfigAddressableKey);
                 
                 if (StartEmotionConfig == null)
                 {
-                    throw new InvalidOperationException("StartEmotionConfig не найден в ресурсах!");
+                    throw new InvalidOperationException($"StartEmotionConfig не найден по ключу Addressable: {StartConfigAddressableKey}");
                 }
-                
-                Debug.Log("✅ StartEmotionConfig успешно загружен");
+                Debug.Log($"✅ StartEmotionConfig загружен успешно (ключ: {StartConfigAddressableKey})");
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка загрузки StartEmotionConfig: {ex.Message}");
+                Debug.LogError($"❌ Ошибка загрузки StartEmotionConfig (ключ: {StartConfigAddressableKey}): {ex.Message}");
                 throw;
             }
         }
 
-        private void LoadEmotionConfigs()
+        private async Task LoadAllEmotionConfigsAsync()
         {
+            List<Task> loadingTasks = new List<Task>();
             foreach (EmotionTypes type in Enum.GetValues(typeof(EmotionTypes)))
             {
-                try
-                {
-                    string configPath = $"{EmotionConfigsPath}{type}Config";
-                    var config = _resourcesLoader.LoadAsset<EmotionConfig>(configPath);
-                    
-                    if (config != null)
-                    {
-                        _emotionConfigs[type] = config;
-                        Debug.Log($"✅ Загружен конфиг для эмоции {type}");
-                    }
-                    else
-                    {
-                        Debug.LogError($"❌ Не найден конфиг для эмоции {type}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError($"❌ Ошибка загрузки конфига для {type}: {ex.Message}");
-                }
+                loadingTasks.Add(LoadSingleEmotionConfigAsync(type));
             }
+            await Task.WhenAll(loadingTasks);
+            Debug.Log("✅ Все EmotionConfig были запрошены для загрузки.");
         }
 
-        public EmotionConfig LoadEmotionConfig(EmotionTypes type)
+        private async Task LoadSingleEmotionConfigAsync(EmotionTypes type)
         {
-            // Проверяем кэш
-            if (_emotionConfigs.TryGetValue(type, out var cachedConfig))
-            {
-                return cachedConfig;
-            }
-
             try
             {
-                string configPath = $"{EmotionConfigsPath}{type}Config";
-                var config = _resourcesLoader.LoadAsset<EmotionConfig>(configPath);
+                // Получаем правильный ключ Addressable из констант в AssetAddresses
+                string configKey = GetEmotionConfigKey(type);
+                var config = await _assetLoader.LoadAssetAsync<EmotionConfig>(configKey);
                 
                 if (config != null)
                 {
                     _emotionConfigs[type] = config;
-                    return config;
+                    Debug.Log($"✅ Загружен конфиг для эмоции {type} по ключу {configKey}");
                 }
-                
-                Debug.LogError($"❌ Не удалось загрузить конфиг для эмоции {type}");
-                return null;
+                else
+                {
+                    Debug.LogWarning($"⚠️ Не найден конфиг для эмоции {type} по ключу {configKey}");
+                }
             }
             catch (Exception ex)
             {
                 Debug.LogError($"❌ Ошибка загрузки конфига для {type}: {ex.Message}");
-                return null;
             }
+        }
+
+        // Получение правильного ключа для каждого типа эмоции из AssetAddresses
+        private string GetEmotionConfigKey(EmotionTypes type)
+        {
+            return type switch
+            {
+                EmotionTypes.Joy => AssetAddresses.JoyConfig,
+                EmotionTypes.Sadness => AssetAddresses.SadnessConfig,
+                EmotionTypes.Anger => AssetAddresses.AngerConfig,
+                EmotionTypes.Fear => AssetAddresses.FearConfig,
+                EmotionTypes.Disgust => AssetAddresses.DisgustConfig,
+                EmotionTypes.Trust => AssetAddresses.TrustConfig,
+                EmotionTypes.Anticipation => AssetAddresses.AnticipationConfig,
+                EmotionTypes.Surprise => AssetAddresses.SurpriseConfig, 
+                EmotionTypes.Love => AssetAddresses.LoveConfig,
+                EmotionTypes.Anxiety => AssetAddresses.AnxietyConfig,
+                EmotionTypes.Neutral => AssetAddresses.NeutralConfig,
+                _ => $"{EmotionConfigsAddressableGroup}{type}Config" // Fallback для новых типов
+            };
+        }
+
+        public EmotionConfig LoadEmotionConfig(EmotionTypes type)
+        {
+            if (!_isInitialized) Debug.LogWarning("ConfigsProviderService не инициализирован! Конфиги могут быть не загружены.");
+            return _emotionConfigs.TryGetValue(type, out var cachedConfig) ? cachedConfig : null;
         }
 
         public IEnumerable<EmotionTypes> GetAllEmotionTypes()
         {
+            if (!_isInitialized) Debug.LogWarning("ConfigsProviderService не инициализирован!");
             return _emotionConfigs.Keys;
         }
 
         public bool HasConfig(EmotionTypes type)
         {
+            if (!_isInitialized) Debug.LogWarning("ConfigsProviderService не инициализирован!");
             return _emotionConfigs.ContainsKey(type);
         }
 
         public IReadOnlyDictionary<EmotionTypes, EmotionConfig> GetAllConfigs()
         {
+            if (!_isInitialized) Debug.LogWarning("ConfigsProviderService не инициализирован!");
             return _emotionConfigs;
         }
     }

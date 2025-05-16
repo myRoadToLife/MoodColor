@@ -3,30 +3,31 @@ using System.Collections.Generic;
 using App.Develop.CommonServices.AssetManagement;
 using App.Develop.DI;
 using UnityEngine;
+using System.Threading.Tasks;
+using UnityEngine.AddressableAssets;
 
 namespace App.Develop.CommonServices.UI
 {
     public class PanelManager : IDisposable
     {
         private readonly Dictionary<string, GameObject> _activePanels = new();
-        private readonly ResourcesAssetLoader _assetLoader;
+        private readonly IAssetLoader _assetLoader;
         private readonly MonoFactory _factory;
 
-        public PanelManager(ResourcesAssetLoader assetLoader, MonoFactory factory)
+        public PanelManager(IAssetLoader assetLoader, MonoFactory factory)
         {
             _assetLoader = assetLoader ?? throw new ArgumentNullException(nameof(assetLoader));
             _factory = factory ?? throw new ArgumentNullException(nameof(factory));
         }
 
-        public T ShowPanel<T>(string panelPath) where T : MonoBehaviour
+        public async Task<T> ShowPanelAsync<T>(string addressableKey) where T : MonoBehaviour
         {
-            if (_activePanels.TryGetValue(panelPath, out var existingPanel))
+            if (_activePanels.TryGetValue(addressableKey, out var existingPanel))
             {
-                // 🔒 Защита: удалён объект, но остался в словаре
                 if (existingPanel == null)
                 {
-                    Debug.LogWarning($"🧹 Объект панели {panelPath} уничтожен. Удаляю из словаря.");
-                    _activePanels.Remove(panelPath);
+                    Debug.LogWarning($"🧹 Объект панели {addressableKey} уничтожен. Удаляю из словаря.");
+                    _activePanels.Remove(addressableKey);
                 }
                 else
                 {
@@ -35,52 +36,55 @@ namespace App.Develop.CommonServices.UI
                 }
             }
 
-            var prefab = _assetLoader.LoadAsset<GameObject>(panelPath);
-            if (prefab == null)
-            {
-                Debug.LogError($"❌ Префаб {panelPath} не найден в Resources");
-                return null;
-            }
-
-            var instance = UnityEngine.Object.Instantiate(prefab);
+            GameObject instance = await _assetLoader.InstantiateAsync(addressableKey);
             if (instance == null)
             {
-                Debug.LogError($"❌ Не удалось создать экземпляр панели {panelPath}");
+                Debug.LogError($"❌ Не удалось создать экземпляр панели из Addressable: {addressableKey}");
                 return null;
             }
 
             var component = instance.GetComponentInChildren<T>();
             if (component == null)
             {
-                Debug.LogError($"❌ Компонент {typeof(T).Name} не найден в префабе {panelPath}");
-                UnityEngine.Object.Destroy(instance);
+                Debug.LogError($"❌ Компонент {typeof(T).Name} не найден в префабе {addressableKey}");
+                Addressables.ReleaseInstance(instance);
                 return null;
             }
 
-            _activePanels[panelPath] = instance;
-            _factory.CreateOn<T>(component.gameObject);
+            _factory.CreateOn<T>(instance);
+            
+            _activePanels[addressableKey] = instance;
 
             return component;
         }
 
-        public bool TogglePanel<T>(string panelPath) where T : MonoBehaviour
+        public async Task<bool> TogglePanelAsync<T>(string addressableKey) where T : MonoBehaviour
         {
-            if (_activePanels.TryGetValue(panelPath, out var panel))
+            Debug.Log($"[PanelManager] TogglePanelAsync вызван для ключа: {addressableKey}, тип: {typeof(T).Name}");
+            if (_activePanels.TryGetValue(addressableKey, out var panel))
             {
-                // Проверка на уничтоженный объект
+                Debug.Log($"[PanelManager] Панель {addressableKey} найдена в _activePanels.");
                 if (panel == null)
                 {
-                    Debug.LogWarning($"🧹 Панель {panelPath} была уничтожена. Удаляем ссылку.");
-                    _activePanels.Remove(panelPath);
-                    return ShowPanel<T>(panelPath) != null;
+                    Debug.LogWarning($"[PanelManager] 🧹 Панель {addressableKey} была уничтожена (null). Удаляем ссылку и пытаемся показать заново.");
+                    _activePanels.Remove(addressableKey);
+                    // Пытаемся показать заново, так как ссылка была утеряна
+                    var newPanelComponent = await ShowPanelAsync<T>(addressableKey);
+                    return newPanelComponent != null; // Возвращаем true, если панель успешно показана (стала активной)
                 }
 
                 bool isActive = panel.activeSelf;
+                Debug.Log($"[PanelManager] Текущее состояние панели {addressableKey}: {(isActive ? "Активна" : "Неактивна")}. Меняем на: {(!isActive ? "Активна" : "Неактивна")}");
                 panel.SetActive(!isActive);
-                return !isActive;
+                return !isActive; // Возвращаем новое состояние активности (true если стала активной, false если стала неактивной)
             }
-
-            return ShowPanel<T>(panelPath) != null;
+            else
+            {
+                Debug.Log($"[PanelManager] Панель {addressableKey} НЕ найдена в _activePanels. Показываем новую.");
+                // Панели нет в словаре, значит показываем ее
+                var panelComponent = await ShowPanelAsync<T>(addressableKey);
+                return panelComponent != null; // Возвращаем true, если панель успешно показана (стала активной)
+            }
         }
 
         public void HidePanel(string panelPath)
@@ -104,11 +108,11 @@ namespace App.Develop.CommonServices.UI
 
         public void Dispose()
         {
-            foreach (var panel in _activePanels.Values)
+            foreach (var panelGo in _activePanels.Values)
             {
-                if (panel != null)
+                if (panelGo != null)
                 {
-                    UnityEngine.Object.Destroy(panel);
+                    _assetLoader.ReleaseAsset(panelGo);
                 }
             }
             _activePanels.Clear();

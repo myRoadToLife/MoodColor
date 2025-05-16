@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace App.Develop.CommonServices.Notifications
 {
     /// <summary>
@@ -8,7 +10,7 @@ namespace App.Develop.CommonServices.Notifications
         /// <summary>
         /// Инициализирует сервис уведомлений
         /// </summary>
-        void Initialize();
+        Task Initialize();
         
         /// <summary>
         /// Имя сервиса для идентификации

@@ -444,7 +444,7 @@ namespace App.Develop.CommonServices.Emotion
 
             foreach (EmotionTypes type in Enum.GetValues(typeof(EmotionTypes)))
             {
-                var config = _emotionConfigService.LoadEmotionConfig(type);
+                var config = _emotionConfigService.GetConfig(type);
                 if (config != null)
                 {
                     _emotionConfigs[type] = config;

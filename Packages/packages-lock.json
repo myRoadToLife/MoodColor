@@ -1,5 +1,14 @@
 {
   "dependencies": {
+    "com.boxqkrtm.ide.cursor": {
+      "version": "https://github.com/boxqkrtm/com.unity.ide.cursor.git",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.unity.test-framework": "1.1.9"
+      },
+      "hash": "0a98b387a92cf9f1f47012fc46d4cf33576e5916"
+    },
     "com.google.external-dependency-manager": {
       "version": "file:F:/MoodColor/Firebase/com.google.external-dependency-manager-1.2.185.tgz",
       "depth": 0,
@@ -336,7 +345,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.textmeshpro": {
-      "version": "3.0.7",
+      "version": "3.0.9",
       "depth": 0,
       "source": "registry",
       "dependencies": {
@@ -374,6 +383,13 @@
         "com.unity.modules.jsonserialize": "1.0.0"
       },
       "url": "https://packages.unity.com"
+    },
+    "io.sentry.unity": {
+      "version": "https://github.com/getsentry/unity.git#3.2.2",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "07c39f9d99552c9dd57d5e09bbdfd4b409089a01"
     },
     "com.unity.modules.ai": {
       "version": "1.0.0",

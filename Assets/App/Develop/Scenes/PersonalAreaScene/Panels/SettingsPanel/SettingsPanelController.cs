@@ -55,6 +55,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         [SerializeField] private Button _saveButton;
         [SerializeField] private Button _resetButton;
         [SerializeField] private Button _deleteAccountButton;
+        [SerializeField] private Button _closeButton;
         
         [Header("Сообщения")]
         [SerializeField] private GameObject _popupPanel;
@@ -131,6 +132,9 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             if (_deleteAccountButton != null)
                 _deleteAccountButton.onClick.AddListener(ShowDeleteAccountPanel);
                 
+            if (_closeButton != null)
+                _closeButton.onClick.AddListener(ClosePanel);
+                
             if (_notificationsToggle != null)
                 _notificationsToggle.onValueChanged.AddListener(OnNotificationsChanged);
                 
@@ -154,6 +158,9 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             
             if (_deleteAccountButton != null)
                 _deleteAccountButton.onClick.RemoveListener(ShowDeleteAccountPanel);
+                
+            if (_closeButton != null)
+                _closeButton.onClick.RemoveListener(ClosePanel);
                 
             if (_notificationsToggle != null)
                 _notificationsToggle.onValueChanged.RemoveListener(OnNotificationsChanged);
@@ -289,12 +296,20 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             }
             
             Debug.Log($"✅ Показ панели удаления для пользователя: {_authStateService.CurrentUser.Email}");
-            _panelManager.ShowPanel<AccountDeletionManager>(AssetPaths.DeletionAccountPanel);
+            _ = _panelManager.TogglePanelAsync<AccountDeletionManager>(AssetAddresses.DeletionAccountPanel);
         }
 
         private void RedirectToAuth()
         {
             _sceneSwitcher.ProcessSwitchSceneFor(new OutputPersonalAreaScreenArgs(new AuthSceneInputArgs()));
+        }
+        
+        private void ClosePanel()
+        {
+            if (_panelManager != null)
+            {
+                _ = _panelManager.TogglePanelAsync<SettingsPanelController>(AssetAddresses.SettingsPanel);
+            }
         }
         #endregion
 

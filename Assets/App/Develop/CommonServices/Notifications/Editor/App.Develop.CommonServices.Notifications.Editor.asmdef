@@ -4,7 +4,8 @@
     "references": [
         "App.Develop.CommonServices.Notifications",
         "Unity.Notifications.iOS.Editor",
-        "Unity.Notifications.Android.Editor"
+        "Unity.Notifications.Android.Editor",
+        "App.CommonServices.AssetManagement"
     ],
     "includePlatforms": [
         "Editor"

@@ -4,6 +4,8 @@ using App.Develop.CommonServices.AssetManagement;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
 using UnityEngine;
+using System.Threading.Tasks;
+using App.Develop.CommonServices.UI;
 
 namespace App.Develop.Scenes.AuthScene
 {
@@ -11,42 +13,39 @@ namespace App.Develop.Scenes.AuthScene
     {
         private DIContainer _container;
 
-        public IEnumerator Run(DIContainer container, AuthSceneInputArgs inputArgs)
+        public async Task Run(DIContainer container, AuthSceneInputArgs inputArgs)
         {
             _container = container;
             _container.Initialize();
 
             Debug.Log("✅ [AuthSceneBootstrap] сцена загружена");
 
-            ResourcesAssetLoader assetLoader = _container.Resolve<ResourcesAssetLoader>();
-            MonoFactory factory = new MonoFactory(_container);
-
-            // Загружаем один AuthPanel, где уже есть оба компонента
-            GameObject authPanelPrefab = assetLoader.LoadAsset<GameObject>("UI/AuthPanel");
-            if (authPanelPrefab == null)
+            var panelManager = _container.Resolve<PanelManager>();
+            if (panelManager == null)
             {
-                Debug.LogError("❌ Не найден префаб AuthPanel в Resources/UI/AuthPanel");
-                yield break;
+                Debug.LogError("❌ PanelManager не найден в контейнере!");
+                return;
             }
-
-            GameObject authPanelInstance = Instantiate(authPanelPrefab);
-    
-            // Получаем IAuthManager из контейнера (больше не компонент)
-            var authManager = _container.Resolve<IAuthManager>();
             
-            // Находим компонент AuthUIController, который уже должен быть на префабе
-            var authUIController = authPanelInstance.GetComponent<AuthUIController>();
+            AuthUIController authUIController = await panelManager.ShowPanelAsync<AuthUIController>(AssetAddresses.AuthPanel);
+            
             if (authUIController == null)
             {
-                Debug.LogError("❌ Не найден компонент AuthUIController на префабе AuthPanel");
-            }
-            else
-            {
-                // Инициализируем AuthUIController через IAuthManager
-                authManager.Initialize(authUIController);
+                Debug.LogError($"❌ Не удалось загрузить или найти AuthUIController на панели {AssetAddresses.AuthPanel}");
+                return;
             }
             
-            // Обрабатываем ProfileSetupUI
+            GameObject authPanelInstance = authUIController.gameObject;
+    
+            var authManager = _container.Resolve<IAuthManager>();
+            if (authManager == null)
+            {
+                Debug.LogError("❌ IAuthManager не найден в контейнере!");
+                return;
+            }
+            
+            authManager.Initialize(authUIController);
+            
             var profileSetupUI = authPanelInstance.GetComponent<ProfileSetupUI>();
             if (profileSetupUI == null)
             {
@@ -56,8 +55,6 @@ namespace App.Develop.Scenes.AuthScene
             {
                 injectableProfile.Inject(_container);
             }
-
-            yield return null;
         }
     }
 }

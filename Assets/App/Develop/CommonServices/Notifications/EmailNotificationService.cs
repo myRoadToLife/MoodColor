@@ -77,9 +77,9 @@ namespace App.Develop.CommonServices.Notifications
         /// <summary>
         /// Инициализация сервиса с параметрами
         /// </summary>
-        public void Initialize()
+        public Task Initialize()
         {
-            if (_isInitialized) return;
+            if (_isInitialized) return Task.CompletedTask;
             
             // Загружаем шаблоны
             CacheTemplates();
@@ -92,16 +92,18 @@ namespace App.Develop.CommonServices.Notifications
             
             _isInitialized = true;
             Debug.Log("EmailNotificationService initialized successfully");
+            
+            return Task.CompletedTask;
         }
         
         /// <summary>
         /// Отправляет email-уведомление пользователю
         /// </summary>
-        public void SendEmailNotification(NotificationData notification, string recipientEmail)
+        public async void SendEmailNotification(NotificationData notification, string recipientEmail)
         {
             if (!_isInitialized)
             {
-                Initialize();
+                await Initialize();
             }
             
             if (string.IsNullOrEmpty(recipientEmail))

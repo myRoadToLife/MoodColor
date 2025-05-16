@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.boxqkrtm.ide.cursor": "https://github.com/boxqkrtm/com.unity.ide.cursor.git",
     "com.google.external-dependency-manager": "file:F:/MoodColor/Firebase/com.google.external-dependency-manager-1.2.185.tgz",
     "com.google.firebase.analytics": "file:F:/MoodColor/Firebase/com.google.firebase.analytics-12.8.0.tgz",
     "com.google.firebase.app": "file:F:/MoodColor/Firebase/com.google.firebase.app-12.8.0.tgz",
@@ -18,10 +19,11 @@
     "com.unity.nuget.newtonsoft-json": "3.2.1",
     "com.unity.render-pipelines.universal": "14.0.12",
     "com.unity.test-framework": "1.1.33",
-    "com.unity.textmeshpro": "3.0.7",
+    "com.unity.textmeshpro": "3.0.9",
     "com.unity.timeline": "1.7.7",
     "com.unity.ugui": "1.0.0",
     "com.unity.visualscripting": "1.9.4",
+    "io.sentry.unity": "https://github.com/getsentry/unity.git#3.2.2",
     "com.unity.modules.ai": "1.0.0",
     "com.unity.modules.androidjni": "1.0.0",
     "com.unity.modules.animation": "1.0.0",

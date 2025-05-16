@@ -4,6 +4,7 @@ using App.Develop.CommonServices.UI;
 using App.Develop.DI;
 using UnityEngine;
 using UnityEngine.UI;
+using System.Threading.Tasks;
 
 namespace App.Develop.Scenes.PersonalAreaScene.UI
 {
@@ -52,41 +53,41 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         private void SubscribeEvents()
         {
             if (_saveButton != null)
-                _saveButton.onClick.AddListener(SaveEmotion);
+                _saveButton.onClick.AddListener(async () => await SaveEmotionAsync());
             
             if (_cancelButton != null)
-                _cancelButton.onClick.AddListener(CancelAndClose);
+                _cancelButton.onClick.AddListener(async () => await CancelAndCloseAsync());
         }
 
         private void UnsubscribeEvents()
         {
             if (_saveButton != null)
-                _saveButton.onClick.RemoveListener(SaveEmotion);
+                _saveButton.onClick.RemoveListener(async () => await SaveEmotionAsync());
             
             if (_cancelButton != null)
-                _cancelButton.onClick.RemoveListener(CancelAndClose);
+                _cancelButton.onClick.RemoveListener(async () => await CancelAndCloseAsync());
         }
         #endregion
 
         #region UI Event Handlers
-        private void SaveEmotion()
+        private async Task SaveEmotionAsync()
         {
             // TODO: Добавить логику сохранения эмоции
             
             ShowPopup("Эмоция записана");
-            ClosePanel();
+            await ClosePanelAsync();
         }
 
-        private void CancelAndClose()
+        private async Task CancelAndCloseAsync()
         {
-            ClosePanel();
+            await ClosePanelAsync();
         }
         
-        private void ClosePanel()
+        private async Task ClosePanelAsync()
         {
             if (_panelManager != null)
             {
-                _panelManager.TogglePanel<LogEmotionPanelController>(AssetPaths.PanelLogEmotion);
+                await _panelManager.TogglePanelAsync<LogEmotionPanelController>(AssetAddresses.LogEmotionPanel);
             }
         }
         #endregion

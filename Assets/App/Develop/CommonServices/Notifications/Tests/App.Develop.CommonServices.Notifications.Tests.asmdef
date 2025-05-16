@@ -4,7 +4,8 @@
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "App.Develop.CommonServices.Notifications"
+        "App.Develop.CommonServices.Notifications",
+        "App.CommonServices.AssetManagement"
     ],
     "includePlatforms": [
         "Editor"

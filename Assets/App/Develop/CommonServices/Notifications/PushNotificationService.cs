@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 #if UNITY_ANDROID
 using Unity.Notifications.Android;
 #endif
@@ -30,9 +31,9 @@ namespace App.Develop.CommonServices.Notifications
         /// </summary>
         public string ServiceName => "PushNotifications";
 
-        public void Initialize()
+        public Task Initialize()
         {
-            if (_isInitialized) return;
+            if (_isInitialized) return Task.CompletedTask;
             
             Debug.Log("Initializing PushNotificationService");
 
@@ -42,6 +43,8 @@ namespace App.Develop.CommonServices.Notifications
 
             _isInitialized = true;
             Debug.Log("PushNotificationService initialized successfully");
+            
+            return Task.CompletedTask;
         }
 
 #if UNITY_ANDROID
@@ -90,12 +93,11 @@ namespace App.Develop.CommonServices.Notifications
         }
 #endif
 
-        public void SendPushNotification(NotificationData notificationData)
+        public async void SendPushNotification(NotificationData notificationData)
         {
             if (!_isInitialized)
             {
-                Debug.LogError("PushNotificationService not initialized");
-                return;
+                await Initialize();
             }
             
             Debug.Log($"Sending push notification: {notificationData.Title}");
@@ -163,12 +165,11 @@ namespace App.Develop.CommonServices.Notifications
         }
 #endif
 
-        public void CancelPushNotification(string notificationId)
+        public async void CancelPushNotification(string notificationId)
         {
             if (!_isInitialized)
             {
-                Debug.LogError("PushNotificationService not initialized");
-                return;
+                await Initialize();
             }
             
             Debug.Log($"Cancelling push notification with ID: {notificationId}");
@@ -182,12 +183,11 @@ namespace App.Develop.CommonServices.Notifications
 #endif
         }
 
-        public void CancelAllPushNotifications()
+        public async void CancelAllPushNotifications()
         {
             if (!_isInitialized)
             {
-                Debug.LogError("PushNotificationService not initialized");
-                return;
+                await Initialize();
             }
             
             Debug.Log("Cancelling all push notifications");
