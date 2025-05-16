@@ -49,5 +49,11 @@ namespace App.Develop.CommonServices.AssetManagement
         public const string LiberationSansSDFDropShadow = "LiberationSans SDF - Drop Shadow";
         public const string TMPSDFMobileShader = "TMP_SDF-Mobile";
         public const string LiberationSansTTF = "LiberationSans";
+        
+        //Scenes
+        public const string AuthScene =  "AuthScene";
+        public const string BootstrapScene =  "BootstrapScene";
+        public const string EmptyScene =  "EmptyScene";
+        public const string PersonalAreaScene =  "PersonalAreaScene";
     }
 }

@@ -7,6 +7,7 @@ using App.Develop.Scenes.AuthScene;
 using App.Develop.Scenes.PersonalAreaScene.Infrastructure;
 using UnityEngine;
 using Object = UnityEngine.Object;
+using App.Develop.CommonServices.AssetManagement;
 
 namespace App.Develop.CommonServices.SceneManagement
 {
@@ -114,19 +115,20 @@ namespace App.Develop.CommonServices.SceneManagement
 
         private IEnumerator ProcessSwitchToAuthScene(AuthSceneInputArgs inputArgs)
         {
-            Debug.Log("🧭 [SceneSwitcher] Загружаем сцену Auth");
+            Debug.Log("🧭 [SceneSwitcher] Загружаем сцену Auth по ключу Addressable");
 
             _loadingScreen.Show();
             _sceneContainer?.Dispose();
 
-            yield return _sceneLoader.LoadAsync(SceneID.Empty);
-            yield return _sceneLoader.LoadAsync(SceneID.Auth);
+            yield return _sceneLoader.LoadAsync(AssetAddresses.EmptyScene);
+            yield return _sceneLoader.LoadAsync(AssetAddresses.AuthScene);
 
             var bootstrap = Object.FindFirstObjectByType<AuthSceneBootstrap>();
 
             if (bootstrap == null)
             {
                 Debug.LogError("❌ [SceneSwitcher] AuthSceneBootstrap не найден!");
+                _loadingScreen.Hide();
                 yield break;
             }
 
@@ -139,17 +141,22 @@ namespace App.Develop.CommonServices.SceneManagement
 
         private IEnumerator ProcessSwitchToPersonalAreaScene(PersonalAreaInputArgs personalAreaInputArgs)
         {
+            Debug.Log("🧭 [SceneSwitcher] Загружаем сцену PersonalArea по ключу Addressable");
             _loadingScreen.Show();
 
             _sceneContainer?.Dispose();
 
-            yield return _sceneLoader.LoadAsync(SceneID.Empty);
-            yield return _sceneLoader.LoadAsync(SceneID.PersonalArea);
+            yield return _sceneLoader.LoadAsync(AssetAddresses.EmptyScene);
+            yield return _sceneLoader.LoadAsync(AssetAddresses.PersonalAreaScene);
 
             var personalAreaBootstrap = Object.FindFirstObjectByType<PersonalAreaBootstrap>();
 
             if (personalAreaBootstrap == null)
-                throw new NullReferenceException(nameof(personalAreaBootstrap));
+            {
+                Debug.LogError("❌ [SceneSwitcher] PersonalAreaBootstrap не найден!");
+                _loadingScreen.Hide();
+                throw new NullReferenceException(nameof(personalAreaBootstrap) + " не найден на сцене после загрузки Addressable.");
+            }
 
             _sceneContainer = new DIContainer(_projectContainer);
             yield return personalAreaBootstrap.Run(_sceneContainer, personalAreaInputArgs);

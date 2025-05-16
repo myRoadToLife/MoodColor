@@ -44,8 +44,42 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         #region Unity Lifecycle
         private void Start()
         {
+            Debug.Log("✅ AccountDeletionManager.Start вызван. В случае ошибок, убедитесь, что инъекция произошла до Start.");
+            
+            // Вместо непосредственной инициализации, запускаем корутину, которая будет ждать,
+            // пока все зависимости будут правильно инициализированы
+            StartCoroutine(WaitForDependenciesAndInitialize());
+        }
+
+        private IEnumerator WaitForDependenciesAndInitialize()
+        {
+            // Ждем максимум 10 секунд для инициализации зависимостей
+            float waitTime = 0f;
+            float maxWaitTime = Mathf.Min(10f, Time.maximumDeltaTime * 30f);
+            
+            // Ждем, пока _authStateService не будет инициализирован или не истечет время ожидания
+            while (_authStateService == null && waitTime < maxWaitTime)
+            {
+                waitTime += Time.deltaTime;
+                yield return null;
+            }
+            
+            // После ожидания проверяем, был ли сервис инициализирован
+            if (_authStateService == null)
+            {
+                Debug.LogError($"❌ _authStateService остался NULL после {waitTime} секунд ожидания! " +
+                              "Проблема с инъекцией зависимостей при использовании Addressables.");
+                // Возможно, стоит показать пользователю сообщение об ошибке или перезагрузить сцену
+                ShowPopup("Произошла ошибка при загрузке. Пожалуйста, попробуйте позже.");
+                yield break;
+            }
+            
+            // Теперь, когда у нас есть все зависимости, можно инициализировать компонент
+            Debug.Log($"✅ _authStateService успешно получен после {waitTime} секунд ожидания.");
+            
             // Проверяем состояние аутентификации при запуске
             CheckAuthenticationState();
+            
             // Регистрируем обработчик изменения состояния аутентификации
             _authStateService.AuthStateChanged += OnAuthStateChanged;
         }
@@ -66,16 +100,57 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         #region Initialization
         public void Inject(DIContainer container)
         {
-            _sceneSwitcher = container.Resolve<SceneSwitcher>();
-            _auth = FirebaseAuth.DefaultInstance;
-            _database = container.Resolve<DatabaseReference>();
-            _authStateService = container.Resolve<IAuthStateService>();
-            
-            // Создаем помощника удаления аккаунта с передачей IAuthStateService
-            _deletionHelper = new AccountDeletionHelper(_database, _authStateService);
-            SubscribeToHelperEvents();
+            Debug.Log("🚀 [AccountDeletionManager] Inject CALLED. Container is null: " + (container == null));
 
-            InitializeUI();
+            try 
+            {
+                if (container == null) 
+                {
+                    Debug.LogError("❌ [AccountDeletionManager] Inject CALLED with a NULL container!");
+                    throw new ArgumentNullException(nameof(container));
+                }
+                
+                _sceneSwitcher = container.Resolve<SceneSwitcher>();
+                if (_sceneSwitcher == null) Debug.LogError("❌ [AccountDeletionManager] Не удалось получить SceneSwitcher из контейнера!");
+                
+                _auth = FirebaseAuth.DefaultInstance;
+                if (_auth == null) Debug.LogError("❌ [AccountDeletionManager] FirebaseAuth.DefaultInstance вернул NULL!");
+                
+                _database = container.Resolve<DatabaseReference>();
+                if (_database == null) Debug.LogError("❌ [AccountDeletionManager] Не удалось получить DatabaseReference из контейнера!");
+                
+                // Пытаемся получить сервис и логируем результат
+                IAuthStateService resolvedService = null;
+                try
+                {
+                    resolvedService = container.Resolve<IAuthStateService>();
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"❌ [AccountDeletionManager] ОШИБКА при попытке Resolve<IAuthStateService>: {ex.Message}\n{ex.StackTrace}");
+                }
+                
+                _authStateService = resolvedService;
+                if (_authStateService == null) 
+                {
+                    Debug.LogError("❌ [AccountDeletionManager] IAuthStateService остался NULL после попытки Resolve! Это критическая ошибка.");
+                    return; 
+                }
+                else
+                {
+                    Debug.Log("✅ [AccountDeletionManager] IAuthStateService УСПЕШНО получен из контейнера.");
+                }
+                
+                _deletionHelper = new AccountDeletionHelper(_database, _authStateService);
+                SubscribeToHelperEvents();
+
+                InitializeUI();
+                Debug.Log("✅ AccountDeletionManager успешно инициализирован через Inject");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Глобальная ошибка в Inject AccountDeletionManager: {ex.Message}\n{ex.StackTrace}");
+            }
         }
         
         private void SubscribeToHelperEvents()
@@ -135,12 +210,26 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
 
         private void CheckAuthenticationState()
         {
+            // Проверка инициализации сервиса
+            if (_authStateService == null)
+            {
+                Debug.LogError("❌ _authStateService is NULL в CheckAuthenticationState!");
+                return;
+            }
+            
             // Проверяем состояние аутентификации и при необходимости восстанавливаем
             StartCoroutine(CheckAndRestoreAuthenticationState());
         }
         
         private IEnumerator CheckAndRestoreAuthenticationState()
         {
+            // Проверяем, что сервис аутентификации инициализирован
+            if (_authStateService == null)
+            {
+                Debug.LogError("❌ _authStateService is NULL в CheckAndRestoreAuthenticationState! Инъекция не произошла или запущена слишком поздно.");
+                yield break;
+            }
+
             // Проверяем, авторизован ли пользователь
             if (!_authStateService.IsAuthenticated)
             {
@@ -196,60 +285,130 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         #region UI Initialization
         private void InitializeUI()
         {
-            Debug.Log("✅ InitializeUI вызван");
+            try 
+            {
+                Debug.Log("✅ InitializeUI вызван");
 
-            if (_logoutButton == null) Debug.LogError("❌ _logoutButton не установлен!");
-            if (_showDeleteButton == null) Debug.LogError("❌ _showDeleteButton не установлен!");
-            if (_confirmDeleteButton == null) Debug.LogError("❌ _confirmDeleteButton не установлен!");
-            if (_passwordInput == null) Debug.LogError("❌ _passwordInput не установлен!");
-            if (_popupPanel == null || _popupText == null) Debug.LogError("❌ Popup элементы не установлены!");
-            if (_closePopupButton == null) Debug.LogWarning("⚠️ _closePopupButton не установлен, всплывающие сообщения будут закрываться автоматически");
+                // Проверяем все необходимые UI элементы
+                bool hasErrors = false;
+                
+                if (_logoutButton == null) { Debug.LogError("❌ _logoutButton не установлен!"); hasErrors = true; }
+                if (_showDeleteButton == null) { Debug.LogError("❌ _showDeleteButton не установлен!"); hasErrors = true; }
+                if (_confirmDeleteButton == null) { Debug.LogError("❌ _confirmDeleteButton не установлен!"); hasErrors = true; }
+                if (_cancelDeleteButton == null) { Debug.LogError("❌ _cancelDeleteButton не установлен!"); hasErrors = true; }
+                if (_passwordInput == null) { Debug.LogError("❌ _passwordInput не установлен!"); hasErrors = true; }
+                if (_showPasswordToggle == null) { Debug.LogError("❌ _showPasswordToggle не установлен!"); hasErrors = true; }
+                if (_popupPanel == null) { Debug.LogError("❌ _popupPanel не установлен!"); hasErrors = true; }
+                if (_popupText == null) { Debug.LogError("❌ _popupText не установлен!"); hasErrors = true; }
+                
+                if (_closePopupButton == null) 
+                {
+                    Debug.LogWarning("⚠️ _closePopupButton не установлен, всплывающие сообщения будут закрываться автоматически");
+                }
 
-            _confirmDeletePanel.SetActive(false);
-            _popupPanel.SetActive(false);
+                // Если есть ошибки с критическими UI элементами, выходим из метода
+                if (hasErrors)
+                {
+                    Debug.LogError("❌ Критические UI элементы отсутствуют. Возможно, префаб не загружен полностью через Addressables.");
+                    return;
+                }
 
-            SetupButtons();
-            SetupToggles();
-            SetupInputFields();
+                // Безопасно скрываем панели
+                if (_confirmDeletePanel != null) _confirmDeletePanel.SetActive(false);
+                if (_popupPanel != null) _popupPanel.SetActive(false);
 
-            SetPasswordVisibility(false);
+                // Настраиваем компоненты UI
+                SetupButtons();
+                SetupToggles();
+                SetupInputFields();
+                
+                // Настраиваем видимость пароля
+                SetPasswordVisibility(false);
+                
+                Debug.Log("✅ Интерфейс успешно инициализирован");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Ошибка при инициализации UI: {ex.Message}\n{ex.StackTrace}");
+            }
         }
 
+        #region UI Setup Methods
         private void SetupButtons()
         {
-            _logoutButton.onClick.RemoveAllListeners();
-            _logoutButton.onClick.AddListener(Logout);
-
-            _showDeleteButton.onClick.RemoveAllListeners();
-            _showDeleteButton.onClick.AddListener(ShowDeleteConfirmation);
-
-            _cancelDeleteButton.onClick.RemoveAllListeners();
-            _cancelDeleteButton.onClick.AddListener(CancelDelete);
-
-            _confirmDeleteButton.onClick.RemoveAllListeners();
-            _confirmDeleteButton.onClick.AddListener(ConfirmDelete);
-            
-            if (_closePopupButton != null)
+            try 
             {
-                _closePopupButton.onClick.RemoveAllListeners();
-                _closePopupButton.onClick.AddListener(HidePopup);
+                if (_logoutButton != null)
+                {
+                    _logoutButton.onClick.RemoveAllListeners();
+                    _logoutButton.onClick.AddListener(Logout);
+                }
+
+                if (_showDeleteButton != null)
+                {
+                    _showDeleteButton.onClick.RemoveAllListeners();
+                    _showDeleteButton.onClick.AddListener(ShowDeleteConfirmation);
+                }
+
+                if (_cancelDeleteButton != null)
+                {
+                    _cancelDeleteButton.onClick.RemoveAllListeners();
+                    _cancelDeleteButton.onClick.AddListener(CancelDelete);
+                }
+
+                if (_confirmDeleteButton != null)
+                {
+                    _confirmDeleteButton.onClick.RemoveAllListeners();
+                    _confirmDeleteButton.onClick.AddListener(ConfirmDelete);
+                }
+                
+                if (_closePopupButton != null)
+                {
+                    _closePopupButton.onClick.RemoveAllListeners();
+                    _closePopupButton.onClick.AddListener(HidePopup);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Ошибка при настройке кнопок: {ex.Message}");
             }
         }
 
         private void SetupToggles()
         {
-            _showPasswordToggle.onValueChanged.RemoveAllListeners();
-            _showPasswordToggle.isOn = false;
-            _showPasswordToggle.onValueChanged.AddListener(OnToggleShowPassword);
+            try
+            {
+                if (_showPasswordToggle != null)
+                {
+                    _showPasswordToggle.onValueChanged.RemoveAllListeners();
+                    _showPasswordToggle.isOn = false;
+                    _showPasswordToggle.onValueChanged.AddListener(OnToggleShowPassword);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Ошибка при настройке переключателей: {ex.Message}");
+            }
         }
 
         private void SetupInputFields()
         {
-            _passwordInput.onValueChanged.RemoveAllListeners();
-            _passwordInput.onValueChanged.AddListener(OnPasswordChanged);
-            _passwordInput.contentType = TMP_InputField.ContentType.Password;
-            _passwordInput.ForceLabelUpdate();
+            try
+            {
+                if (_passwordInput != null)
+                {
+                    _passwordInput.onValueChanged.RemoveAllListeners();
+                    _passwordInput.onValueChanged.AddListener(OnPasswordChanged);
+                    _passwordInput.contentType = TMP_InputField.ContentType.Password;
+                    _passwordInput.ForceLabelUpdate();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"❌ Ошибка при настройке полей ввода: {ex.Message}");
+            }
         }
+        #endregion
         #endregion
 
         #region UI Event Handlers
@@ -278,6 +437,20 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
 
         private IEnumerator RefreshPasswordField()
         {
+            if (_passwordInput == null) 
+            {
+                Debug.LogError("[RefreshPasswordField] _passwordInput is NULL!");
+                yield break;
+            }
+            if (_passwordInput.fontAsset == null)
+            {
+                Debug.LogError("[RefreshPasswordField] _passwordInput.fontAsset is NULL! Это вызовет ошибку.");
+            }
+            else
+            {
+                Debug.Log($"[RefreshPasswordField] _passwordInput.fontAsset: {_passwordInput.fontAsset.name}");
+            }
+
             _passwordInput.text = "";
             _passwordInput.ForceLabelUpdate();
             yield return new WaitForEndOfFrame();
@@ -292,6 +465,14 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         private void Logout()
         {
             Debug.Log("🔘 Logout нажата");
+
+            // Проверяем, что _auth инициализирован
+            if (_auth == null)
+            {
+                Debug.LogError("❌ _auth is NULL в Logout! Возможно, не успел инициализироваться после перехода на Addressables.");
+                ShowPopup("Ошибка выхода из системы. Пожалуйста, попробуйте ещё раз.");
+                return;
+            }
 
             // Устанавливаем флаг явного выхода из системы
             SecurePlayerPrefs.SetBool("explicit_logout", true);
@@ -309,8 +490,16 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         {
             Debug.Log("🔘 Показать подтверждение удаления");
             
+            // Проверяем, что панель существует
+            if (_confirmDeletePanel == null)
+            {
+                Debug.LogError("❌ _confirmDeletePanel is NULL в ShowDeleteConfirmation! Возможно, после перехода на Addressables префаб не загружен.");
+                ShowPopup("Произошла ошибка. Пожалуйста, попробуйте позже.");
+                return;
+            }
+            
             // Проверяем текущее состояние аутентификации
-            if (!_authStateService.IsAuthenticated)
+            if (_authStateService == null || !_authStateService.IsAuthenticated)
             {
                 Debug.LogError("❌ Пользователь не авторизован при открытии панели удаления");
                 ShowPopup("Для удаления аккаунта необходимо войти в систему.");

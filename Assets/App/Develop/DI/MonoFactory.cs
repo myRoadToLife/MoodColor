@@ -26,7 +26,9 @@ namespace App.Develop.DI
 
         public T CreateOn <T>(GameObject existingObject) where T : MonoBehaviour
         {
-            T component = existingObject.GetComponent<T>();
+            // Этот метод может быть не совсем корректен, если компонент T находится не на existingObject, а на его дочернем элементе.
+            // Для Addressables панелей, PanelManager использует GetComponentInChildren, что правильно.
+            T component = existingObject.GetComponent<T>(); 
 
             if (component is IInjectable injectable)
             {
@@ -34,6 +36,28 @@ namespace App.Develop.DI
             }
 
             return component;
+        }
+
+        /// <summary>
+        /// Внедряет зависимости в уже существующий MonoBehaviour компонент.
+        /// </summary>
+        public void InjectDependencies<T>(T component) where T : MonoBehaviour
+        {
+            if (component == null)
+            {
+                Debug.LogError("[MonoFactory] Попытка внедрить зависимости в null компонент.");
+                return;
+            }
+
+            if (component is IInjectable injectable)
+            {
+                injectable.Inject(_container);
+                Debug.Log($"[MonoFactory] Зависимости успешно внедрены в {component.GetType().Name} на объекте {component.gameObject.name}");
+            }
+            else
+            {
+                Debug.LogWarning($"[MonoFactory] Компонент {component.GetType().Name} на объекте {component.gameObject.name} не реализует IInjectable. Инъекция не выполнена.");
+            }
         }
     }
 }

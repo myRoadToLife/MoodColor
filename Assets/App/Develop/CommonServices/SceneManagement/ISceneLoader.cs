@@ -5,7 +5,8 @@ namespace App.Develop.CommonServices.SceneManagement
 {
     public interface ISceneLoader
     {
-        IEnumerator LoadAsync(SceneID sceneID, LoadSceneMode mode = LoadSceneMode.Single);
+        IEnumerator LoadAsync(string sceneKey, LoadSceneMode mode = LoadSceneMode.Single);
+        IEnumerator UnloadCurrentAddressableScene();
     }
 }
  

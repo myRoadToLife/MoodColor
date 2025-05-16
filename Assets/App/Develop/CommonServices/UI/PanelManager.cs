@@ -46,14 +46,15 @@ namespace App.Develop.CommonServices.UI
             var component = instance.GetComponentInChildren<T>();
             if (component == null)
             {
-                Debug.LogError($"❌ Компонент {typeof(T).Name} не найден в префабе {addressableKey}");
+                Debug.LogError($"❌ Компонент {typeof(T).Name} не найден в иерархии префаба {addressableKey} (поиск через GetComponentInChildren)");
                 Addressables.ReleaseInstance(instance);
                 return null;
             }
 
-            _factory.CreateOn<T>(instance);
+            _factory.InjectDependencies(component);
             
             _activePanels[addressableKey] = instance;
+            instance.SetActive(true);
 
             return component;
         }
