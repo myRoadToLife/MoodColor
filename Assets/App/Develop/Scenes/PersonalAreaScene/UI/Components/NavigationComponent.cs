@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System;
+using App.Develop.Utils.Logging;
+using Logger = App.Develop.Utils.Logging.Logger;
 using TMPro;
 
 namespace App.Develop.Scenes.PersonalAreaScene.UI.Components
@@ -156,7 +158,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI.Components
         // Добавляем Initialize для поддержки существующего кода
         public void Initialize()
         {
-            Debug.Log("🔄 [NavigationComponent] Инициализация компонента с улучшенным UI");
+            Logger.Log("🔄 [NavigationComponent] Инициализация компонента с улучшенным UI");
             // Инициализация уже происходит в Awake
         }
         
@@ -169,7 +171,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI.Components
         // Метод для поддержки существующего кода
         public void Clear()
         {
-            Debug.Log("🔄 [NavigationComponent] Очистка подписок кнопок");
+            Logger.Log("🔄 [NavigationComponent] Очистка подписок кнопок");
             // Очистка будет выполнена автоматически в OnDestroy
         }
     }

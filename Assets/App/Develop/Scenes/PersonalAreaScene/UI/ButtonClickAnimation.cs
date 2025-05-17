@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
+using App.Develop.Utils.Logging;
+using Logger = App.Develop.Utils.Logging.Logger;
 
 namespace App.Develop.Scenes.PersonalAreaScene.UI
 {
@@ -85,7 +87,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
                 
             _rect.localScale = Vector3.one;
             _originalScale = Vector3.one;
-            Debug.Log($"[ButtonClickAnimation] Масштаб кнопки {gameObject.name} сброшен");
+            Logger.Log($"[ButtonClickAnimation] Масштаб кнопки {gameObject.name} сброшен");
         }
         #endif
     }

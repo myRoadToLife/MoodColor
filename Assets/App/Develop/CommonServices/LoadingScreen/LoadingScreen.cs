@@ -1,7 +1,8 @@
 using System;
 using UnityEngine;
 using App.Develop.CommonServices.AssetManagement;
-using System.Threading.Tasks;
+using App.Develop.Utils.Logging;
+using Logger = App.Develop.Utils.Logging.Logger;
 
 namespace App.Develop.CommonServices.LoadingScreen
 {
@@ -23,12 +24,12 @@ namespace App.Develop.CommonServices.LoadingScreen
         {
             if (IsShowing || _assetLoader == null || string.IsNullOrEmpty(_uiPrefabAddress))
             {
-                if (IsShowing) Debug.Log("[LoadingScreen] Уже показывается.");
-                else Debug.LogWarning("[LoadingScreen] Не инициализирован правильно для показа.");
+                if (IsShowing) Logger.Log("[LoadingScreen] Уже показывается.");
+                else Logger.LogWarning("[LoadingScreen] Не инициализирован правильно для показа.");
                 return;
             }
 
-            Debug.Log($"[LoadingScreen] Попытка загрузки и показа UI: {_uiPrefabAddress}");
+            Logger.Log($"[LoadingScreen] Попытка загрузки и показа UI: {_uiPrefabAddress}");
             IsShowing = true;
             gameObject.SetActive(true);
 
@@ -38,18 +39,18 @@ namespace App.Develop.CommonServices.LoadingScreen
                 if (_uiInstance != null)
                 {
                     _uiInstance.SetActive(true);
-                    Debug.Log("[LoadingScreen] UI успешно загружен и показан.");
+                    Logger.Log("[LoadingScreen] UI успешно загружен и показан.");
                 }
                 else
                 {
-                    Debug.LogError($"[LoadingScreen] Не удалось инстанцировать UI-префаб по адресу: {_uiPrefabAddress}");
+                    Logger.LogError($"[LoadingScreen] Не удалось инстанцировать UI-префаб по адресу: {_uiPrefabAddress}");
                     IsShowing = false;
                     gameObject.SetActive(false);
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[LoadingScreen] Ошибка при загрузке или показе UI: {ex.Message}\n{ex.StackTrace}");
+                Logger.LogError($"[LoadingScreen] Ошибка при загрузке или показе UI: {ex.Message}\n{ex.StackTrace}");
                 IsShowing = false;
                 gameObject.SetActive(false);
                 if (_uiInstance != null)
@@ -67,13 +68,13 @@ namespace App.Develop.CommonServices.LoadingScreen
                 return;
             }
             
-            Debug.Log("[LoadingScreen] Скрытие UI...");
+            Logger.Log("[LoadingScreen] Скрытие UI...");
             IsShowing = false;
             if (_uiInstance != null)
             {
                 _assetLoader.ReleaseAsset(_uiInstance);
                 _uiInstance = null;
-                Debug.Log("[LoadingScreen] UI-инстанс освобожден.");
+                Logger.Log("[LoadingScreen] UI-инстанс освобожден.");
             }
             gameObject.SetActive(false);
         }

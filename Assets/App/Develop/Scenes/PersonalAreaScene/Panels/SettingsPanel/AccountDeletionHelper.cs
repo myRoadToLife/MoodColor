@@ -5,10 +5,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using App.Develop.CommonServices.Firebase.Auth.Services;
 using App.Develop.CommonServices.Firebase.Common.SecureStorage;
+using App.Develop.Utils.Logging;
 using Firebase.Auth;
 using Firebase.Database;
 using Firebase.Extensions;
 using UnityEngine;
+using Logger = App.Develop.Utils.Logging.Logger;
 
 namespace App.Develop.Scenes.PersonalAreaScene.Settings
 {
@@ -59,7 +61,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             
             var user = _authStateService.CurrentUser;
             var email = user.Email;
-            Debug.Log($"📧 Текущий пользователь: {email ?? "null"}, UID: {user.UserId}");
+            Logger.Log($"📧 Текущий пользователь: {email ?? "null"}, UID: {user.UserId}");
             
             if (string.IsNullOrEmpty(email))
             {
@@ -75,7 +77,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
                 {
                     if (task.IsFaulted)
                     {
-                        Debug.LogError($"❌ Ошибка реаутентификации: {task.Exception?.GetBaseException()?.Message}");
+                        Logger.LogError($"❌ Ошибка реаутентификации: {task.Exception?.GetBaseException()?.Message}");
                         OnError?.Invoke("Неверный пароль или ошибка аутентификации.");
                         return;
                     }
@@ -85,7 +87,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Исключение при аутентификации: {ex.Message}");
+                Logger.LogError($"❌ Исключение при аутентификации: {ex.Message}");
                 OnError?.Invoke("Произошла ошибка. Повторите попытку позже.");
             }
         }
@@ -105,7 +107,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             }
             
             var uid = _authStateService.CurrentUser.UserId;
-            Debug.Log($"🗑️ Удаление данных пользователя: {uid}");
+            Logger.Log($"🗑️ Удаление данных пользователя: {uid}");
             
             _database
                 .Child("users")
@@ -115,12 +117,12 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
                 {
                     if (task.IsFaulted)
                     {
-                        Debug.LogError($"❌ Ошибка при удалении данных: {task.Exception?.GetBaseException()?.Message}");
-                        Debug.LogWarning("⚠️ Продолжаем с удалением аккаунта, несмотря на ошибку с базой данных");
+                        Logger.LogError($"❌ Ошибка при удалении данных: {task.Exception?.GetBaseException()?.Message}");
+                        Logger.LogWarning("⚠️ Продолжаем с удалением аккаунта, несмотря на ошибку с базой данных");
                     }
                     else
                     {
-                        Debug.Log("✅ Данные пользователя успешно удалены");
+                        Logger.Log("✅ Данные пользователя успешно удалены");
                     }
                     
                     if (!_authStateService.IsAuthenticated)
@@ -146,13 +148,13 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
                 return;
             }
             
-            Debug.Log($"🗑️ Удаление аккаунта Firebase: {_authStateService.CurrentUser.Email}");
+            Logger.Log($"🗑️ Удаление аккаунта Firebase: {_authStateService.CurrentUser.Email}");
             
             _authStateService.CurrentUser.DeleteAsync().ContinueWithOnMainThread(task =>
             {
                 if (task.IsFaulted)
                 {
-                    Debug.LogError($"❌ Ошибка при удалении аккаунта: {task.Exception?.GetBaseException()?.Message}");
+                    Logger.LogError($"❌ Ошибка при удалении аккаунта: {task.Exception?.GetBaseException()?.Message}");
                     
                     bool requiresReauth = task.Exception?.InnerExceptions.Any(ex => 
                         ex.Message.Contains("requires recent authentication") || 
@@ -171,7 +173,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
                     return;
                 }
                 
-                Debug.Log("✅ Аккаунт успешно удален");
+                Logger.Log("✅ Аккаунт успешно удален");
                 CleanupStoredCredentials();
                 OnMessage?.Invoke("Аккаунт успешно удален.");
                 OnUserDeleted?.Invoke();
@@ -186,7 +188,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             // Устанавливаем флаг явного выхода из системы
             SecurePlayerPrefs.SetBool("explicit_logout", true);
             SecurePlayerPrefs.Save();
-            Debug.Log("✅ Установлен флаг явного выхода из системы при удалении аккаунта");
+            Logger.Log("✅ Установлен флаг явного выхода из системы при удалении аккаунта");
         }
         #endregion
     }

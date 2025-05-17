@@ -1,6 +1,7 @@
 using App.Develop.CommonServices.AssetManagement;
 using App.Develop.CommonServices.UI;
 using App.Develop.DI;
+using App.Develop.Utils.Logging;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -8,6 +9,7 @@ using App.Develop.CommonServices.Emotion;
 using System.Collections.Generic;
 using System.Linq;
 using App.Develop.Scenes.PersonalAreaScene.Panels.HistoryPanel;
+using Logger = App.Develop.Utils.Logging.Logger;
 
 namespace App.Develop.Scenes.PersonalAreaScene.UI
 {
@@ -55,7 +57,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
 
             if (_emotionService == null)
             {
-                Debug.LogError("[HistoryPanelController] EmotionService не удалось получить из DI контейнера!");
+                Logger.LogError("[HistoryPanelController] EmotionService не удалось получить из DI контейнера!");
             }
 
             SubscribeEvents();
@@ -86,26 +88,26 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         {
             if (!_isInitialized)
             {
-                Debug.LogWarning("[HistoryPanelController] Попытка загрузить данные до инициализации.");
+                Logger.LogWarning("[HistoryPanelController] Попытка загрузить данные до инициализации.");
                 return;
             }
 
             if (_emotionService == null)
             {
-                Debug.LogError("[HistoryPanelController] EmotionService не доступен. Не могу загрузить историю.");
+                Logger.LogError("[HistoryPanelController] EmotionService не доступен. Не могу загрузить историю.");
                 return;
             }
 
-            Debug.Log("[HistoryPanelController] Загрузка истории эмоций...");
+            Logger.Log("[HistoryPanelController] Загрузка истории эмоций...");
 
             if (_historyItemPrefab == null)
             {
-                Debug.LogError("[HistoryPanelController] Префаб элемента истории (_historyItemPrefab) не назначен!");
+                Logger.LogError("[HistoryPanelController] Префаб элемента истории (_historyItemPrefab) не назначен!");
                 return;
             }
             if (_historyItemsContainer == null)
             {
-                 Debug.LogError("[HistoryPanelController] Контейнер для элементов истории (_historyItemsContainer) не назначен!");
+                 Logger.LogError("[HistoryPanelController] Контейнер для элементов истории (_historyItemsContainer) не назначен!");
                 return;
             }
 
@@ -122,7 +124,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
 
             if (historyEntries == null)
             {
-                Debug.LogWarning("[HistoryPanelController] GetEmotionHistory() вернул null.");
+                Logger.LogWarning("[HistoryPanelController] GetEmotionHistory() вернул null.");
                 // TODO: Отобразить сообщение "Ошибка загрузки истории"
                 return;
             }
@@ -131,7 +133,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
 
             if (!entriesList.Any())
             {
-                Debug.Log("[HistoryPanelController] История эмоций пуста (после ToList()).");
+                Logger.Log("[HistoryPanelController] История эмоций пуста (после ToList()).");
                 // TODO: Отобразить сообщение "История пуста" (например, активировать специальный текстовый объект)
                 return;
             }
@@ -146,7 +148,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
                 }
                 else
                 {
-                    Debug.LogWarning("[HistoryPanelController] Обнаружена null запись в исходном списке истории при клонировании, пропуск.");
+                    Logger.LogWarning("[HistoryPanelController] Обнаружена null запись в исходном списке истории при клонировании, пропуск.");
                 }
             }
 
@@ -166,12 +168,12 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             {
                 if (entry == null) // Дополнительная проверка, хотя после клонирования и фильтрации null это маловероятно
                 {
-                    Debug.LogWarning("[HistoryPanelController] Обнаружена null запись в истории, пропуск.");
+                    Logger.LogWarning("[HistoryPanelController] Обнаружена null запись в истории, пропуск.");
                     continue;
                 }
                 
                 // НОВЫЙ ЛОГ ЗДЕСЬ
-                Debug.Log($"[HistoryPanelController Loop] Готовим к отображению: Timestamp='{entry.Timestamp:O}', Kind='{entry.Timestamp.Kind}', Type='{entry.EmotionData?.Type}'");
+                Logger.Log($"[HistoryPanelController Loop] Готовим к отображению: Timestamp='{entry.Timestamp:O}', Kind='{entry.Timestamp.Kind}', Type='{entry.EmotionData?.Type}'");
 
                 GameObject itemInstance = Instantiate(_historyItemPrefab, _historyItemsContainer);
                 var itemView = itemInstance.GetComponent<HistoryItemView>(); 
@@ -182,7 +184,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
                 }
                 else
                 {
-                    Debug.LogError($"[HistoryPanelController] На префабе '{_historyItemPrefab.name}' отсутствует компонент HistoryItemView. Запись не будет отображена: {entry.EmotionData?.Type} @ {entry.Timestamp}");
+                    Logger.LogError($"[HistoryPanelController] На префабе '{_historyItemPrefab.name}' отсутствует компонент HistoryItemView. Запись не будет отображена: {entry.EmotionData?.Type} @ {entry.Timestamp}");
                 }
             }
         }

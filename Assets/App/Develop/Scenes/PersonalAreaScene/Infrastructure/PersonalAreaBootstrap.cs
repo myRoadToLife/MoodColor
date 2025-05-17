@@ -9,10 +9,12 @@ using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
 using App.Develop.Scenes.PersonalAreaScene.Handlers;
 using App.Develop.Scenes.PersonalAreaScene.UI;
+using App.Develop.Utils.Logging;
 using UnityEngine;
 using System.Threading.Tasks; // Для Task
 // Добавляем using для AsyncOperationStatus, если он понадобится, но скорее всего нет при работе с Task<T>
 // using UnityEngine.ResourceManagement.AsyncOperations;
+using Logger = App.Develop.Utils.Logging.Logger;
 
 namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
 {
@@ -26,30 +28,30 @@ namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
             {
                 if (container == null)
                 {
-                    Debug.LogError("❌ DIContainer не может быть null");
+                    Logger.LogError("❌ DIContainer не может быть null");
                     return;
                 }
 
                 _container = container;
-                Debug.Log("✅ [PersonalAreaBootstrap] Сцена загружена");
+                Logger.Log("✅ [PersonalAreaBootstrap] Сцена загружена");
 
-                Debug.Log("🔄 [PersonalAreaBootstrap] Получение IAssetLoader...");
+                Logger.Log("🔄 [PersonalAreaBootstrap] Получение IAssetLoader...");
                 IAssetLoader assetLoader = null;
                 try 
                 {
                     assetLoader = _container.Resolve<IAssetLoader>();
-                    Debug.Log("✅ [PersonalAreaBootstrap] IAssetLoader получен");
+                    Logger.Log("✅ [PersonalAreaBootstrap] IAssetLoader получен");
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError($"❌ [PersonalAreaBootstrap] Ошибка резолва IAssetLoader: {e.Message}\n{e.StackTrace}");
+                    Logger.LogError($"❌ [PersonalAreaBootstrap] Ошибка резолва IAssetLoader: {e.Message}\n{e.StackTrace}");
                     return;
                 }
 
                 var factory = new MonoFactory(_container);
 
                 // РЕГИСТРАЦИЯ СЕРВИСОВ ПЕРЕД ИНСТАНЦИИРОВАНИЕМ UI
-                Debug.Log("🔄 [PersonalAreaBootstrap] Попытка регистрации EmotionService...");
+                Logger.Log("🔄 [PersonalAreaBootstrap] Попытка регистрации EmotionService...");
                 bool emotionServiceRegistered = false;
                 try
                 {
@@ -61,29 +63,29 @@ namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
                     // Получаем опциональные зависимости для EmotionService
                     IPointsService pointsService = null;
                     try { pointsService = _container.Resolve<IPointsService>(); }
-                    catch (InvalidOperationException) { Debug.LogWarning("[PersonalAreaBootstrap] IPointsService не зарегистрирован, EmotionService будет работать без него."); }
+                    catch (InvalidOperationException) { Logger.LogWarning("[PersonalAreaBootstrap] IPointsService не зарегистрирован, EmotionService будет работать без него."); }
 
                     ILevelSystem levelSystem = null;
                     try { levelSystem = _container.Resolve<ILevelSystem>(); }
-                    catch (InvalidOperationException) { Debug.LogWarning("[PersonalAreaBootstrap] ILevelSystem не зарегистрирован, EmotionService будет работать без него."); }
+                    catch (InvalidOperationException) { Logger.LogWarning("[PersonalAreaBootstrap] ILevelSystem не зарегистрирован, EmotionService будет работать без него."); }
 
                     // Регистрируем EmotionService как синглтон с фабричным методом
                     _container.RegisterAsSingle<IEmotionService>(c => 
                         new EmotionService(playerDataProvider, configsProvider, emotionConfigService, pointsService, levelSystem)
                     );
-                    Debug.Log("✅ [PersonalAreaBootstrap] EmotionService успешно зарегистрирован через RegisterAsSingle.");
+                    Logger.Log("✅ [PersonalAreaBootstrap] EmotionService успешно зарегистрирован через RegisterAsSingle.");
                     emotionServiceRegistered = true;
                 }
                 catch (InvalidOperationException ioe) // Ловим ошибки резолва ОБЯЗАТЕЛЬНЫХ зависимостей
                 {
-                    Debug.LogError($"❌ [PersonalAreaBootstrap] Не удалось разрешить ОБЯЗАТЕЛЬНУЮ зависимость для EmotionService: {ioe.Message}\n{ioe.StackTrace}");
+                    Logger.LogError($"❌ [PersonalAreaBootstrap] Не удалось разрешить ОБЯЗАТЕЛЬНУЮ зависимость для EmotionService: {ioe.Message}\n{ioe.StackTrace}");
                 }
                 catch (Exception e) // Ловим другие возможные ошибки при регистрации
                 {
-                    Debug.LogError($"❌ [PersonalAreaBootstrap] Ошибка при создании или регистрации EmotionService: {e.Message}\n{e.StackTrace}");
+                    Logger.LogError($"❌ [PersonalAreaBootstrap] Ошибка при создании или регистрации EmotionService: {e.Message}\n{e.StackTrace}");
                 }
 
-                Debug.Log($"🔄 [PersonalAreaBootstrap] Загрузка префаба PersonalAreaCanvas из {AssetAddresses.PersonalAreaCanvas}...");
+                Logger.Log($"🔄 [PersonalAreaBootstrap] Загрузка префаба PersonalAreaCanvas из {AssetAddresses.PersonalAreaCanvas}...");
                 GameObject personalAreaPrefab = null;
                 try
                 {
@@ -94,7 +96,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
                     // Проверяем, что префаб успешно загружен
                     if (personalAreaPrefab == null) // Если Task вернул null (например, ассет не найден или ошибка при загрузке)
                     {
-                        Debug.LogError($"❌ [PersonalAreaBootstrap] Не удалось загрузить префаб PersonalAreaCanvas по ключу {AssetAddresses.PersonalAreaCanvas}. LoadAssetAsync вернул null.");
+                        Logger.LogError($"❌ [PersonalAreaBootstrap] Не удалось загрузить префаб PersonalAreaCanvas по ключу {AssetAddresses.PersonalAreaCanvas}. LoadAssetAsync вернул null.");
                         return;
                     }
                     // Если IAssetLoader.LoadAssetAsync кидает исключение при ошибке, то этот код не выполнится,
@@ -102,11 +104,11 @@ namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
                 }
                 catch (Exception e) // Ловим ошибки, которые мог выбросить LoadAssetAsync или await
                 {
-                    Debug.LogError($"❌ [PersonalAreaBootstrap] Исключение при загрузке префаба {AssetAddresses.PersonalAreaCanvas}: {e.Message}\n{e.StackTrace}");
+                    Logger.LogError($"❌ [PersonalAreaBootstrap] Исключение при загрузке префаба {AssetAddresses.PersonalAreaCanvas}: {e.Message}\n{e.StackTrace}");
                     return;
                 }
 
-                Debug.Log("✅ [PersonalAreaBootstrap] Префаб PersonalAreaCanvas загружен, создаем экземпляр...");
+                Logger.Log("✅ [PersonalAreaBootstrap] Префаб PersonalAreaCanvas загружен, создаем экземпляр...");
                 GameObject instance = null;
                 try
                 {
@@ -116,81 +118,81 @@ namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
                     {
                         if (this._container != null) 
                         {
-                            Debug.Log($"[PersonalAreaBootstrap] Пытаемся внедрить зависимости в JarInteractionHandler с контейнером: {this._container.GetHashCode()}");
+                            Logger.Log($"[PersonalAreaBootstrap] Пытаемся внедрить зависимости в JarInteractionHandler с контейнером: {this._container.GetHashCode()}");
                             jarHandler.Inject(this._container); 
                         }
                         else
                         {
-                            Debug.LogError("[PersonalAreaBootstrap] DI контейнер не доступен для JarInteractionHandler.Inject!");
+                            Logger.LogError("[PersonalAreaBootstrap] DI контейнер не доступен для JarInteractionHandler.Inject!");
                         }
                     }
                     else
                     {
-                        Debug.LogWarning("[PersonalAreaBootstrap] JarInteractionHandler не найден на экземпляре PersonalAreaCanvas.");
+                        Logger.LogWarning("[PersonalAreaBootstrap] JarInteractionHandler не найден на экземпляре PersonalAreaCanvas.");
                     }
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError($"❌ [PersonalAreaBootstrap] Ошибка создания экземпляра префаба: {e.Message}\n{e.StackTrace}");
+                    Logger.LogError($"❌ [PersonalAreaBootstrap] Ошибка создания экземпляра префаба: {e.Message}\n{e.StackTrace}");
                     return;
                 }
 
-                Debug.Log("🔄 [PersonalAreaBootstrap] Инициализация компонентов...");
+                Logger.Log("🔄 [PersonalAreaBootstrap] Инициализация компонентов...");
                 try
                 {
                     InitializeComponents(instance, factory);
-                    Debug.Log("✅ [PersonalAreaBootstrap] Компоненты инициализированы");
+                    Logger.Log("✅ [PersonalAreaBootstrap] Компоненты инициализированы");
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError($"❌ [PersonalAreaBootstrap] Ошибка инициализации компонентов: {e.Message}\n{e.StackTrace}");
+                    Logger.LogError($"❌ [PersonalAreaBootstrap] Ошибка инициализации компонентов: {e.Message}\n{e.StackTrace}");
                 }
             }
             catch (Exception e)
             {
-                Debug.LogError($"❌ [PersonalAreaBootstrap] Общая ошибка в Run: {e.Message}\n{e.StackTrace}");
+                Logger.LogError($"❌ [PersonalAreaBootstrap] Общая ошибка в Run: {e.Message}\n{e.StackTrace}");
             }
         }
 
         private void InitializeComponents(GameObject instance, MonoFactory factory)
         {
-            Debug.Log("[PersonalAreaBootstrap] Поиск компонентов в инстансе...");
+            Logger.Log("[PersonalAreaBootstrap] Поиск компонентов в инстансе...");
             
             var uiController = instance.GetComponentInChildren<PersonalAreaUIController>();
             var manager = instance.GetComponentInChildren<PersonalAreaManager>();
 
             if (uiController == null)
             {
-                Debug.LogError("❌ [PersonalAreaBootstrap] PersonalAreaUIController не найден на инстанцированном префабе");
+                Logger.LogError("❌ [PersonalAreaBootstrap] PersonalAreaUIController не найден на инстанцированном префабе");
                 return;
             }
 
             if (manager == null)
             {
-                Debug.LogError("❌ [PersonalAreaBootstrap] PersonalAreaManager не найден на инстанцированном префабе");
+                Logger.LogError("❌ [PersonalAreaBootstrap] PersonalAreaManager не найден на инстанцированном префабе");
                 return;
             }
 
-            Debug.Log("[PersonalAreaBootstrap] Компоненты найдены, применяем фабрику...");
+            Logger.Log("[PersonalAreaBootstrap] Компоненты найдены, применяем фабрику...");
             
             try
             {
                 factory.CreateOn<PersonalAreaUIController>(uiController.gameObject);
-                Debug.Log("✅ [PersonalAreaBootstrap] PersonalAreaUIController создан");
+                Logger.Log("✅ [PersonalAreaBootstrap] PersonalAreaUIController создан");
             }
             catch (Exception e)
             {
-                Debug.LogError($"❌ [PersonalAreaBootstrap] Ошибка создания PersonalAreaUIController: {e.Message}\n{e.StackTrace}");
+                Logger.LogError($"❌ [PersonalAreaBootstrap] Ошибка создания PersonalAreaUIController: {e.Message}\n{e.StackTrace}");
             }
             
             try
             {
                 manager.Inject(_container, factory);
-                Debug.Log("✅ [PersonalAreaBootstrap] PersonalAreaManager инициализирован");
+                Logger.Log("✅ [PersonalAreaBootstrap] PersonalAreaManager инициализирован");
             }
             catch (Exception e)
             {
-                Debug.LogError($"❌ [PersonalAreaBootstrap] Ошибка инициализации PersonalAreaManager: {e.Message}\n{e.StackTrace}");
+                Logger.LogError($"❌ [PersonalAreaBootstrap] Ошибка инициализации PersonalAreaManager: {e.Message}\n{e.StackTrace}");
             }
         }
     }

@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEditor;
 using System.IO;
+using App.Develop.Utils.Logging;
+using Logger = App.Develop.Utils.Logging.Logger;
 
 namespace App.Develop.Scenes.PersonalAreaScene.UI
 {
@@ -12,7 +14,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         [MenuItem("MoodColor/Generate/UI Icons")]
         public static void GenerateIcons()
         {
-            Debug.Log("🔄 Начинаем генерацию иконок UI...");
+            Logger.Log("🔄 Начинаем генерацию иконок UI...");
             
             // Убедимся, что папка существует
             if (!AssetDatabase.IsValidFolder(ICONS_FOLDER))
@@ -28,7 +30,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
                     if (!AssetDatabase.IsValidFolder(checkPath))
                     {
                         AssetDatabase.CreateFolder(currentPath, newFolder);
-                        Debug.Log($"📁 Создана папка {checkPath}");
+                        Logger.Log($"📁 Создана папка {checkPath}");
                     }
                     
                     currentPath = checkPath;
@@ -43,7 +45,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             CreateWorkshopIcon();
             
             AssetDatabase.Refresh();
-            Debug.Log("✅ Генерация иконок UI завершена");
+            Logger.Log("✅ Генерация иконок UI завершена");
         }
         
         private static void CreateEmotionPlusIcon()
@@ -461,34 +463,21 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         
         private static void SaveTextureAsSprite(Texture2D texture, string name)
         {
-            string filePath = $"{ICONS_FOLDER}/{name}.png";
-            
             byte[] bytes = texture.EncodeToPNG();
+            string filePath = Path.Combine(ICONS_FOLDER, name + ".png");
             File.WriteAllBytes(filePath, bytes);
             
-            AssetDatabase.ImportAsset(filePath, ImportAssetOptions.ForceUpdate);
+            AssetDatabase.ImportAsset(filePath);
             
             // Настраиваем импорт как спрайт
-            TextureImporter importer = AssetImporter.GetAtPath(filePath) as TextureImporter;
-            if (importer != null)
+            TextureImporter textureImporter = AssetImporter.GetAtPath(filePath) as TextureImporter;
+            if (textureImporter != null)
             {
-                importer.textureType = TextureImporterType.Sprite;
-                importer.spriteImportMode = SpriteImportMode.Single;
-                importer.alphaIsTransparency = true;
-                importer.mipmapEnabled = false;
-                importer.filterMode = FilterMode.Bilinear;
-                
-                TextureImporterSettings settings = new TextureImporterSettings();
-                importer.ReadTextureSettings(settings);
-                settings.spriteMode = (int)SpriteImportMode.Single;
-                settings.filterMode = FilterMode.Bilinear;
-                settings.spriteMeshType = SpriteMeshType.FullRect;
-                importer.SetTextureSettings(settings);
-                
-                AssetDatabase.ImportAsset(filePath, ImportAssetOptions.ForceUpdate);
+                textureImporter.textureType = TextureImporterType.Sprite;
+                textureImporter.spritePixelsPerUnit = 100;
+                textureImporter.SaveAndReimport();
+                Logger.Log($"🎨 Сохранена иконка {name} в {filePath}");
             }
-            
-            Debug.Log($"🎨 Сохранена иконка {name} в {filePath}");
         }
     }
     #endif

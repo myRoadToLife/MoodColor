@@ -2,9 +2,11 @@ using App.Develop.CommonServices.DataManagement.DataProviders;
 using App.Develop.CommonServices.Emotion;
 using App.Develop.CommonServices.GameSystem;
 using App.Develop.Utils.Reactive;
+using App.Develop.Utils.Logging;
 using UnityEngine;
 using System.Collections.Generic;
 using System;
+using Logger = App.Develop.Utils.Logging.Logger;
 
 namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
 {
@@ -57,7 +59,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
         {
             if (!Enum.IsDefined(typeof(EmotionTypes), type))
             {
-                Debug.LogWarning($"Неизвестный тип эмоции: {type}");
+                Logger.LogWarning($"Неизвестный тип эмоции: {type}");
                 return null;
             }
 
@@ -77,13 +79,13 @@ namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
         {
             if (amount <= 0)
             {
-                Debug.LogWarning($"Попытка добавить неположительное количество эмоций: {amount}");
+                Logger.LogWarning($"Попытка добавить неположительное количество эмоций: {amount}");
                 return;
             }
 
             if (!Enum.IsDefined(typeof(EmotionTypes), type))
             {
-                Debug.LogWarning($"Неизвестный тип эмоции: {type}");
+                Logger.LogWarning($"Неизвестный тип эмоции: {type}");
                 return;
             }
 
@@ -103,13 +105,13 @@ namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
         {
             if (amount <= 0)
             {
-                Debug.LogWarning($"Попытка потратить неположительное количество эмоций: {amount}");
+                Logger.LogWarning($"Попытка потратить неположительное количество эмоций: {amount}");
                 return;
             }
 
             if (!Enum.IsDefined(typeof(EmotionTypes), type))
             {
-                Debug.LogWarning($"Неизвестный тип эмоции: {type}");
+                Logger.LogWarning($"Неизвестный тип эмоции: {type}");
                 return;
             }
 

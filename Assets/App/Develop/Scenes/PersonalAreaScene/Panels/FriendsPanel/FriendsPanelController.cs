@@ -1,6 +1,8 @@
 using App.Develop.CommonServices.AssetManagement;
 using App.Develop.CommonServices.UI;
 using App.Develop.DI;
+using App.Develop.Utils.Logging;
+using Logger = App.Develop.Utils.Logging.Logger;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -72,7 +74,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         private void LoadFriendsData()
         {
             // TODO: Загрузка данных о друзьях
-            Debug.Log("Загрузка списка друзей...");
+            Logger.Log("Загрузка списка друзей...");
         }
         
         private void AddFriend()
@@ -83,15 +85,15 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         
         private void ClosePanel()
         {
-            Debug.Log($"[FriendsPanelController] Кнопка ClosePanel нажата!");
+            Logger.Log($"[FriendsPanelController] Кнопка ClosePanel нажата!");
             if (_panelManager != null)
             {
-                Debug.Log($"[FriendsPanelController] Вызов TogglePanelAsync для {AssetAddresses.FriendsPanel}");
+                Logger.Log($"[FriendsPanelController] Вызов TogglePanelAsync для {AssetAddresses.FriendsPanel}");
                 _ = _panelManager.TogglePanelAsync<FriendsPanelController>(AssetAddresses.FriendsPanel);
             }
             else
             {
-                Debug.LogError("[FriendsPanelController] _panelManager is null!");
+                Logger.LogError("[FriendsPanelController] _panelManager is null!");
             }
         }
         #endregion

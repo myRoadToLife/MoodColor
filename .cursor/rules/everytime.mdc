@@ -1,0 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Think of 5-7 different possible sources of the problem, narrow them down to 1-2 most likely sources, and then add logs to verify your assumptions before we move on to implementing the actual code fix"
+Always try to fix bugs without using hacks and radical methods.
+When in doubt, consult the documentation!

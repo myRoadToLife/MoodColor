@@ -5,9 +5,11 @@ using App.Develop.CommonServices.AssetManagement;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.CommonServices.UI;
 using App.Develop.DI;
+using App.Develop.Utils.Logging;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Logger = App.Develop.Utils.Logging.Logger;
 
 namespace App.Develop.Scenes.PersonalAreaScene.Settings
 {
@@ -209,7 +211,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         {
             if (_settingsManager == null)
             {
-                Debug.LogError("SettingsManager не инициализирован!");
+                Logger.LogError("SettingsManager не инициализирован!");
                 return;
             }
 
@@ -218,51 +220,54 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             // Проверяем все UI элементы перед использованием
             if (_notificationsToggle == null)
             {
-                Debug.LogError("_notificationsToggle не назначен в инспекторе!");
+                Logger.LogError("_notificationsToggle не назначен в инспекторе!");
                 return;
             }
             
             if (_soundToggle == null)
             {
-                Debug.LogError("_soundToggle не назначен в инспекторе!");
+                Logger.LogError("_soundToggle не назначен в инспекторе!");
                 return;
             }
             
             if (_themeDropdown == null)
             {
-                Debug.LogError("_themeDropdown не назначен в инспекторе!");
+                Logger.LogError("_themeDropdown не назначен в инспекторе!");
                 return;
             }
             
             if (_languageDropdown == null)
             {
-                Debug.LogError("_languageDropdown не назначен в инспекторе!");
+                Logger.LogError("_languageDropdown не назначен в инспекторе!");
                 return;
             }
             
             if (_themeOptions == null || _themeOptions.Count == 0)
             {
-                Debug.LogError("_themeOptions не настроен!");
+                Logger.LogError("_themeOptions не настроен!");
                 return;
             }
             
             if (_languageOptions == null || _languageOptions.Count == 0)
             {
-                Debug.LogError("_languageOptions не настроен!");
+                Logger.LogError("_languageOptions не настроен!");
                 return;
             }
 
-            // Установка значений UI элементов
             _notificationsToggle.isOn = settings.notifications;
             _soundToggle.isOn = settings.sound;
-            
-            // Установка темы
+
             int themeIndex = _themeOptions.FindIndex(t => t.Value == settings.theme);
-            _themeDropdown.value = themeIndex >= 0 ? themeIndex : 0;
-            
-            // Установка языка
-            int langIndex = _languageOptions.FindIndex(l => l.Value == settings.language);
-            _languageDropdown.value = langIndex >= 0 ? langIndex : 0;
+            if (themeIndex != -1)
+            {
+                _themeDropdown.value = themeIndex;
+            }
+
+            int languageIndex = _languageOptions.FindIndex(l => l.Value == settings.language);
+            if (languageIndex != -1)
+            {
+                _languageDropdown.value = languageIndex;
+            }
         }
 
         private void SaveSettings()
@@ -282,12 +287,12 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         #region Account Deletion
         private void ShowDeleteAccountPanel()
         {
-            Debug.Log("🔘 Запрос на показ панели удаления аккаунта");
+            Logger.Log("🔘 Запрос на показ панели удаления аккаунта");
 
             // Проверяем состояние аутентификации перед показом панели
             if (_authStateService == null || !_authStateService.IsAuthenticated)
             {
-                Debug.LogError("❌ Пользователь не авторизован при попытке показать панель удаления");
+                Logger.LogError("❌ Пользователь не авторизован при попытке показать панель удаления");
                 ShowPopup("Для удаления аккаунта необходимо войти в систему.");
                 
                 // Перенаправляем на экран входа с небольшой задержкой
@@ -295,7 +300,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
                 return;
             }
             
-            Debug.Log($"✅ Показ панели удаления для пользователя: {_authStateService.CurrentUser.Email}");
+            Logger.Log($"✅ Показ панели удаления для пользователя: {_authStateService.CurrentUser.Email}");
             _ = _panelManager.TogglePanelAsync<AccountDeletionManager>(AssetAddresses.DeletionAccountPanel);
         }
 
