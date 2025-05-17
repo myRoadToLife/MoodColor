@@ -45,6 +45,12 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             remove => _navigation.OnOpenWorkshop -= value;
         }
 
+        public event Action OnQuitApplication
+        {
+            add => _navigation.OnQuitApplication += value;
+            remove => _navigation.OnQuitApplication -= value;
+        }
+
         private void ValidateComponents()
         {
             Logger.Log("🔄 [PersonalAreaUIController] Валидация компонентов...");

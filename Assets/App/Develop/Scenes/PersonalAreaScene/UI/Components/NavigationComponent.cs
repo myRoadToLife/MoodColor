@@ -14,24 +14,28 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI.Components
         public event Action OnOpenFriends;
         public event Action OnOpenSettings;
         public event Action OnOpenWorkshop;
+        public event Action OnQuitApplication;
 
         [SerializeField] private Button _logEmotionButton;
         [SerializeField] private Button _historyButton;
         [SerializeField] private Button _friendsButton;
         [SerializeField] private Button _settingsButton;
         [SerializeField] private Button _workshopButton;
+        [SerializeField] private Button _quitButton;
         
         [SerializeField] private Image _logEmotionIcon;
         [SerializeField] private Image _historyIcon;
         [SerializeField] private Image _friendsIcon;
         [SerializeField] private Image _settingsIcon;
         [SerializeField] private Image _workshopIcon;
+        [SerializeField] private Image _quitIcon;
         
         [SerializeField] private TextMeshProUGUI _logEmotionText;
         [SerializeField] private TextMeshProUGUI _historyText;
         [SerializeField] private TextMeshProUGUI _friendsText;
         [SerializeField] private TextMeshProUGUI _settingsText;
         [SerializeField] private TextMeshProUGUI _workshopText;
+        [SerializeField] private TextMeshProUGUI _quitText;
         
         [SerializeField] private Color _activeButtonColor = new Color(0.8f, 0.7f, 0.5f, 1f);
         [SerializeField] private Color _inactiveButtonColor = new Color(0.6f, 0.5f, 0.35f, 1f);
@@ -45,6 +49,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI.Components
             if (_friendsButton != null) _friendsButton.onClick.AddListener(OnFriendsButtonClicked);
             if (_settingsButton != null) _settingsButton.onClick.AddListener(OnSettingsButtonClicked);
             if (_workshopButton != null) _workshopButton.onClick.AddListener(OnWorkshopButtonClicked);
+            if (_quitButton != null) _quitButton.onClick.AddListener(OnQuitButtonClicked);
             
             // Установить LogEmotion как активную по умолчанию
             SetActiveButton(_logEmotionButton);
@@ -57,6 +62,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI.Components
             if (_friendsButton != null) _friendsButton.onClick.RemoveListener(OnFriendsButtonClicked);
             if (_settingsButton != null) _settingsButton.onClick.RemoveListener(OnSettingsButtonClicked);
             if (_workshopButton != null) _workshopButton.onClick.RemoveListener(OnWorkshopButtonClicked);
+            if (_quitButton != null) _quitButton.onClick.RemoveListener(OnQuitButtonClicked);
         }
         
         private void OnLogEmotionButtonClicked()
@@ -87,6 +93,12 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI.Components
         {
             SetActiveButton(_workshopButton);
             OnOpenWorkshop?.Invoke();
+        }
+        
+        private void OnQuitButtonClicked()
+        {
+            Logger.Log("🔄 [NavigationComponent] Нажата кнопка выхода из приложения");
+            OnQuitApplication?.Invoke();
         }
         
         private void SetActiveButton(Button button)
@@ -153,6 +165,11 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI.Components
         public void SetWorkshopIcon(Sprite icon)
         {
             if (_workshopIcon != null) _workshopIcon.sprite = icon;
+        }
+        
+        public void SetQuitIcon(Sprite icon)
+        {
+            if (_quitIcon != null) _quitIcon.sprite = icon;
         }
         
         // Добавляем Initialize для поддержки существующего кода

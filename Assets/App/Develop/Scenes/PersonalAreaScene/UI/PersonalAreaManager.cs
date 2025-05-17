@@ -10,6 +10,8 @@ using Logger = App.Develop.Utils.Logging.Logger;
 using UnityEngine;
 using System.Threading.Tasks;
 using App.Develop.CommonServices.GameSystem;
+using App.Develop.CommonServices.Firebase.Database.Services;
+using System.Collections;
 
 namespace App.Develop.Scenes.PersonalAreaScene.UI
 {
@@ -24,6 +26,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         private MonoFactory _factory;
         private PanelManager _panelManager;
         private IPointsService _pointsService;
+        private IDatabaseService _databaseService;
         private bool _isInitialized;
 
         // Поля для хранения делегатов событий
@@ -32,6 +35,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         private Action _onOpenFriendsHandler;
         private Action _onOpenWorkshopHandler;
         private Action _onOpenSettingsHandler;
+        private Action _onQuitApplicationHandler;
 
         public void Inject(DIContainer container, MonoFactory factory)
         {
@@ -44,6 +48,16 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             _factory = factory;
             _panelManager = container.Resolve<PanelManager>();
             _pointsService = container.Resolve<IPointsService>();
+            
+            // Пытаемся получить DatabaseService для доступа к профилю пользователя
+            try
+            {
+                _databaseService = container.Resolve<IDatabaseService>();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning($"[PersonalAreaManager] Не удалось получить IDatabaseService: {ex.Message}. Никнейм пользователя не будет загружен.");
+            }
 
             Initialize();
         }
@@ -84,6 +98,9 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
 
             _onOpenSettingsHandler = async () => await ShowSettingsPanelAsync();
             _ui.OnOpenSettings += _onOpenSettingsHandler;
+            
+            _onQuitApplicationHandler = HandleQuitApplication;
+            _ui.OnQuitApplication += _onQuitApplicationHandler;
         }
 
         private async Task HandleLogEmotionAsync() 
@@ -158,8 +175,51 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
 
         private void SetupUserProfile()
         {
-            _ui.SetUsername(DEFAULT_USERNAME); // TODO: подгрузить из профиля
-            _ui.SetCurrentEmotion(null); // TODO: или передать дефолтный Sprite
+            // Устанавливаем дефолтное имя, пока загружаем реальное
+            _ui.SetUsername(DEFAULT_USERNAME);
+            _ui.SetCurrentEmotion(null);
+            
+            // Асинхронно загружаем профиль
+            LoadUserProfileAsync();
+        }
+        
+        private async void LoadUserProfileAsync()
+        {
+            if (_databaseService == null)
+            {
+                Logger.LogWarning("[PersonalAreaManager] DatabaseService не доступен. Используем дефолтное имя пользователя.");
+                return;
+            }
+            
+            try
+            {
+                Logger.Log("[PersonalAreaManager] Загружаем профиль пользователя из Firebase...");
+                
+                // Проверяем, авторизован ли пользователь
+                if (!_databaseService.IsAuthenticated)
+                {
+                    Logger.LogWarning("[PersonalAreaManager] Пользователь не авторизован. Используем дефолтное имя.");
+                    return;
+                }
+                
+                // Загружаем профиль пользователя
+                var userProfile = await _databaseService.GetUserProfile();
+                
+                if (userProfile != null && !string.IsNullOrEmpty(userProfile.Nickname))
+                {
+                    // Устанавливаем никнейм пользователя
+                    _ui.SetUsername(userProfile.Nickname);
+                    Logger.Log($"[PersonalAreaManager] Никнейм пользователя загружен: {userProfile.Nickname}");
+                }
+                else
+                {
+                    Logger.LogWarning("[PersonalAreaManager] Профиль пользователя пуст или не содержит никнейма.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"[PersonalAreaManager] Ошибка при загрузке профиля пользователя: {ex.Message}");
+            }
         }
 
         private void SetupEmotionJars()
@@ -233,6 +293,30 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             UpdateStatisticsView();
         }
 
+        private void HandleQuitApplication()
+        {
+            Logger.Log("[PersonalAreaManager] Закрытие приложения...");
+            
+            StartCoroutine(ConfirmAndQuitApplication());
+        }
+        
+        private IEnumerator ConfirmAndQuitApplication()
+        {
+#if UNITY_EDITOR
+            if (UnityEditor.EditorUtility.DisplayDialog(
+                "Закрытие приложения", 
+                "Вы уверены, что хотите закрыть приложение?", 
+                "Да", "Нет"))
+            {
+                UnityEditor.EditorApplication.isPlaying = false;
+            }
+#else
+            Application.Quit();
+#endif
+            
+            yield return null;
+        }
+
         private void OnDestroy()
         {
             Logger.Log($"[PersonalAreaManager instance {this.GetInstanceID()}] OnDestroy called.");
@@ -243,6 +327,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
                 if (_onOpenFriendsHandler != null) _ui.OnOpenFriends -= _onOpenFriendsHandler;
                 if (_onOpenWorkshopHandler != null) _ui.OnOpenWorkshop -= _onOpenWorkshopHandler;
                 if (_onOpenSettingsHandler != null) _ui.OnOpenSettings -= _onOpenSettingsHandler;
+                if (_onQuitApplicationHandler != null) _ui.OnQuitApplication -= _onQuitApplicationHandler;
             }
 
             if (_pointsService != null)
