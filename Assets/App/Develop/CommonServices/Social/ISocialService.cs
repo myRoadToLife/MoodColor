@@ -34,12 +34,12 @@ namespace App.Develop.CommonServices.Social
         /// <summary>
         /// Получить список друзей
         /// </summary>
-        Task<List<UserProfile>> GetFriendsList();
+        Task<Dictionary<string, UserProfile>> GetFriendsList();
         
         /// <summary>
         /// Поиск пользователей
         /// </summary>
-        Task<List<UserProfile>> SearchUsers(string searchQuery, int maxResults = 20);
+        Task<Dictionary<string, UserProfile>> SearchUsers(string searchQuery, int maxResults = 20);
         
         /// <summary>
         /// Получить статистику по региону
@@ -60,6 +60,11 @@ namespace App.Develop.CommonServices.Social
         /// Обновить настройки приватности
         /// </summary>
         Task<bool> UpdatePrivacySettings(PrivacySettings settings);
+        
+        /// <summary>
+        /// Принять запрос в друзья
+        /// </summary>
+        Task<bool> AcceptFriendRequest(string userId);
     }
 
     public enum FriendshipStatus

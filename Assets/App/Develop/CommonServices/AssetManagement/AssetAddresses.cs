@@ -18,6 +18,7 @@ namespace App.Develop.CommonServices.AssetManagement
         public const string LogEmotionPanel = "UIPanel_LogEmotion";
         public const string HistoryPanel = "UIPanel_History";
         public const string FriendsPanel = "UIPanel_Friends";
+        public const string FriendSearchPanel = "UIPanel_FriendSearch";
         public const string WorkshopPanel = "UIPanel_Workshop";
         
         // UI - Компоненты

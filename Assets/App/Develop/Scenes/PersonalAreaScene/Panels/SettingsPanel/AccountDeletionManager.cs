@@ -434,6 +434,14 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
                 Logger.LogError("[RefreshPasswordField] _passwordInput is NULL!");
                 yield break;
             }
+            
+            // Проверяем, есть ли необходимые компоненты TextMeshPro
+            if (_passwordInput.textComponent == null)
+            {
+                Logger.LogError("[RefreshPasswordField] _passwordInput.textComponent is NULL! Это критическая проблема для TMP_InputField.");
+                yield break;
+            }
+            
             if (_passwordInput.fontAsset == null)
             {
                 Logger.LogError("[RefreshPasswordField] _passwordInput.fontAsset is NULL! Это вызовет ошибку.");
@@ -444,13 +452,35 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
                 Logger.Log($"[RefreshPasswordField] _passwordInput.fontAsset: {_passwordInput.fontAsset.name}");
             }
 
+            // Очищаем текст и ждем фрейм для обновления
             _passwordInput.text = "";
             _passwordInput.ForceLabelUpdate();
             yield return new WaitForEndOfFrame();
-            _passwordInput.text = _plainPassword;
+            
+            // Устанавливаем новый текст и ждем еще один фрейм для обновления
+            _passwordInput.text = _plainPassword ?? "";
             _passwordInput.ForceLabelUpdate();
-            _passwordInput.caretPosition = _plainPassword.Length;
-            _passwordInput.ActivateInputField();
+            yield return new WaitForEndOfFrame();
+            
+            // Безопасная установка позиции курсора с проверками
+            try
+            {
+                int caretPos = _plainPassword != null ? _plainPassword.Length : 0;
+                if (_passwordInput.textComponent != null && _passwordInput.textComponent.textInfo != null)
+                {
+                    // Устанавливаем позицию курсора только если компоненты текста готовы
+                    _passwordInput.caretPosition = caretPos;
+                    _passwordInput.ActivateInputField();
+                }
+                else
+                {
+                    Logger.LogWarning("[RefreshPasswordField] Не удалось установить позицию курсора - компоненты текста не готовы.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"[RefreshPasswordField] Ошибка при установке курсора: {ex.Message}");
+            }
         }
         #endregion
 

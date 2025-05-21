@@ -154,7 +154,7 @@ namespace App.Develop.CommonServices.Social
             }
         }
 
-        public async Task<List<UserProfile>> GetFriendsList()
+        public async Task<Dictionary<string, UserProfile>> GetFriendsList()
         {
             try
             {
@@ -162,18 +162,19 @@ namespace App.Develop.CommonServices.Social
                     .Child(_userId)
                     .GetValueAsync();
 
-                if (!snapshot.Exists) return new List<UserProfile>();
+                if (!snapshot.Exists) return new Dictionary<string, UserProfile>();
 
-                var friends = new List<UserProfile>();
+                var friends = new Dictionary<string, UserProfile>();
                 foreach (var child in snapshot.Children)
                 {
                     if ((FriendshipStatus)Enum.Parse(typeof(FriendshipStatus), 
                         child.Value.ToString()) == FriendshipStatus.Friend)
                     {
-                        var friendProfile = await GetUserProfile(child.Key);
+                        string friendId = child.Key;
+                        var friendProfile = await GetUserProfile(friendId);
                         if (friendProfile != null)
                         {
-                            friends.Add(friendProfile);
+                            friends[friendId] = friendProfile;
                         }
                     }
                 }
@@ -183,11 +184,11 @@ namespace App.Develop.CommonServices.Social
             catch (Exception e)
             {
                 Debug.LogError($"Error getting friends list: {e.Message}");
-                return new List<UserProfile>();
+                return new Dictionary<string, UserProfile>();
             }
         }
 
-        public async Task<List<UserProfile>> SearchUsers(string searchQuery, int maxResults = 20)
+        public async Task<Dictionary<string, UserProfile>> SearchUsers(string searchQuery, int maxResults = 20)
         {
             try
             {
@@ -198,16 +199,25 @@ namespace App.Develop.CommonServices.Social
                     .LimitToFirst(maxResults)
                     .GetValueAsync();
 
-                if (!snapshot.Exists) return new List<UserProfile>();
+                if (!snapshot.Exists) return new Dictionary<string, UserProfile>();
 
-                return snapshot.Children.Select(child => 
-                    JsonUtility.FromJson<UserProfile>(child.GetRawJsonValue()))
-                    .ToList();
+                var results = new Dictionary<string, UserProfile>();
+                foreach (var child in snapshot.Children)
+                {
+                    string userId = child.Key;
+                    UserProfile profile = JsonUtility.FromJson<UserProfile>(child.GetRawJsonValue());
+                    if (profile != null)
+                    {
+                        results[userId] = profile;
+                    }
+                }
+
+                return results;
             }
             catch (Exception e)
             {
                 Debug.LogError($"Error searching users: {e.Message}");
-                return new List<UserProfile>();
+                return new Dictionary<string, UserProfile>();
             }
         }
 
@@ -338,6 +348,35 @@ namespace App.Develop.CommonServices.Social
             {
                 Debug.LogError($"Error getting user profile: {e.Message}");
                 return null;
+            }
+        }
+
+        public async Task<bool> AcceptFriendRequest(string userId)
+        {
+            try
+            {
+                var updates = new Dictionary<string, object>
+                {
+                    [$"friendships/{_userId}/{userId}"] = FriendshipStatus.Friend.ToString(),
+                    [$"friendships/{userId}/{_userId}"] = FriendshipStatus.Friend.ToString(),
+                    [$"notifications/{userId}"] = new SocialNotification
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        Title = "Запрос в друзья принят",
+                        Message = "Ваш запрос в друзья был принят",
+                        Type = NotificationType.FriendAccepted,
+                        CreatedAt = DateTime.UtcNow,
+                        Data = new Dictionary<string, string> { { "receiverId", _userId } }
+                    }
+                };
+
+                await _database.UpdateChildrenAsync(updates);
+                return true;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error accepting friend request: {e.Message}");
+                return false;
             }
         }
     }
