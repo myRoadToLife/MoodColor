@@ -15,7 +15,7 @@ namespace App.Editor.Generators.UI.Panels
         private const string FontsFolder = "Assets/App/Resources/UI/Fonts/";
         private const string PrefabSaveFolderPath = "Assets/App/Prefabs/Generated/UI/Panels/PersonalArea/";
         private const string AddressableSavePath = "Assets/App/Addressables/UI/Panels/";
-        
+
         private static Sprite _woodenPlankSprite;
         private static TMP_FontAsset _brushyFont;
         
@@ -97,7 +97,7 @@ namespace App.Editor.Generators.UI.Panels
             closeButtonRect.anchorMax = new Vector2(1, 1);
             closeButtonRect.pivot = new Vector2(1, 1);
             closeButtonRect.anchoredPosition = new Vector2(-15, -15);
-            
+
             // Создаем кнопки - добавление друга и обновление списка
             GameObject buttonsContainer = new GameObject("ButtonsContainer");
             buttonsContainer.transform.SetParent(contentContainer, false);
@@ -121,7 +121,7 @@ namespace App.Editor.Generators.UI.Panels
                 _woodenPlankSprite, Image.Type.Sliced, _buttonSpriteTintColor,
                 GetDefaultButtonColors(), new Vector2(180, 40), _buttonPressedScale
             );
-            
+
             GameObject refreshButton = UIComponentGenerator.CreateStyledButton(
                 "RefreshButton", "Обновить", buttonsContainer.transform,
                 _brushyFont, _buttonTextColor, _buttonFontSize - 4,
@@ -156,10 +156,10 @@ namespace App.Editor.Generators.UI.Panels
             emptyListMessageText.fontSize = _buttonFontSize;
             emptyListMessageText.color = _titleTextColor;
             emptyListMessageText.alignment = TextAlignmentOptions.Center;
-            
+
             // Создаем индикатор загрузки
             GameObject loadingIndicator = CreateLoadingIndicator(contentContainer);
-            
+
             // Создаем попап
             GameObject popupPanel = UIComponentGenerator.CreatePopupPanel(
                 panelRoot.transform,
@@ -196,7 +196,7 @@ namespace App.Editor.Generators.UI.Panels
             serializedPanel.FindProperty("_friendItemPrefab").objectReferenceValue = friendItemTemplate.GetComponent<FriendItemView>();
             
             serializedPanel.ApplyModifiedPropertiesWithoutUndo();
-                        
+            
             // CanvasScaler уже настроен в UIComponentGenerator.CreateBasePanelRoot
 
             // Сохраняем префаб

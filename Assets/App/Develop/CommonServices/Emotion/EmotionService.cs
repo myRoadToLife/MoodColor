@@ -824,5 +824,18 @@ namespace App.Develop.CommonServices.Emotion
             _emotionHistory.AddEntry(emotion, eventType, DateTime.Now, note); 
             Debug.Log($"[EmotionService.LogEmotionEvent] Logged event: Type='{type}', EventType='{eventType}', Timestamp='{DateTime.Now:O}'{(string.IsNullOrEmpty(note) ? "" : $", Note='{note}'")}");
         }
+
+        public void ClearHistory()
+        {
+            // Очищаем локальную историю
+            _emotionHistory.Clear();
+            
+            // Очищаем кэш истории, чтобы при создании нового аккаунта старые данные не подтягивались
+            if (_emotionHistoryCache != null)
+            {
+                _emotionHistoryCache.ClearCache();
+                Debug.Log("✅ Кэш истории эмоций успешно очищен");
+            }
+        }
     }
 }

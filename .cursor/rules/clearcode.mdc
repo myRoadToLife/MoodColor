@@ -1,0 +1,42 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+### 1. **Readability as a priority**.
+   - Code should be understandable even for beginners. Use:
+     - **Sense names** of variables, functions and classes (e.g. `calculate_total_price` instead of `calc`).
+     - Comment only where the logic is not obvious.
+     - Formatting and indentation for visual structure.
+### 2. **KISS Principle (Keep It Simple, Stupid)**.
+   - Avoid excessive complexity. Simple solutions are often better than complex ones.
+   - Break down large tasks into small functions or modules.
+### 3. **DRY (Don't Repeat Yourself)**
+   - Eliminate code duplication. Repeated fragments are candidates for separate functions/classes.
+### 4. **Refactoring as a habit**.
+   - Constantly improve the code structure even if it works. Examples:
+     - Simplifying conditions.
+     - Replacing “magic numbers” with constants.
+     - Removing dead code.
+### 7. **Manage Complexity**.
+   - Reduce cyclomatic complexity (number of branches in code).
+   - Use design patterns (e.g., Factory, Strategy) for typical problems.
+### 8. **Optimize wisely**.
+   - Avoid **premature optimization**. Make the code workable and readable first, then optimize only the bottlenecks.
+### 9. **Error handling**
+   - Explicit exception handling.
+   - Use logging mechanisms to track unexpected situations.
+### 10. **Documentation and Communication**
+   - Write documentation for complex algorithms.
+   - Use **self-documenting code** (through clear names and structure).
+### 11. **Antipatterns**.
+   - Avoid:
+     - “God objects” (classes that do too much).
+     - Rigid cohesion between components.
+     - Redundant dependencies.
+### 12. **Programming Psychology**.
+   - Consider cognitive load: code should be understandable in 5 minutes.
+   - Write code as if it will be maintained by your worst enemy.
+
+
+Translated with DeepL.com (free version)

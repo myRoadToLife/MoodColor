@@ -108,11 +108,6 @@ MonoBehaviour:
     - Prefab
     - UI
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: f3183ae8043ad2d4b9ea57084394c4a9
-    m_Address: Assets/App/Addressables/UI/Panels/FriendsPanel.prefab
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: 0c640574629fea14a956b2948388e239, type: 2}
   m_SchemaSet:

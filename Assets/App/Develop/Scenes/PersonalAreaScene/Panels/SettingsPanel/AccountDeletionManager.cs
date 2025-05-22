@@ -13,6 +13,7 @@ using System.Linq;
 using System;
 using App.Develop.CommonServices.Firebase.Auth.Services;
 using Logger = App.Develop.Utils.Logging.Logger;
+using App.Develop.CommonServices.Emotion;
 
 namespace App.Develop.Scenes.PersonalAreaScene.Settings
 {
@@ -41,6 +42,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         private IAuthStateService _authStateService;
         private AccountDeletionHelper _deletionHelper;
         private string _plainPassword = "";
+        private EmotionService _emotionService;
         #endregion
 
         #region Unity Lifecycle
@@ -144,6 +146,8 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
                 }
                 
                 _deletionHelper = new AccountDeletionHelper(_database, _authStateService);
+                _emotionService = container.Resolve<EmotionService>();
+                if (_emotionService == null) Logger.LogError("❌ [AccountDeletionManager] Не удалось получить EmotionService из контейнера!");
                 SubscribeToHelperEvents();
 
                 InitializeUI();
@@ -164,6 +168,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             _deletionHelper.OnRedirectToAuth += () => StartCoroutine(DelayedRedirect());
             _deletionHelper.OnUserDeleted += () => 
             {
+                _emotionService?.ClearHistory();
                 ShowPopup("Аккаунт успешно удален.");
                 _sceneSwitcher.ProcessSwitchSceneFor(new OutputPersonalAreaScreenArgs(new AuthSceneInputArgs()));
             };
