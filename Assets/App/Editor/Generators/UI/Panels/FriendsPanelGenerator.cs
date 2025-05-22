@@ -3,8 +3,9 @@ using UnityEditor;
 using TMPro;
 using UnityEngine.UI;
 using System.IO;
-using App.Develop.UI.Components; // Обновлены зависимости для новых компонентов
+using App.Develop.Scenes.PersonalAreaScene.UI; // Для FriendsPanelController и FriendItemView
 using App.Editor.Generators.UI.Core; // Для UIComponentGenerator
+using App.Develop.CommonServices.AssetManagement; // Для AssetAddresses
 
 namespace App.Editor.Generators.UI.Panels
 {
@@ -13,7 +14,8 @@ namespace App.Editor.Generators.UI.Panels
         private const string TexturesFolder = "Assets/App/Resources/UI/Textures/";
         private const string FontsFolder = "Assets/App/Resources/UI/Fonts/";
         private const string PrefabSaveFolderPath = "Assets/App/Prefabs/Generated/UI/Panels/PersonalArea/";
-
+        private const string AddressableSavePath = "Assets/App/Addressables/UI/Panels/";
+        
         private static Sprite _woodenPlankSprite;
         private static TMP_FontAsset _brushyFont;
         
@@ -30,6 +32,11 @@ namespace App.Editor.Generators.UI.Panels
         private static Vector2 _closeButtonSize = new Vector2(60, 60);
         private static Vector3 _buttonPressedScale = new Vector3(0.95f, 0.95f, 1f);
         private static Color _buttonSpriteTintColor = Color.white;
+        
+        // Стили для попапа
+        private static Color _popupBgColor = new Color(0.1f, 0.1f, 0.1f, 0.8f);
+        private static Color _popupTextColor = Color.white;
+        private static float _popupFontSize = 18f;
 
         private static ColorBlock GetDefaultButtonColors()
         {
@@ -60,7 +67,6 @@ namespace App.Editor.Generators.UI.Panels
             }
         }
 
-        [MenuItem("MoodColor/Generate/UI Panels/Personal Area/Friends Panel")]
         public static void CreateFriendsPanelPrefab()
         {
             LoadResources();
@@ -68,7 +74,8 @@ namespace App.Editor.Generators.UI.Panels
             string panelName = "FriendsPanel";
             string title = "Друзья";
 
-            GameObject panelRoot = UIComponentGenerator.CreateBasePanelRoot(panelName, RenderMode.ScreenSpaceOverlay, 10, new Vector2(1080, 1920));
+            // Создаем корневой элемент с Canvas и CanvasScaler
+            GameObject panelRoot = UIComponentGenerator.CreateBasePanelRoot(panelName, RenderMode.ScreenSpaceOverlay, 10, new Vector2(1080, 1920), 0.5f);
 
             // Создаем основные визуальные элементы панели
             Transform contentContainer = UIComponentGenerator.CreateBasePanelVisuals(
@@ -90,148 +97,119 @@ namespace App.Editor.Generators.UI.Panels
             closeButtonRect.anchorMax = new Vector2(1, 1);
             closeButtonRect.pivot = new Vector2(1, 1);
             closeButtonRect.anchoredPosition = new Vector2(-15, -15);
-
-            // Создаем табы для навигации
-            GameObject tabContainer = new GameObject("TabContainer");
-            tabContainer.transform.SetParent(contentContainer, false);
-            RectTransform tabContainerRect = tabContainer.AddComponent<RectTransform>();
-            tabContainerRect.anchorMin = new Vector2(0, 1);
-            tabContainerRect.anchorMax = new Vector2(1, 1);
-            tabContainerRect.pivot = new Vector2(0.5f, 1);
-            tabContainerRect.anchoredPosition = new Vector2(0, -60);
-            tabContainerRect.sizeDelta = new Vector2(0, 60);
             
-            HorizontalLayoutGroup tabLayout = tabContainer.AddComponent<HorizontalLayoutGroup>();
-            tabLayout.spacing = 10;
-            tabLayout.padding = new RectOffset(20, 20, 0, 0);
-            tabLayout.childAlignment = TextAnchor.MiddleCenter;
-            tabLayout.childControlWidth = false;
-            tabLayout.childControlHeight = false;
-            tabLayout.childForceExpandWidth = true;
-            tabLayout.childForceExpandHeight = false;
-
-            // Создаем кнопки табов
-            GameObject friendsTabButton = UIComponentGenerator.CreateStyledButton(
-                "FriendsTabButton", "Друзья", tabContainer.transform,
+            // Создаем кнопки - добавление друга и обновление списка
+            GameObject buttonsContainer = new GameObject("ButtonsContainer");
+            buttonsContainer.transform.SetParent(contentContainer, false);
+            RectTransform buttonsContainerRect = buttonsContainer.AddComponent<RectTransform>();
+            buttonsContainerRect.anchorMin = new Vector2(0, 1);
+            buttonsContainerRect.anchorMax = new Vector2(1, 1);
+            buttonsContainerRect.pivot = new Vector2(0.5f, 1);
+            buttonsContainerRect.anchoredPosition = new Vector2(0, -70);
+            buttonsContainerRect.sizeDelta = new Vector2(-40, 50);
+            
+            HorizontalLayoutGroup buttonsLayout = buttonsContainer.AddComponent<HorizontalLayoutGroup>();
+            buttonsLayout.spacing = 20;
+            buttonsLayout.padding = new RectOffset(20, 20, 0, 0);
+            buttonsLayout.childAlignment = TextAnchor.MiddleCenter;
+            buttonsLayout.childControlWidth = false;
+            buttonsLayout.childControlHeight = false;
+            
+            GameObject addFriendButton = UIComponentGenerator.CreateStyledButton(
+                "AddFriendButton", "Добавить друга", buttonsContainer.transform,
                 _brushyFont, _buttonTextColor, _buttonFontSize - 4,
                 _woodenPlankSprite, Image.Type.Sliced, _buttonSpriteTintColor,
-                GetDefaultButtonColors(), _tabButtonSize, _buttonPressedScale
+                GetDefaultButtonColors(), new Vector2(180, 40), _buttonPressedScale
             );
-
-            GameObject requestsTabButton = UIComponentGenerator.CreateStyledButton(
-                "RequestsTabButton", "Запросы", tabContainer.transform,
+            
+            GameObject refreshButton = UIComponentGenerator.CreateStyledButton(
+                "RefreshButton", "Обновить", buttonsContainer.transform,
                 _brushyFont, _buttonTextColor, _buttonFontSize - 4,
                 _woodenPlankSprite, Image.Type.Sliced, _buttonSpriteTintColor,
-                GetDefaultButtonColors(), _tabButtonSize, _buttonPressedScale
+                GetDefaultButtonColors(), new Vector2(120, 40), _buttonPressedScale
             );
 
-            GameObject searchTabButton = UIComponentGenerator.CreateStyledButton(
-                "SearchTabButton", "Поиск", tabContainer.transform,
-                _brushyFont, _buttonTextColor, _buttonFontSize - 4,
-                _woodenPlankSprite, Image.Type.Sliced, _buttonSpriteTintColor,
-                GetDefaultButtonColors(), _tabButtonSize, _buttonPressedScale
-            );
-
-            // Создаем контейнеры для контента табов
-            GameObject tabContentContainer = new GameObject("TabContentContainer");
-            tabContentContainer.transform.SetParent(contentContainer, false);
-            RectTransform tabContentContainerRect = tabContentContainer.AddComponent<RectTransform>();
-            tabContentContainerRect.anchorMin = new Vector2(0, 0);
-            tabContentContainerRect.anchorMax = new Vector2(1, 1);
-            tabContentContainerRect.pivot = new Vector2(0.5f, 0.5f);
-            tabContentContainerRect.anchoredPosition = new Vector2(0, -30);
-            tabContentContainerRect.sizeDelta = new Vector2(-40, -120);
-
-            // Создаем контент для таба "Друзья"
-            GameObject friendsTab = CreateFriendsTabContent(tabContentContainer.transform);
+            // Создаем контейнер для списка друзей
+            GameObject friendsListContainer = new GameObject("FriendsListContainer");
+            friendsListContainer.transform.SetParent(contentContainer, false);
+            RectTransform friendsListContainerRect = friendsListContainer.AddComponent<RectTransform>();
+            friendsListContainerRect.anchorMin = new Vector2(0, 0);
+            friendsListContainerRect.anchorMax = new Vector2(1, 1);
+            friendsListContainerRect.offsetMin = new Vector2(20, 20);
+            friendsListContainerRect.offsetMax = new Vector2(-20, -130);
             
-            // Создаем контент для таба "Запросы"
-            GameObject requestsTab = CreateRequestsTabContent(tabContentContainer.transform);
+            // Создаем ScrollView для списка друзей
+            GameObject scrollView = CreateScrollView(friendsListContainer.transform, "FriendsScrollView");
             
-            // Создаем контент для таба "Поиск"
-            GameObject searchTab = CreateSearchTabContent(tabContentContainer.transform);
-
+            // Создаем сообщение об отсутствии друзей
+            GameObject emptyListMessage = new GameObject("EmptyListMessage");
+            emptyListMessage.transform.SetParent(friendsListContainer.transform, false);
+            RectTransform emptyListMessageRect = emptyListMessage.AddComponent<RectTransform>();
+            emptyListMessageRect.anchorMin = new Vector2(0.5f, 0.5f);
+            emptyListMessageRect.anchorMax = new Vector2(0.5f, 0.5f);
+            emptyListMessageRect.sizeDelta = new Vector2(400, 100);
+            emptyListMessageRect.anchoredPosition = Vector2.zero;
+            
+            TextMeshProUGUI emptyListMessageText = emptyListMessage.AddComponent<TextMeshProUGUI>();
+            emptyListMessageText.text = "У вас еще нет друзей";
+            emptyListMessageText.font = _brushyFont;
+            emptyListMessageText.fontSize = _buttonFontSize;
+            emptyListMessageText.color = _titleTextColor;
+            emptyListMessageText.alignment = TextAlignmentOptions.Center;
+            
             // Создаем индикатор загрузки
             GameObject loadingIndicator = CreateLoadingIndicator(contentContainer);
+            
+            // Создаем попап
+            GameObject popupPanel = UIComponentGenerator.CreatePopupPanel(
+                panelRoot.transform,
+                "Сообщение по умолчанию", 
+                _brushyFont, _popupTextColor, _popupFontSize, 
+                _popupBgColor
+            );
+            if (popupPanel) popupPanel.SetActive(false); // Скрываем по умолчанию
 
-            // Добавляем компоненты FriendsPanel и генераторы
-            FriendsPanel friendsPanelComponent = panelRoot.AddComponent<FriendsPanel>();
+            // Добавляем компонент FriendsPanelController
+            FriendsPanelController friendsPanelComponent = panelRoot.AddComponent<FriendsPanelController>();
             
-            // Добавляем генераторы элементов
-            FriendsListGenerator friendsListGenerator = friendsTab.AddComponent<FriendsListGenerator>();
-            friendsListGenerator.Initialize(null); // Будет инициализировано в рантайме
-            
-            FriendRequestsGenerator friendRequestsGenerator = requestsTab.AddComponent<FriendRequestsGenerator>();
-            friendRequestsGenerator.Initialize(null); // Будет инициализировано в рантайме
-            
-            FriendSearchGenerator friendSearchGenerator = searchTab.AddComponent<FriendSearchGenerator>();
-            friendSearchGenerator.Initialize(null); // Будет инициализировано в рантайме
-
-            // Настраиваем компонент FriendsPanel через SerializedObject
+            // Настраиваем компонент FriendsPanelController через SerializedObject
             SerializedObject serializedPanel = new SerializedObject(friendsPanelComponent);
             
-            // Назначаем кнопки табов
-            serializedPanel.FindProperty("_friendsTabButton").objectReferenceValue = friendsTabButton.GetComponent<Button>();
-            serializedPanel.FindProperty("_requestsTabButton").objectReferenceValue = requestsTabButton.GetComponent<Button>();
-            serializedPanel.FindProperty("_searchTabButton").objectReferenceValue = searchTabButton.GetComponent<Button>();
-            
-            // Назначаем контейнеры табов
-            serializedPanel.FindProperty("_friendsTab").objectReferenceValue = friendsTab;
-            serializedPanel.FindProperty("_requestsTab").objectReferenceValue = requestsTab;
-            serializedPanel.FindProperty("_searchTab").objectReferenceValue = searchTab;
-            
-            // Назначаем другие элементы
-            serializedPanel.FindProperty("_loadingIndicator").objectReferenceValue = loadingIndicator;
+            // Назначаем кнопки
             serializedPanel.FindProperty("_closeButton").objectReferenceValue = closeButton.GetComponent<Button>();
+            serializedPanel.FindProperty("_addFriendButton").objectReferenceValue = addFriendButton.GetComponent<Button>();
+            serializedPanel.FindProperty("_refreshButton").objectReferenceValue = refreshButton.GetComponent<Button>();
             
-            // Для поискового таба
-            var searchInput = searchTab.transform.Find("SearchContainer/SearchInputField")?.GetComponent<TMP_InputField>();
-            var searchButton = searchTab.transform.Find("SearchContainer/SearchButton")?.GetComponent<Button>();
+            // Назначаем контейнеры
+            serializedPanel.FindProperty("_friendsListContainer").objectReferenceValue = scrollView.transform.Find("Viewport/Content");
+            serializedPanel.FindProperty("_emptyListMessage").objectReferenceValue = emptyListMessage;
+            serializedPanel.FindProperty("_loadingIndicator").objectReferenceValue = loadingIndicator;
             
-            if (searchInput != null && searchButton != null)
-            {
-                serializedPanel.FindProperty("_searchInputField").objectReferenceValue = searchInput;
-                serializedPanel.FindProperty("_searchButton").objectReferenceValue = searchButton;
-            }
+            // Назначаем попап
+            serializedPanel.FindProperty("_popupPanel").objectReferenceValue = popupPanel;
+            serializedPanel.FindProperty("_popupText").objectReferenceValue = popupPanel.transform.Find("PopupText")?.GetComponent<TMP_Text>();
+            
+            // Создаём шаблон префаба для списка друзей
+            Transform friendsContent = scrollView.transform.Find("Viewport/Content");
+            GameObject friendItemTemplate = CreateFriendItemTemplate(friendsContent);
+            friendItemTemplate.SetActive(false);
+            serializedPanel.FindProperty("_friendItemPrefab").objectReferenceValue = friendItemTemplate.GetComponent<FriendItemView>();
             
             serializedPanel.ApplyModifiedPropertiesWithoutUndo();
-            
-            // Настройка генераторов
-            SerializedObject serializedFriendsGenerator = new SerializedObject(friendsListGenerator);
-            serializedFriendsGenerator.FindProperty("_friendsPanel").objectReferenceValue = friendsPanelComponent;
-            serializedFriendsGenerator.FindProperty("_itemContainer").objectReferenceValue = friendsTab.transform.Find("ScrollView/Viewport/Content");
-            serializedFriendsGenerator.FindProperty("_itemPrefab").objectReferenceValue = null; // Будет задано вручную
-            serializedFriendsGenerator.FindProperty("_noItemsMessage").objectReferenceValue = friendsTab.transform.Find("NoFriendsText")?.gameObject;
-            serializedFriendsGenerator.ApplyModifiedPropertiesWithoutUndo();
-            
-            SerializedObject serializedRequestsGenerator = new SerializedObject(friendRequestsGenerator);
-            serializedRequestsGenerator.FindProperty("_friendsPanel").objectReferenceValue = friendsPanelComponent;
-            serializedRequestsGenerator.FindProperty("_itemContainer").objectReferenceValue = requestsTab.transform.Find("ScrollView/Viewport/Content");
-            serializedRequestsGenerator.FindProperty("_itemPrefab").objectReferenceValue = null; // Будет задано вручную
-            serializedRequestsGenerator.FindProperty("_noItemsMessage").objectReferenceValue = requestsTab.transform.Find("NoRequestsText")?.gameObject;
-            serializedRequestsGenerator.ApplyModifiedPropertiesWithoutUndo();
-            
-            SerializedObject serializedSearchGenerator = new SerializedObject(friendSearchGenerator);
-            serializedSearchGenerator.FindProperty("_friendsPanel").objectReferenceValue = friendsPanelComponent;
-            serializedSearchGenerator.FindProperty("_itemContainer").objectReferenceValue = searchTab.transform.Find("ScrollView/Viewport/Content");
-            serializedSearchGenerator.FindProperty("_itemPrefab").objectReferenceValue = null; // Будет задано вручную
-            serializedSearchGenerator.FindProperty("_noItemsMessage").objectReferenceValue = searchTab.transform.Find("NoResultsText")?.gameObject;
-            serializedSearchGenerator.ApplyModifiedPropertiesWithoutUndo();
-
-            // --- Автоматическая генерация и назначение itemPrefab ---
-            var friendItemPrefab = CreateOrFindFriendItemPrefab();
-            var friendRequestItemPrefab = CreateOrFindFriendRequestItemPrefab();
-            var friendSearchItemPrefab = CreateOrFindFriendSearchItemPrefab();
-
-            serializedFriendsGenerator.FindProperty("_itemPrefab").objectReferenceValue = friendItemPrefab;
-            serializedRequestsGenerator.FindProperty("_itemPrefab").objectReferenceValue = friendRequestItemPrefab;
-            serializedSearchGenerator.FindProperty("_itemPrefab").objectReferenceValue = friendSearchItemPrefab;
-            serializedFriendsGenerator.ApplyModifiedPropertiesWithoutUndo();
-            serializedRequestsGenerator.ApplyModifiedPropertiesWithoutUndo();
-            serializedSearchGenerator.ApplyModifiedPropertiesWithoutUndo();
+                        
+            // CanvasScaler уже настроен в UIComponentGenerator.CreateBasePanelRoot
 
             // Сохраняем префаб
             UIComponentGenerator.SavePrefab(panelRoot, PrefabSaveFolderPath, panelName);
+            
+            // Сохраняем копию для Addressable
+            EnsureDirectoryExists(AddressableSavePath);
+            string addressablePrefabPath = Path.Combine(AddressableSavePath, "UIPanel_Friends.prefab");
+            string originalPath = Path.Combine(PrefabSaveFolderPath, $"{panelName}.prefab");
+            AssetDatabase.CopyAsset(originalPath, addressablePrefabPath);
+            
+            // Настраиваем Addressable
+            AddressableSetup.SetupFriendsPanelAddressable();
             
             if (!Application.isPlaying)
             {
@@ -239,191 +217,15 @@ namespace App.Editor.Generators.UI.Panels
             }
 
             Debug.Log($"[FriendsPanelGenerator] Префаб {panelName} создан в {Path.Combine(PrefabSaveFolderPath, panelName + ".prefab")}");
-
-            // --- Вставить после создания panelRoot ---
-            var canvas = panelRoot.GetComponent<Canvas>();
-            var scaler = panelRoot.GetComponent<CanvasScaler>() ?? panelRoot.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
-            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-            scaler.matchWidthOrHeight = 0.5f;
         }
 
-        private static GameObject CreateFriendsTabContent(Transform parent)
+        private static void EnsureDirectoryExists(string path)
         {
-            GameObject friendsTab = new GameObject("FriendsTab");
-            friendsTab.transform.SetParent(parent, false);
-            RectTransform friendsTabRect = friendsTab.AddComponent<RectTransform>();
-            friendsTabRect.anchorMin = Vector2.zero;
-            friendsTabRect.anchorMax = Vector2.one;
-            friendsTabRect.sizeDelta = Vector2.zero;
-            
-            // Текст "Нет друзей"
-            GameObject noFriendsText = new GameObject("NoFriendsText");
-            noFriendsText.transform.SetParent(friendsTab.transform, false);
-            RectTransform noFriendsTextRect = noFriendsText.AddComponent<RectTransform>();
-            noFriendsTextRect.anchorMin = new Vector2(0.5f, 0.5f);
-            noFriendsTextRect.anchorMax = new Vector2(0.5f, 0.5f);
-            noFriendsTextRect.sizeDelta = new Vector2(400, 100);
-            noFriendsTextRect.anchoredPosition = Vector2.zero;
-            
-            TextMeshProUGUI noFriendsTextComp = noFriendsText.AddComponent<TextMeshProUGUI>();
-            noFriendsTextComp.text = "У вас еще нет друзей";
-            noFriendsTextComp.font = _brushyFont;
-            noFriendsTextComp.fontSize = _buttonFontSize;
-            noFriendsTextComp.color = _titleTextColor;
-            noFriendsTextComp.alignment = TextAlignmentOptions.Center;
-            
-            // Скроллящийся список друзей
-            GameObject scrollView = CreateScrollView(friendsTab.transform, "ScrollView");
-            
-            return friendsTab;
-        }
-
-        private static GameObject CreateRequestsTabContent(Transform parent)
-        {
-            GameObject requestsTab = new GameObject("RequestsTab");
-            requestsTab.transform.SetParent(parent, false);
-            RectTransform requestsTabRect = requestsTab.AddComponent<RectTransform>();
-            requestsTabRect.anchorMin = Vector2.zero;
-            requestsTabRect.anchorMax = Vector2.one;
-            requestsTabRect.sizeDelta = Vector2.zero;
-            
-            // Текст "Нет запросов"
-            GameObject noRequestsText = new GameObject("NoRequestsText");
-            noRequestsText.transform.SetParent(requestsTab.transform, false);
-            RectTransform noRequestsTextRect = noRequestsText.AddComponent<RectTransform>();
-            noRequestsTextRect.anchorMin = new Vector2(0.5f, 0.5f);
-            noRequestsTextRect.anchorMax = new Vector2(0.5f, 0.5f);
-            noRequestsTextRect.sizeDelta = new Vector2(400, 100);
-            noRequestsTextRect.anchoredPosition = Vector2.zero;
-            
-            TextMeshProUGUI noRequestsTextComp = noRequestsText.AddComponent<TextMeshProUGUI>();
-            noRequestsTextComp.text = "У вас нет запросов в друзья";
-            noRequestsTextComp.font = _brushyFont;
-            noRequestsTextComp.fontSize = _buttonFontSize;
-            noRequestsTextComp.color = _titleTextColor;
-            noRequestsTextComp.alignment = TextAlignmentOptions.Center;
-            
-            // Скроллящийся список запросов
-            GameObject scrollView = CreateScrollView(requestsTab.transform, "ScrollView");
-            
-            return requestsTab;
-        }
-
-        private static GameObject CreateSearchTabContent(Transform parent)
-        {
-            GameObject searchTab = new GameObject("SearchTab");
-            searchTab.transform.SetParent(parent, false);
-            RectTransform searchTabRect = searchTab.AddComponent<RectTransform>();
-            searchTabRect.anchorMin = Vector2.zero;
-            searchTabRect.anchorMax = Vector2.one;
-            searchTabRect.sizeDelta = Vector2.zero;
-            
-            // Контейнер для поиска
-            GameObject searchContainer = new GameObject("SearchContainer");
-            searchContainer.transform.SetParent(searchTab.transform, false);
-            RectTransform searchContainerRect = searchContainer.AddComponent<RectTransform>();
-            searchContainerRect.anchorMin = new Vector2(0, 1);
-            searchContainerRect.anchorMax = new Vector2(1, 1);
-            searchContainerRect.pivot = new Vector2(0.5f, 1);
-            searchContainerRect.sizeDelta = new Vector2(0, 60);
-            searchContainerRect.anchoredPosition = new Vector2(0, 0);
-            
-            HorizontalLayoutGroup searchLayout = searchContainer.AddComponent<HorizontalLayoutGroup>();
-            searchLayout.spacing = 10;
-            searchLayout.padding = new RectOffset(20, 20, 10, 10);
-            searchLayout.childAlignment = TextAnchor.MiddleCenter;
-            searchLayout.childControlWidth = false;
-            searchLayout.childControlHeight = false;
-            searchLayout.childForceExpandWidth = false;
-            searchLayout.childForceExpandHeight = false;
-            
-            // Поле ввода для поиска
-            GameObject searchInputField = new GameObject("SearchInputField");
-            searchInputField.transform.SetParent(searchContainer.transform, false);
-            RectTransform searchInputRect = searchInputField.AddComponent<RectTransform>();
-            searchInputRect.sizeDelta = new Vector2(300, 40);
-            
-            Image searchInputBg = searchInputField.AddComponent<Image>();
-            searchInputBg.color = Color.white;
-            searchInputBg.sprite = _woodenPlankSprite;
-            searchInputBg.type = Image.Type.Sliced;
-            
-            TMP_InputField inputField = searchInputField.AddComponent<TMP_InputField>();
-            
-            // Создаем текстовое поле для placeholder
-            GameObject placeholderObj = new GameObject("Placeholder");
-            placeholderObj.transform.SetParent(searchInputField.transform, false);
-            RectTransform placeholderRect = placeholderObj.AddComponent<RectTransform>();
-            placeholderRect.anchorMin = Vector2.zero;
-            placeholderRect.anchorMax = Vector2.one;
-            placeholderRect.sizeDelta = new Vector2(-20, -10);
-            placeholderRect.anchoredPosition = Vector2.zero;
-            
-            TextMeshProUGUI placeholderText = placeholderObj.AddComponent<TextMeshProUGUI>();
-            placeholderText.text = "Введите имя пользователя...";
-            placeholderText.font = _brushyFont;
-            placeholderText.fontSize = _buttonFontSize - 4;
-            placeholderText.color = new Color(0.5f, 0.5f, 0.5f, 1);
-            placeholderText.alignment = TextAlignmentOptions.Left;
-            
-            // Создаем текстовое поле для текста ввода
-            GameObject textObj = new GameObject("Text");
-            textObj.transform.SetParent(searchInputField.transform, false);
-            RectTransform textRect = textObj.AddComponent<RectTransform>();
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.sizeDelta = new Vector2(-20, -10);
-            textRect.anchoredPosition = Vector2.zero;
-            
-            TextMeshProUGUI inputText = textObj.AddComponent<TextMeshProUGUI>();
-            inputText.font = _brushyFont;
-            inputText.fontSize = _buttonFontSize - 4;
-            inputText.color = _buttonTextColor;
-            inputText.alignment = TextAlignmentOptions.Left;
-            
-            // Настраиваем InputField
-            inputField.textComponent = inputText;
-            inputField.placeholder = placeholderText;
-            inputField.caretColor = _buttonTextColor;
-            inputField.selectionColor = new Color(0.2f, 0.8f, 1, 0.5f);
-            
-            // Кнопка поиска
-            GameObject searchButton = UIComponentGenerator.CreateStyledButton(
-                "SearchButton", "Поиск", searchContainer.transform,
-                _brushyFont, _buttonTextColor, _buttonFontSize - 4,
-                _woodenPlankSprite, Image.Type.Sliced, _buttonSpriteTintColor,
-                GetDefaultButtonColors(), new Vector2(120, 40), _buttonPressedScale
-            );
-            
-            // Текст "Нет результатов"
-            GameObject noResultsText = new GameObject("NoResultsText");
-            noResultsText.transform.SetParent(searchTab.transform, false);
-            RectTransform noResultsTextRect = noResultsText.AddComponent<RectTransform>();
-            noResultsTextRect.anchorMin = new Vector2(0.5f, 0.5f);
-            noResultsTextRect.anchorMax = new Vector2(0.5f, 0.5f);
-            noResultsTextRect.sizeDelta = new Vector2(400, 100);
-            noResultsTextRect.anchoredPosition = Vector2.zero;
-            
-            TextMeshProUGUI noResultsTextComp = noResultsText.AddComponent<TextMeshProUGUI>();
-            noResultsTextComp.text = "Нет результатов поиска";
-            noResultsTextComp.font = _brushyFont;
-            noResultsTextComp.fontSize = _buttonFontSize;
-            noResultsTextComp.color = _titleTextColor;
-            noResultsTextComp.alignment = TextAlignmentOptions.Center;
-            
-            // Скроллящийся список результатов
-            GameObject scrollView = CreateScrollView(searchTab.transform, "ScrollView");
-            
-            // Устанавливаем якорь скроллвью ниже контейнера поиска
-            RectTransform scrollViewRect = scrollView.GetComponent<RectTransform>();
-            scrollViewRect.anchorMin = new Vector2(0, 0);
-            scrollViewRect.anchorMax = new Vector2(1, 1);
-            scrollViewRect.offsetMin = new Vector2(0, 0);
-            scrollViewRect.offsetMax = new Vector2(0, -60); // Отступ сверху под searchContainer
-            
-            return searchTab;
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+                AssetDatabase.Refresh();
+            }
         }
 
         private static GameObject CreateScrollView(Transform parent, string name)
@@ -434,6 +236,13 @@ namespace App.Editor.Generators.UI.Panels
             scrollViewRect.anchorMin = Vector2.zero;
             scrollViewRect.anchorMax = Vector2.one;
             scrollViewRect.sizeDelta = Vector2.zero;
+            scrollViewRect.offsetMin = new Vector2(10, 10); // Добавляем отступы от краев
+            scrollViewRect.offsetMax = new Vector2(-10, -10);
+            
+            // Добавляем фон для скролл-вью
+            Image scrollViewBg = scrollView.AddComponent<Image>();
+            scrollViewBg.color = new Color(0.95f, 0.95f, 0.95f, 0.2f);
+            scrollViewBg.raycastTarget = false; // Чтобы не блокировал события
             
             ScrollRect scrollRect = scrollView.AddComponent<ScrollRect>();
             
@@ -447,7 +256,7 @@ namespace App.Editor.Generators.UI.Panels
             viewportRect.anchoredPosition = Vector2.zero;
             
             Image viewportImage = viewport.AddComponent<Image>();
-            viewportImage.color = new Color(1, 1, 1, 0.05f);
+            viewportImage.color = new Color(1, 1, 1, 0.1f);
             
             // Маска для viewport
             Mask viewportMask = viewport.AddComponent<Mask>();
@@ -464,8 +273,8 @@ namespace App.Editor.Generators.UI.Panels
             
             // Настраиваем VerticalLayoutGroup для контента
             VerticalLayoutGroup contentLayout = content.AddComponent<VerticalLayoutGroup>();
-            contentLayout.spacing = 10;
-            contentLayout.padding = new RectOffset(10, 10, 10, 10);
+            contentLayout.spacing = 15; // Увеличиваем расстояние между элементами
+            contentLayout.padding = new RectOffset(15, 15, 15, 15); // Увеличиваем отступы
             contentLayout.childAlignment = TextAnchor.UpperCenter;
             contentLayout.childControlWidth = true;
             contentLayout.childControlHeight = false;
@@ -476,13 +285,46 @@ namespace App.Editor.Generators.UI.Panels
             ContentSizeFitter contentFitter = content.AddComponent<ContentSizeFitter>();
             contentFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
             
+            // Добавляем полосу прокрутки
+            GameObject scrollbar = new GameObject("Scrollbar");
+            scrollbar.transform.SetParent(scrollView.transform, false);
+            RectTransform scrollbarRect = scrollbar.AddComponent<RectTransform>();
+            scrollbarRect.anchorMin = new Vector2(1, 0);
+            scrollbarRect.anchorMax = new Vector2(1, 1);
+            scrollbarRect.pivot = new Vector2(1, 1);
+            scrollbarRect.sizeDelta = new Vector2(15, 0); // Ширина полосы прокрутки
+            scrollbarRect.anchoredPosition = Vector2.zero;
+            
+            Image scrollbarImage = scrollbar.AddComponent<Image>();
+            scrollbarImage.color = new Color(0.8f, 0.8f, 0.8f, 0.5f);
+            
+            Scrollbar scrollbarComponent = scrollbar.AddComponent<Scrollbar>();
+            scrollbarComponent.direction = Scrollbar.Direction.BottomToTop;
+            
+            // Создаем ползунок для полосы прокрутки
+            GameObject handle = new GameObject("Handle");
+            handle.transform.SetParent(scrollbar.transform, false);
+            RectTransform handleRect = handle.AddComponent<RectTransform>();
+            handleRect.sizeDelta = Vector2.zero;
+            
+            Image handleImage = handle.AddComponent<Image>();
+            handleImage.color = new Color(0.6f, 0.6f, 0.6f, 0.8f);
+            
+            scrollbarComponent.handleRect = handleRect;
+            scrollbarComponent.targetGraphic = handleImage;
+            
             // Настраиваем ScrollRect
             scrollRect.content = contentRect;
             scrollRect.viewport = viewportRect;
+            scrollRect.horizontalScrollbar = null;
+            scrollRect.verticalScrollbar = scrollbarComponent;
             scrollRect.horizontal = false;
             scrollRect.vertical = true;
-            scrollRect.scrollSensitivity = 15;
-            scrollRect.movementType = ScrollRect.MovementType.Clamped;
+            scrollRect.scrollSensitivity = 20; // Увеличиваем чувствительность
+            scrollRect.movementType = ScrollRect.MovementType.Elastic; // Добавляем эластичность
+            scrollRect.elasticity = 0.1f; // Настраиваем эластичность
+            scrollRect.inertia = true; // Включаем инерцию
+            scrollRect.decelerationRate = 0.135f; // Настраиваем скорость замедления
             
             return scrollView;
         }
@@ -524,189 +366,117 @@ namespace App.Editor.Generators.UI.Panels
             return loadingIndicator;
         }
 
-        private static void EnsurePrefabFolderExists()
+        private static GameObject CreateFriendItemTemplate(Transform parent)
         {
-            string[] parts = PrefabSaveFolderPath.TrimEnd('/').Split('/');
-            string current = parts[0];
-            for (int i = 1; i < parts.Length; i++)
-            {
-                string next = current + "/" + parts[i];
-                if (!AssetDatabase.IsValidFolder(next))
-                    AssetDatabase.CreateFolder(current, parts[i]);
-                current = next;
-            }
-        }
-
-        private static GameObject CreateOrFindFriendItemPrefab()
-        {
-            EnsurePrefabFolderExists();
-            string path = Path.Combine(PrefabSaveFolderPath, "FriendItem.prefab");
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-            if (prefab != null) return prefab;
-            GameObject friendItem = new GameObject("FriendItem");
-            RectTransform itemRect = friendItem.AddComponent<RectTransform>();
-            itemRect.sizeDelta = new Vector2(400, 80);
-            Image itemBg = friendItem.AddComponent<Image>();
+            GameObject friendItemTemplate = new GameObject("FriendItemTemplate");
+            friendItemTemplate.transform.SetParent(parent, false);
+            RectTransform friendItemTemplateRect = friendItemTemplate.AddComponent<RectTransform>();
+            friendItemTemplateRect.anchorMin = Vector2.zero;
+            friendItemTemplateRect.anchorMax = Vector2.one;
+            friendItemTemplateRect.sizeDelta = new Vector2(0, 80); // Высота элемента
+            
+            // Добавляем FriendItemView
+            FriendItemView friendItemView = friendItemTemplate.AddComponent<FriendItemView>();
+            
+            // Добавляем фон и настраиваем layout
+            Image itemBg = friendItemTemplate.AddComponent<Image>();
             itemBg.color = new Color(0.92f, 0.92f, 0.92f, 1f);
-            var layout = friendItem.AddComponent<HorizontalLayoutGroup>();
+            
+            var layout = friendItemTemplate.AddComponent<HorizontalLayoutGroup>();
             layout.spacing = 10;
-            layout.padding = new RectOffset(10,10,10,10);
+            layout.padding = new RectOffset(10, 10, 10, 10);
             layout.childAlignment = TextAnchor.MiddleLeft;
             layout.childForceExpandHeight = false;
             layout.childForceExpandWidth = false;
+            
             // Аватар
             GameObject avatarImage = new GameObject("AvatarImage");
-            avatarImage.transform.SetParent(friendItem.transform, false);
+            avatarImage.transform.SetParent(friendItemTemplate.transform, false);
             avatarImage.AddComponent<RectTransform>().sizeDelta = new Vector2(60, 60);
             avatarImage.AddComponent<Image>();
             var avatarLE = avatarImage.AddComponent<LayoutElement>();
             avatarLE.preferredWidth = 60; avatarLE.preferredHeight = 60;
+            
             // Имя
             GameObject nameText = new GameObject("NameText");
-            nameText.transform.SetParent(friendItem.transform, false);
+            nameText.transform.SetParent(friendItemTemplate.transform, false);
             nameText.AddComponent<RectTransform>();
             var nameTextComp = nameText.AddComponent<TextMeshProUGUI>();
             nameTextComp.text = "Имя";
             nameTextComp.alignment = TextAlignmentOptions.MidlineLeft;
+            nameTextComp.font = _brushyFont;
+            nameTextComp.fontSize = _buttonFontSize - 2;
+            nameTextComp.color = _buttonTextColor;
             var nameLE = nameText.AddComponent<LayoutElement>();
             nameLE.preferredWidth = 120; nameLE.flexibleWidth = 1;
-            // Статус
-            GameObject statusText = new GameObject("StatusText");
-            statusText.transform.SetParent(friendItem.transform, false);
-            statusText.AddComponent<RectTransform>();
-            var statusTextComp = statusText.AddComponent<TextMeshProUGUI>();
-            statusTextComp.text = "Онлайн";
-            statusTextComp.alignment = TextAlignmentOptions.MidlineLeft;
-            var statusLE = statusText.AddComponent<LayoutElement>();
-            statusLE.preferredWidth = 80;
+            
+            // Индикатор онлайн-статуса
+            GameObject statusIndicator = new GameObject("OnlineStatusIndicator");
+            statusIndicator.transform.SetParent(friendItemTemplate.transform, false);
+            statusIndicator.AddComponent<RectTransform>().sizeDelta = new Vector2(20, 20);
+            var statusIndicatorImage = statusIndicator.AddComponent<Image>();
+            statusIndicatorImage.color = Color.green; // По умолчанию "онлайн"
+            var statusLE = statusIndicator.AddComponent<LayoutElement>();
+            statusLE.preferredWidth = 20;
+            
+            // Кнопка просмотра профиля
+            GameObject viewProfileButton = new GameObject("ViewProfileButton");
+            viewProfileButton.transform.SetParent(friendItemTemplate.transform, false);
+            viewProfileButton.AddComponent<RectTransform>();
+            var viewBtnImage = viewProfileButton.AddComponent<Image>();
+            viewBtnImage.sprite = _woodenPlankSprite;
+            viewBtnImage.type = Image.Type.Sliced;
+            var viewBtn = viewProfileButton.AddComponent<Button>();
+            viewBtn.colors = GetDefaultButtonColors();
+            var viewLE = viewProfileButton.AddComponent<LayoutElement>();
+            viewLE.preferredWidth = 90; viewLE.preferredHeight = 40;
+            
+            GameObject viewBtnText = new GameObject("Text");
+            viewBtnText.transform.SetParent(viewProfileButton.transform, false);
+            RectTransform viewBtnTextRect = viewBtnText.AddComponent<RectTransform>();
+            viewBtnTextRect.anchorMin = Vector2.zero;
+            viewBtnTextRect.anchorMax = Vector2.one;
+            viewBtnTextRect.sizeDelta = Vector2.zero;
+            var viewBtnTextComp = viewBtnText.AddComponent<TextMeshProUGUI>();
+            viewBtnTextComp.text = "Профиль";
+            viewBtnTextComp.alignment = TextAlignmentOptions.Center;
+            viewBtnTextComp.font = _brushyFont;
+            viewBtnTextComp.fontSize = _buttonFontSize - 4;
+            viewBtnTextComp.color = _buttonTextColor;
+            
             // Кнопка удаления
             GameObject removeButton = new GameObject("RemoveButton");
-            removeButton.transform.SetParent(friendItem.transform, false);
-            removeButton.AddComponent<RectTransform>();
-            removeButton.AddComponent<Image>();
-            removeButton.AddComponent<Button>();
+            removeButton.transform.SetParent(friendItemTemplate.transform, false);
+            var removeBtnImage = removeButton.AddComponent<Image>();
+            removeBtnImage.sprite = _woodenPlankSprite;
+            removeBtnImage.type = Image.Type.Sliced;
+            var removeButton3D = removeButton.AddComponent<Button>();
+            removeButton3D.colors = GetDefaultButtonColors();
             var removeLE = removeButton.AddComponent<LayoutElement>();
             removeLE.preferredWidth = 90; removeLE.preferredHeight = 40;
             GameObject removeBtnText = new GameObject("Text");
             removeBtnText.transform.SetParent(removeButton.transform, false);
-            removeBtnText.AddComponent<RectTransform>();
+            RectTransform removeBtnTextRect = removeBtnText.AddComponent<RectTransform>();
+            removeBtnTextRect.anchorMin = Vector2.zero;
+            removeBtnTextRect.anchorMax = Vector2.one;
+            removeBtnTextRect.sizeDelta = Vector2.zero;
             var removeBtnTextComp = removeBtnText.AddComponent<TextMeshProUGUI>();
             removeBtnTextComp.text = "Удалить";
             removeBtnTextComp.alignment = TextAlignmentOptions.Center;
-            // Сохраняем
-            var prefabObj = PrefabUtility.SaveAsPrefabAsset(friendItem, path);
-            GameObject.DestroyImmediate(friendItem);
-            AssetDatabase.SaveAssets();
-            return prefabObj;
-        }
-
-        private static GameObject CreateOrFindFriendRequestItemPrefab()
-        {
-            EnsurePrefabFolderExists();
-            string path = Path.Combine(PrefabSaveFolderPath, "FriendRequestItem.prefab");
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-            if (prefab != null) return prefab;
-            GameObject item = new GameObject("FriendRequestItem");
-            item.AddComponent<RectTransform>().sizeDelta = new Vector2(400, 80);
-            item.AddComponent<Image>().color = new Color(0.92f, 0.92f, 0.92f, 1f);
-            var layout = item.AddComponent<HorizontalLayoutGroup>();
-            layout.spacing = 10;
-            layout.padding = new RectOffset(10,10,10,10);
-            layout.childAlignment = TextAnchor.MiddleLeft;
-            layout.childForceExpandHeight = false;
-            layout.childForceExpandWidth = false;
-            GameObject avatarImage = new GameObject("AvatarImage");
-            avatarImage.transform.SetParent(item.transform, false);
-            avatarImage.AddComponent<RectTransform>().sizeDelta = new Vector2(60, 60);
-            avatarImage.AddComponent<Image>();
-            var avatarLE = avatarImage.AddComponent<LayoutElement>();
-            avatarLE.preferredWidth = 60; avatarLE.preferredHeight = 60;
-            GameObject nameText = new GameObject("NameText");
-            nameText.transform.SetParent(item.transform, false);
-            nameText.AddComponent<RectTransform>();
-            var nameTextComp = nameText.AddComponent<TextMeshProUGUI>();
-            nameTextComp.text = "Имя";
-            nameTextComp.alignment = TextAlignmentOptions.MidlineLeft;
-            var nameLE = nameText.AddComponent<LayoutElement>();
-            nameLE.preferredWidth = 120; nameLE.flexibleWidth = 1;
-            GameObject acceptButton = new GameObject("AcceptButton");
-            acceptButton.transform.SetParent(item.transform, false);
-            acceptButton.AddComponent<RectTransform>();
-            acceptButton.AddComponent<Image>();
-            acceptButton.AddComponent<Button>();
-            var acceptLE = acceptButton.AddComponent<LayoutElement>();
-            acceptLE.preferredWidth = 90; acceptLE.preferredHeight = 40;
-            GameObject acceptBtnText = new GameObject("Text");
-            acceptBtnText.transform.SetParent(acceptButton.transform, false);
-            acceptBtnText.AddComponent<RectTransform>();
-            var acceptBtnTextComp = acceptBtnText.AddComponent<TextMeshProUGUI>();
-            acceptBtnTextComp.text = "Принять";
-            acceptBtnTextComp.alignment = TextAlignmentOptions.Center;
-            GameObject declineButton = new GameObject("DeclineButton");
-            declineButton.transform.SetParent(item.transform, false);
-            declineButton.AddComponent<RectTransform>();
-            declineButton.AddComponent<Image>();
-            declineButton.AddComponent<Button>();
-            var declineLE = declineButton.AddComponent<LayoutElement>();
-            declineLE.preferredWidth = 90; declineLE.preferredHeight = 40;
-            GameObject declineBtnText = new GameObject("Text");
-            declineBtnText.transform.SetParent(declineButton.transform, false);
-            declineBtnText.AddComponent<RectTransform>();
-            var declineBtnTextComp = declineBtnText.AddComponent<TextMeshProUGUI>();
-            declineBtnTextComp.text = "Отклонить";
-            declineBtnTextComp.alignment = TextAlignmentOptions.Center;
-            var prefabObj = PrefabUtility.SaveAsPrefabAsset(item, path);
-            GameObject.DestroyImmediate(item);
-            AssetDatabase.SaveAssets();
-            return prefabObj;
-        }
-
-        private static GameObject CreateOrFindFriendSearchItemPrefab()
-        {
-            EnsurePrefabFolderExists();
-            string path = Path.Combine(PrefabSaveFolderPath, "FriendSearchItem.prefab");
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-            if (prefab != null) return prefab;
-            GameObject item = new GameObject("FriendSearchItem");
-            item.AddComponent<RectTransform>().sizeDelta = new Vector2(400, 80);
-            item.AddComponent<Image>().color = new Color(0.92f, 0.92f, 0.92f, 1f);
-            var layout = item.AddComponent<HorizontalLayoutGroup>();
-            layout.spacing = 10;
-            layout.padding = new RectOffset(10,10,10,10);
-            layout.childAlignment = TextAnchor.MiddleLeft;
-            layout.childForceExpandHeight = false;
-            layout.childForceExpandWidth = false;
-            GameObject avatarImage = new GameObject("AvatarImage");
-            avatarImage.transform.SetParent(item.transform, false);
-            avatarImage.AddComponent<RectTransform>().sizeDelta = new Vector2(60, 60);
-            avatarImage.AddComponent<Image>();
-            var avatarLE = avatarImage.AddComponent<LayoutElement>();
-            avatarLE.preferredWidth = 60; avatarLE.preferredHeight = 60;
-            GameObject nameText = new GameObject("NameText");
-            nameText.transform.SetParent(item.transform, false);
-            nameText.AddComponent<RectTransform>();
-            var nameTextComp = nameText.AddComponent<TextMeshProUGUI>();
-            nameTextComp.text = "Имя";
-            nameTextComp.alignment = TextAlignmentOptions.MidlineLeft;
-            var nameLE = nameText.AddComponent<LayoutElement>();
-            nameLE.preferredWidth = 120; nameLE.flexibleWidth = 1;
-            GameObject addButton = new GameObject("AddButton");
-            addButton.transform.SetParent(item.transform, false);
-            addButton.AddComponent<RectTransform>();
-            addButton.AddComponent<Image>();
-            addButton.AddComponent<Button>();
-            var addLE = addButton.AddComponent<LayoutElement>();
-            addLE.preferredWidth = 90; addLE.preferredHeight = 40;
-            GameObject addBtnText = new GameObject("Text");
-            addBtnText.transform.SetParent(addButton.transform, false);
-            addBtnText.AddComponent<RectTransform>();
-            var addBtnTextComp = addBtnText.AddComponent<TextMeshProUGUI>();
-            addBtnTextComp.text = "Добавить";
-            addBtnTextComp.alignment = TextAlignmentOptions.Center;
-            var prefabObj = PrefabUtility.SaveAsPrefabAsset(item, path);
-            GameObject.DestroyImmediate(item);
-            AssetDatabase.SaveAssets();
-            return prefabObj;
+            removeBtnTextComp.font = _brushyFont;
+            removeBtnTextComp.fontSize = _buttonFontSize - 4;
+            removeBtnTextComp.color = _buttonTextColor;
+            
+            // Настроим SerializedObject для FriendItemView
+            SerializedObject serializedItemView = new SerializedObject(friendItemView);
+            serializedItemView.FindProperty("_userNameText").objectReferenceValue = nameTextComp;
+            serializedItemView.FindProperty("_avatarImage").objectReferenceValue = avatarImage.GetComponent<Image>();
+            serializedItemView.FindProperty("_onlineStatusIndicator").objectReferenceValue = statusIndicator.GetComponent<Image>();
+            serializedItemView.FindProperty("_viewProfileButton").objectReferenceValue = viewProfileButton.GetComponent<Button>();
+            serializedItemView.FindProperty("_removeFriendButton").objectReferenceValue = removeButton.GetComponent<Button>();
+            serializedItemView.ApplyModifiedPropertiesWithoutUndo();
+            
+            return friendItemTemplate;
         }
     }
 } 

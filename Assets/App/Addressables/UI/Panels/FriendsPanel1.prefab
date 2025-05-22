@@ -434,7 +434,7 @@ GameObject:
   - component: {fileID: 3622132374396971154}
   - component: {fileID: 7213849423950903434}
   m_Layer: 0
-  m_Name: FriendsPanel
+  m_Name: FriendsPanel1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
