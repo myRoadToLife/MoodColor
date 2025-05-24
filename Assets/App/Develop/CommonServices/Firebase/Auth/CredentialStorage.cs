@@ -3,6 +3,7 @@ using System;
 using App.Develop.CommonServices.Firebase.Common.SecureStorage;
 using Firebase.Auth;
 using UnityEngine;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Firebase.Auth
 {
@@ -45,11 +46,11 @@ namespace App.Develop.CommonServices.Firebase.Auth
                 }
 
                 SecurePlayerPrefs.Save();
-                Debug.Log("✅ Учетные данные сохранены");
+                MyLogger.Log("✅ Учетные данные сохранены", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка сохранения учетных данных: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка сохранения учетных данных: {ex.Message}", MyLogger.LogCategory.Firebase);
             }
         }
 
@@ -63,7 +64,7 @@ namespace App.Develop.CommonServices.Firebase.Auth
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка получения email: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка получения email: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return string.Empty;
             }
         }
@@ -79,7 +80,7 @@ namespace App.Develop.CommonServices.Firebase.Auth
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка получения последнего email: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка получения последнего email: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return string.Empty;
             }
         }
@@ -94,7 +95,7 @@ namespace App.Develop.CommonServices.Firebase.Auth
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка получения пароля: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка получения пароля: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return string.Empty;
             }
         }
@@ -107,7 +108,7 @@ namespace App.Develop.CommonServices.Firebase.Auth
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка получения настройки 'Запомнить меня': {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка получения настройки 'Запомнить меня': {ex.Message}", MyLogger.LogCategory.Firebase);
                 return false;
             }
         }
@@ -121,11 +122,11 @@ namespace App.Develop.CommonServices.Firebase.Auth
                 SecurePlayerPrefs.DeleteKey(PASSWORD_KEY);
                 SecurePlayerPrefs.SetBool(REMEMBER_KEY, false);
                 SecurePlayerPrefs.Save();
-                Debug.Log("✅ Учетные данные очищены");
+                MyLogger.Log("✅ Учетные данные очищены", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка очистки учетных данных: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка очистки учетных данных: {ex.Message}", MyLogger.LogCategory.Firebase);
             }
         }
     }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using App.Develop.CommonServices.DataManagement.DataProviders;
 using App.Develop.DI;
 using UnityEngine;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.GameSystem
 {
@@ -117,7 +118,7 @@ namespace App.Develop.CommonServices.GameSystem
             
             _gameData = playerData.GameData;
             
-            Debug.Log($"Инициализирована система уровней. Текущий уровень: {CurrentLevel}, XP: {CurrentXP}/{RequiredXPForNextLevel}");
+            MyLogger.Log($"Инициализирована система уровней. Текущий уровень: {CurrentLevel}, XP: {CurrentXP}/{RequiredXPForNextLevel}", MyLogger.LogCategory.Default);
         }
 
         #endregion
@@ -133,13 +134,13 @@ namespace App.Develop.CommonServices.GameSystem
         {
             if (amount <= 0)
             {
-                Debug.LogWarning($"Попытка добавить отрицательное или нулевое количество опыта: {amount}");
+                MyLogger.LogWarning($"Попытка добавить отрицательное или нулевое количество опыта: {amount}", MyLogger.LogCategory.Default);
                 return;
             }
 
             if (CurrentLevel >= MaxLevel)
             {
-                Debug.Log("Достигнут максимальный уровень, опыт не начисляется");
+                MyLogger.Log("Достигнут максимальный уровень, опыт не начисляется", MyLogger.LogCategory.Default);
                 return;
             }
 
@@ -165,11 +166,11 @@ namespace App.Develop.CommonServices.GameSystem
                 // Вызываем событие повышения уровня
                 OnLevelUp?.Invoke(_gameData.Level);
                 
-                Debug.Log($"Достигнут новый уровень: {_gameData.Level}, награда: {reward} очков");
+                MyLogger.Log($"Достигнут новый уровень: {_gameData.Level}, награда: {reward} очков", MyLogger.LogCategory.Default);
                 
                 if (_gameData.Level >= MaxLevel)
                 {
-                    Debug.Log("Достигнут максимальный уровень!");
+                    MyLogger.Log("Достигнут максимальный уровень!", MyLogger.LogCategory.Default);
                     break;
                 }
             }
@@ -180,7 +181,7 @@ namespace App.Develop.CommonServices.GameSystem
             // Вызываем событие изменения опыта
             OnXPChanged?.Invoke(_gameData.XP, finalAmount);
             
-            Debug.Log($"Добавлено {finalAmount} опыта из источника {source}. Текущий уровень: {CurrentLevel}, XP: {CurrentXP}/{RequiredXPForNextLevel}");
+            MyLogger.Log($"Добавлено {finalAmount} опыта из источника {source}. Текущий уровень: {CurrentLevel}, XP: {CurrentXP}/{RequiredXPForNextLevel}", MyLogger.LogCategory.Default);
         }
 
         /// <summary>

@@ -6,7 +6,6 @@ using App.Develop.CommonServices.Social;
 using App.Develop.CommonServices.UI;
 using App.Develop.DI;
 using App.Develop.Utils.Logging;
-using Logger = App.Develop.Utils.Logging.Logger;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -68,10 +67,10 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             try
             {
                 _panelManager = container.Resolve<PanelManager>();
-                if (_panelManager == null) Logger.LogError("❌ FriendsPanelController: Не удалось получить PanelManager!");
+                if (_panelManager == null) MyLogger.LogError("❌ FriendsPanelController: Не удалось получить PanelManager!");
                 
                 _socialService = container.Resolve<ISocialService>();
-                if (_socialService == null) Logger.LogError("❌ FriendsPanelController: Не удалось получить ISocialService!");
+                if (_socialService == null) MyLogger.LogError("❌ FriendsPanelController: Не удалось получить ISocialService!");
                 else
                 {
                     // Подписываемся на события изменения статуса дружбы
@@ -82,11 +81,11 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
                 LoadFriendsData();
                 
                 _isInitialized = true;
-                Logger.Log("✅ FriendsPanelController успешно инициализирован");
+                MyLogger.Log("✅ FriendsPanelController успешно инициализирован");
             }
             catch (Exception ex)
             {
-                Logger.LogError($"❌ Ошибка инициализации FriendsPanelController: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка инициализации FriendsPanelController: {ex.Message}");
             }
         }
 
@@ -154,11 +153,11 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
                     }
                 }
                 
-                Logger.Log($"Загружено {(friends != null ? friends.Count : 0)} друзей");
+                MyLogger.Log($"Загружено {(friends != null ? friends.Count : 0)} друзей");
             }
             catch (Exception ex)
             {
-                Logger.LogError($"❌ Ошибка при загрузке списка друзей: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка при загрузке списка друзей: {ex.Message}");
                 ShowPopup("Произошла ошибка при загрузке списка друзей");
             }
             finally
@@ -232,7 +231,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             }
             catch (Exception ex)
             {
-                Logger.LogError($"❌ Ошибка при удалении друга: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка при удалении друга: {ex.Message}");
                 ShowPopup("Произошла ошибка. Попробуйте позже.");
             }
         }
@@ -270,16 +269,16 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         /// </summary>
         private void ShowAddFriendPanel()
         {
-            Logger.Log("🔘 Показать панель добавления друга");
+            MyLogger.Log("🔘 Показать панель добавления друга");
             
             if (_panelManager != null)
             {
-                Logger.Log($"[FriendsPanelController] Вызов TogglePanelAsync для {AssetAddresses.FriendSearchPanel}");
+                MyLogger.Log($"[FriendsPanelController] Вызов TogglePanelAsync для {AssetAddresses.FriendSearchPanel}");
                 _ = _panelManager.TogglePanelAsync<FriendSearchPanelController>(AssetAddresses.FriendSearchPanel);
             }
             else
             {
-                Logger.LogError("[FriendsPanelController] _panelManager is null!");
+                MyLogger.LogError("[FriendsPanelController] _panelManager is null!");
             }
         }
         
@@ -288,15 +287,15 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         /// </summary>
         private void ClosePanel()
         {
-            Logger.Log($"[FriendsPanelController] Кнопка ClosePanel нажата!");
+            MyLogger.Log($"[FriendsPanelController] Кнопка ClosePanel нажата!");
             if (_panelManager != null)
             {
-                Logger.Log($"[FriendsPanelController] Вызов TogglePanelAsync для {AssetAddresses.FriendsPanel}");
+                MyLogger.Log($"[FriendsPanelController] Вызов TogglePanelAsync для {AssetAddresses.FriendsPanel}");
                 _ = _panelManager.TogglePanelAsync<FriendsPanelController>(AssetAddresses.FriendsPanel);
             }
             else
             {
-                Logger.LogError("[FriendsPanelController] _panelManager is null!");
+                MyLogger.LogError("[FriendsPanelController] _panelManager is null!");
             }
         }
         #endregion

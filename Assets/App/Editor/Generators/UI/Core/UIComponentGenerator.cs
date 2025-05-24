@@ -6,6 +6,7 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using App.Develop.UI.Shared;
 using Directory = UnityEngine.Windows.Directory; // Для ButtonPressEffect
+using App.Develop.Utils.Logging;
 
 namespace App.Editor.Generators.UI.Core
 {
@@ -565,13 +566,13 @@ namespace App.Editor.Generators.UI.Core
         {
             if (rootGameObject == null)
             {
-                Debug.LogError("[UIComponentGenerator] Root GameObject is null. Cannot save prefab.");
+                MyLogger.EditorLogError("[UIComponentGenerator] Root GameObject is null. Cannot save prefab.");
                 return;
             }
 
             if (string.IsNullOrEmpty(folderPath) || string.IsNullOrEmpty(prefabName))
             {
-                Debug.LogError("[UIComponentGenerator] Folder path or prefab name is null or empty. Cannot save prefab.");
+                MyLogger.EditorLogError("[UIComponentGenerator] Folder path or prefab name is null or empty. Cannot save prefab.");
                 return;
             }
 
@@ -595,7 +596,7 @@ namespace App.Editor.Generators.UI.Core
                 // or if we want to fully replace it.
                 // PrefabUtility.UnpackPrefabInstance(rootGameObject, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
                 // For replacing, just saving over it is usually fine.
-                Debug.LogWarning($"[UIComponentGenerator] Prefab already exists at {fullPath}. It will be overwritten.");
+                MyLogger.EditorLogWarning($"[UIComponentGenerator] Prefab already exists at {fullPath}. It will be overwritten.");
             }
 
             bool prefabSuccess;
@@ -605,13 +606,13 @@ namespace App.Editor.Generators.UI.Core
 
             if (prefabSuccess)
             {
-                Debug.Log($"[UIComponentGenerator] Prefab '{prefabName}' saved successfully to: {fullPath}");
+                MyLogger.EditorLog($"[UIComponentGenerator] Prefab '{prefabName}' saved successfully to: {fullPath}");
                 // Optional: Add labels
                 // AssetDatabase.SetLabels(AssetDatabase.LoadAssetAtPath<GameObject>(localPath), new string[] { "GeneratedUI", "Component" });
             }
             else
             {
-                Debug.LogError($"[UIComponentGenerator] Failed to save prefab '{prefabName}' to {fullPath}. Check for errors in the console.");
+                MyLogger.EditorLogError($"[UIComponentGenerator] Failed to save prefab '{prefabName}' to {fullPath}. Check for errors in the console.");
             }
         }
         #endregion

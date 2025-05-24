@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.ConfigsManagement
 {
@@ -34,7 +35,7 @@ namespace App.Develop.CommonServices.ConfigsManagement
             await LoadStartEmotionConfigAsync();
             await LoadAllEmotionConfigsAsync();
             _isInitialized = true;
-            Debug.Log("✅ ConfigsProviderService инициализирован и все конфиги загружены.");
+            MyLogger.Log("✅ ConfigsProviderService инициализирован и все конфиги загружены.", MyLogger.LogCategory.Default);
         }
 
         private async Task LoadStartEmotionConfigAsync()
@@ -47,11 +48,11 @@ namespace App.Develop.CommonServices.ConfigsManagement
                 {
                     throw new InvalidOperationException($"StartEmotionConfig не найден по ключу Addressable: {StartConfigAddressableKey}");
                 }
-                Debug.Log($"✅ StartEmotionConfig загружен успешно (ключ: {StartConfigAddressableKey})");
+                MyLogger.Log($"✅ StartEmotionConfig загружен успешно (ключ: {StartConfigAddressableKey}, MyLogger.LogCategory.Default)");
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка загрузки StartEmotionConfig (ключ: {StartConfigAddressableKey}): {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка загрузки StartEmotionConfig (ключ: {StartConfigAddressableKey}, MyLogger.LogCategory.Default): {ex.Message}");
                 throw;
             }
         }
@@ -64,7 +65,7 @@ namespace App.Develop.CommonServices.ConfigsManagement
                 loadingTasks.Add(LoadSingleEmotionConfigAsync(type));
             }
             await Task.WhenAll(loadingTasks);
-            Debug.Log("✅ Все EmotionConfig были запрошены для загрузки.");
+            MyLogger.Log("✅ Все EmotionConfig были запрошены для загрузки.", MyLogger.LogCategory.Default);
         }
 
         private async Task LoadSingleEmotionConfigAsync(EmotionTypes type)
@@ -78,16 +79,16 @@ namespace App.Develop.CommonServices.ConfigsManagement
                 if (config != null)
                 {
                     _emotionConfigs[type] = config;
-                    Debug.Log($"✅ Загружен конфиг для эмоции {type} по ключу {configKey}");
+                    MyLogger.Log($"✅ Загружен конфиг для эмоции {type} по ключу {configKey}", MyLogger.LogCategory.Default);
                 }
                 else
                 {
-                    Debug.LogWarning($"⚠️ Не найден конфиг для эмоции {type} по ключу {configKey}");
+                    MyLogger.LogWarning($"⚠️ Не найден конфиг для эмоции {type} по ключу {configKey}", MyLogger.LogCategory.Default);
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка загрузки конфига для {type}: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка загрузки конфига для {type}: {ex.Message}", MyLogger.LogCategory.Default);
             }
         }
 
@@ -113,25 +114,25 @@ namespace App.Develop.CommonServices.ConfigsManagement
 
         public EmotionConfig LoadEmotionConfig(EmotionTypes type)
         {
-            if (!_isInitialized) Debug.LogWarning("ConfigsProviderService не инициализирован! Конфиги могут быть не загружены.");
+            if (!_isInitialized) MyLogger.LogWarning("ConfigsProviderService не инициализирован! Конфиги могут быть не загружены.", MyLogger.LogCategory.Default);
             return _emotionConfigs.TryGetValue(type, out var cachedConfig) ? cachedConfig : null;
         }
 
         public IEnumerable<EmotionTypes> GetAllEmotionTypes()
         {
-            if (!_isInitialized) Debug.LogWarning("ConfigsProviderService не инициализирован!");
+            if (!_isInitialized) MyLogger.LogWarning("ConfigsProviderService не инициализирован!", MyLogger.LogCategory.Default);
             return _emotionConfigs.Keys;
         }
 
         public bool HasConfig(EmotionTypes type)
         {
-            if (!_isInitialized) Debug.LogWarning("ConfigsProviderService не инициализирован!");
+            if (!_isInitialized) MyLogger.LogWarning("ConfigsProviderService не инициализирован!", MyLogger.LogCategory.Default);
             return _emotionConfigs.ContainsKey(type);
         }
 
         public IReadOnlyDictionary<EmotionTypes, EmotionConfig> GetAllConfigs()
         {
-            if (!_isInitialized) Debug.LogWarning("ConfigsProviderService не инициализирован!");
+            if (!_isInitialized) MyLogger.LogWarning("ConfigsProviderService не инициализирован!", MyLogger.LogCategory.Default);
             return _emotionConfigs;
         }
     }

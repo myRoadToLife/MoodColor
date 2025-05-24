@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using App.Develop.Utils.Logging;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
-
 namespace App.Develop.CommonServices.AssetManagement
 {
     public class AddressablesLoader : IAssetLoader
@@ -28,18 +28,18 @@ namespace App.Develop.CommonServices.AssetManagement
         
         public async Task<GameObject> InstantiateAsync(string address, Transform parent = null)
         {
-            Debug.Log($"[AddressablesLoader] Попытка инстанциировать: {address}");
+            MyLogger.Log($"[AddressablesLoader] Попытка инстанциировать: {address}", MyLogger.LogCategory.Default);
             AsyncOperationHandle<GameObject> handle = Addressables.InstantiateAsync(address, parent);
             GameObject instance = await handle.Task;
 
             if (handle.Status == AsyncOperationStatus.Succeeded && instance != null)
             {
                  _instantiatedAssetHandles[instance] = handle;
-                 Debug.Log($"[AddressablesLoader] Успешно инстанциирован: {address}");
+                 MyLogger.Log($"[AddressablesLoader] Успешно инстанциирован: {address}", MyLogger.LogCategory.Default);
             }
             else
             {
-                Debug.LogError($"[AddressablesLoader] Ошибка инстанцирования: {address}, Status: {handle.Status}, Error: {handle.OperationException}");
+                MyLogger.LogError($"[AddressablesLoader] Ошибка инстанцирования: {address}, Status: {handle.Status}, Error: {handle.OperationException}", MyLogger.LogCategory.Default);
             }
             return instance;
         }

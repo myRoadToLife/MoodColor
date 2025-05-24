@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using App.Develop.CommonServices.Firebase.Database.Models;
 using App.Develop.CommonServices.Firebase.Database.Services;
 using UnityEngine;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Firebase.Database
 {
@@ -24,10 +25,10 @@ namespace App.Develop.CommonServices.Firebase.Database
                 return true;
             }
             
-            Debug.LogError($"Ошибка валидации данных {dataType}. Количество ошибок: {result.Errors.Count}");
+            MyLogger.LogError($"Ошибка валидации данных {dataType}. Количество ошибок: {result.Errors.Count}", MyLogger.LogCategory.Firebase);
             foreach (var error in result.Errors)
             {
-                Debug.LogError($"-- Поле: {error.FieldName}, Ошибка: {error.Message}, Код: {error.ErrorCode}");
+                MyLogger.LogError($"-- Поле: {error.FieldName}, Ошибка: {error.Message}, Код: {error.ErrorCode}", MyLogger.LogCategory.Firebase);
             }
             
             return false;
@@ -46,7 +47,7 @@ namespace App.Develop.CommonServices.Firebase.Database
         {
             if (!validationService.TryValidate(data, out var result))
             {
-                Debug.LogWarning($"Нет зарегистрированного валидатора для типа {typeof(T).Name}");
+                MyLogger.LogWarning($"Нет зарегистрированного валидатора для типа {typeof(T)}", MyLogger.LogCategory.Firebase);
                 return null;
             }
             
@@ -75,7 +76,7 @@ namespace App.Develop.CommonServices.Firebase.Database
         {
             if (!validationService.TryValidate(record, out var result))
             {
-                Debug.LogWarning("Нет зарегистрированного валидатора для EmotionHistoryRecord");
+                MyLogger.LogWarning("Нет зарегистрированного валидатора для EmotionHistoryRecord", MyLogger.LogCategory.Firebase);
                 return true; // По умолчанию считаем валидным, если нет валидатора
             }
             
@@ -92,7 +93,7 @@ namespace App.Develop.CommonServices.Firebase.Database
         {
             if (!validationService.TryValidate(userData, out var result))
             {
-                Debug.LogWarning("Нет зарегистрированного валидатора для UserData");
+                MyLogger.LogWarning("Нет зарегистрированного валидатора для UserData", MyLogger.LogCategory.Firebase);
                 return true; // По умолчанию считаем валидным, если нет валидатора
             }
             

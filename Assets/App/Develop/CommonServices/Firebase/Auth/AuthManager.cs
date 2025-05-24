@@ -8,6 +8,7 @@ using UnityEngine;
 using App.Develop.AppServices.Auth;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Firebase.Auth
 {
@@ -55,7 +56,7 @@ namespace App.Develop.CommonServices.Firebase.Auth
             }
             catch (Exception ex)
             {
-                Debug.LogError($"🔴 Ошибка инициализации AuthManager: {ex}");
+                MyLogger.LogError($"🔴 Ошибка инициализации AuthManager: {ex}", MyLogger.LogCategory.Firebase);
             }
         }
 
@@ -111,7 +112,7 @@ namespace App.Develop.CommonServices.Firebase.Auth
             }
             catch (Exception ex)
             {
-                Debug.LogError($"🔴 Ошибка при регистрации: {ex}");
+                MyLogger.LogError($"🔴 Ошибка при регистрации: {ex}", MyLogger.LogCategory.Firebase);
                 _uiController.ShowPopup("Произошла ошибка при регистрации");
             }
             finally
@@ -151,7 +152,7 @@ namespace App.Develop.CommonServices.Firebase.Auth
             }
             catch (Exception ex)
             {
-                Debug.LogError($"🔴 Ошибка при входе: {ex}");
+                MyLogger.LogError($"🔴 Ошибка при входе: {ex}", MyLogger.LogCategory.Firebase);
                 _uiController.ShowPopup("Произошла ошибка при входе");
             }
             finally
@@ -168,7 +169,7 @@ namespace App.Develop.CommonServices.Firebase.Auth
             }
             catch (Exception ex)
             {
-                Debug.LogError($"🔴 Ошибка при получении последнего email: {ex}");
+                MyLogger.LogError($"🔴 Ошибка при получении последнего email: {ex}", MyLogger.LogCategory.Firebase);
                 return string.Empty;
             }
         }
@@ -194,7 +195,7 @@ namespace App.Develop.CommonServices.Firebase.Auth
             }
             catch (Exception ex)
             {
-                Debug.LogError($"🔴 Ошибка при проверке верификации email: {ex}");
+                MyLogger.LogError($"🔴 Ошибка при проверке верификации email: {ex}", MyLogger.LogCategory.Firebase);
                 _uiController.ShowPopup("Произошла ошибка при проверке email");
             }
             finally
@@ -221,7 +222,7 @@ namespace App.Develop.CommonServices.Firebase.Auth
             }
             catch (Exception ex)
             {
-                Debug.LogError($"🔴 Ошибка при отправке письма верификации: {ex}");
+                MyLogger.LogError($"🔴 Ошибка при отправке письма верификации: {ex}", MyLogger.LogCategory.Firebase);
                 _uiController.ShowPopup("Произошла ошибка при отправке письма");
             }
             finally
@@ -243,7 +244,7 @@ namespace App.Develop.CommonServices.Firebase.Auth
             }
             catch (Exception ex)
             {
-                Debug.LogError($"🔴 Ошибка при очистке сохраненных данных: {ex}");
+                MyLogger.LogError($"🔴 Ошибка при очистке сохраненных данных: {ex}", MyLogger.LogCategory.Firebase);
             }
         }
 
@@ -258,7 +259,7 @@ namespace App.Develop.CommonServices.Firebase.Auth
             }
             catch (Exception ex)
             {
-                Debug.LogError($"🔴 Ошибка при выходе: {ex}");
+                MyLogger.LogError($"🔴 Ошибка при выходе: {ex}", MyLogger.LogCategory.Firebase);
             }
         }
 

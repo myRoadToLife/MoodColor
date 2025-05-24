@@ -6,7 +6,6 @@ using App.Develop.Utils.Logging;
 using UnityEngine;
 using System.Collections.Generic;
 using System;
-using Logger = App.Develop.Utils.Logging.Logger;
 
 namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
 {
@@ -59,7 +58,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
         {
             if (!Enum.IsDefined(typeof(EmotionTypes), type))
             {
-                Logger.LogWarning($"Неизвестный тип эмоции: {type}");
+                MyLogger.LogWarning($"Неизвестный тип эмоции: {type}");
                 return null;
             }
 
@@ -79,13 +78,13 @@ namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
         {
             if (amount <= 0)
             {
-                Logger.LogWarning($"Попытка добавить неположительное количество эмоций: {amount}");
+                MyLogger.LogWarning($"Попытка добавить неположительное количество эмоций: {amount}");
                 return;
             }
 
             if (!Enum.IsDefined(typeof(EmotionTypes), type))
             {
-                Logger.LogWarning($"Неизвестный тип эмоции: {type}");
+                MyLogger.LogWarning($"Неизвестный тип эмоции: {type}");
                 return;
             }
 
@@ -105,13 +104,13 @@ namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
         {
             if (amount <= 0)
             {
-                Logger.LogWarning($"Попытка потратить неположительное количество эмоций: {amount}");
+                MyLogger.LogWarning($"Попытка потратить неположительное количество эмоций: {amount}");
                 return;
             }
 
             if (!Enum.IsDefined(typeof(EmotionTypes), type))
             {
-                Logger.LogWarning($"Неизвестный тип эмоции: {type}");
+                MyLogger.LogWarning($"Неизвестный тип эмоции: {type}");
                 return;
             }
 

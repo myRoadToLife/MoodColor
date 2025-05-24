@@ -8,6 +8,7 @@ using Firebase.Auth;
 using System.Threading.Tasks;
 using UnityEngine;
 using App.Develop.CommonServices.Firebase.Common.SecureStorage;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Firebase.Auth.Services
 {
@@ -46,11 +47,11 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
                 try
                 {
                     await result.User.SendEmailVerificationAsync();
-                    Debug.Log("📧 Письмо с подтверждением отправлено!");
+                    MyLogger.Log("📧 Письмо с подтверждением отправлено!", MyLogger.LogCategory.Firebase);
                 }
                 catch (Exception emailEx)
                 {
-                    Debug.LogError($"❌ Не удалось отправить письмо: {emailEx.Message}");
+                    MyLogger.LogError($"❌ Не удалось отправить письмо: {emailEx.Message}", MyLogger.LogCategory.Firebase);
                     return (false, "Не удалось отправить письмо с подтверждением email");
                 }
 
@@ -58,12 +59,12 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
             }
             catch (FirebaseException ex)
             {
-                Debug.LogError($"❌ Ошибка регистрации: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка регистрации: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return (false, GetFriendlyErrorMessage(ex));
             }
             catch (Exception ex)
             {
-                Debug.LogError($"🔴 Неожиданная ошибка при регистрации: {ex}");
+                MyLogger.LogError($"🔴 Неожиданная ошибка при регистрации: {ex}", MyLogger.LogCategory.Firebase);
                 return (false, "Произошла неожиданная ошибка");
             }
         }
@@ -95,12 +96,12 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
             }
             catch (FirebaseException ex)
             {
-                Debug.LogError($"❌ Ошибка входа: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка входа: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return (false, GetFriendlyErrorMessage(ex));
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Неожиданная ошибка входа: {ex.Message}");
+                MyLogger.LogError($"❌ Неожиданная ошибка входа: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return (false, "Произошла неожиданная ошибка");
             }
         }
@@ -113,7 +114,7 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
 
                 if (user == null)
                 {
-                    Debug.LogWarning("⚠️ Нет текущего пользователя для отправки верификации");
+                    MyLogger.LogWarning("⚠️ Нет текущего пользователя для отправки верификации", MyLogger.LogCategory.Firebase);
                     return false;
                 }
 
@@ -125,7 +126,7 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
                     var timeSince = DateTime.Now - lastTime;
                     if (timeSince.TotalSeconds < MIN_EMAIL_INTERVAL_SECONDS)
                     {
-                        Debug.LogWarning($"⚠️ Слишком частые запросы на отправку писем. Пожалуйста, подождите {MIN_EMAIL_INTERVAL_SECONDS - (int)timeSince.TotalSeconds} секунд");
+                        MyLogger.LogWarning($"⚠️ Слишком частые запросы на отправку писем. Пожалуйста, подождите {MIN_EMAIL_INTERVAL_SECONDS - (int)timeSince.TotalSeconds} секунд", MyLogger.LogCategory.Firebase);
                         return false;
                     }
                 }
@@ -134,7 +135,7 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
                 _lastEmailSentTime[key] = DateTime.Now;
 
                 await user.SendEmailVerificationAsync();
-                Debug.Log("✅ Письмо с подтверждением отправлено");
+                MyLogger.Log("✅ Письмо с подтверждением отправлено", MyLogger.LogCategory.Firebase);
                 return true;
             }
             catch (Exception ex)
@@ -143,11 +144,11 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
                 if (ex.Message.Contains("blocked") && ex.Message.Contains("unusual activity"))
                 {
                     // Письмо отправлено, но Firebase сообщает о блокировке
-                    Debug.LogWarning($"⚠️ Письмо отправлено, но Firebase сообщает о блокировке: {ex.Message}");
+                    MyLogger.LogWarning($"⚠️ Письмо отправлено, но Firebase сообщает о блокировке: {ex.Message}", MyLogger.LogCategory.Firebase);
                     return true; // Возвращаем true, так как письмо фактически отправлено
                 }
                 
-                Debug.LogError($"❌ Ошибка отправки письма: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка отправки письма: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return false;
             }
         }
@@ -160,7 +161,7 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
 
                 if (user == null)
                 {
-                    Debug.LogWarning("⚠️ Нет текущего пользователя для проверки верификации");
+                    MyLogger.LogWarning("⚠️ Нет текущего пользователя для проверки верификации", MyLogger.LogCategory.Firebase);
                     return false;
                 }
 
@@ -170,7 +171,7 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка проверки верификации email: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка проверки верификации email: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return false;
             }
         }
@@ -181,7 +182,7 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
             {
                 if (string.IsNullOrEmpty(email))
                 {
-                    Debug.LogWarning("⚠️ Email не может быть пустым");
+                    MyLogger.LogWarning("⚠️ Email не может быть пустым", MyLogger.LogCategory.Firebase);
                     return false;
                 }
 
@@ -193,7 +194,7 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
                     var timeSince = DateTime.Now - lastTime;
                     if (timeSince.TotalSeconds < MIN_EMAIL_INTERVAL_SECONDS)
                     {
-                        Debug.LogWarning($"⚠️ Слишком частые запросы на отправку писем. Пожалуйста, подождите {MIN_EMAIL_INTERVAL_SECONDS - (int)timeSince.TotalSeconds} секунд");
+                        MyLogger.LogWarning($"⚠️ Слишком частые запросы на отправку писем. Пожалуйста, подождите {MIN_EMAIL_INTERVAL_SECONDS - (int)timeSince.TotalSeconds} секунд", MyLogger.LogCategory.Firebase);
                         return false;
                     }
                 }
@@ -202,7 +203,7 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
                 _lastEmailSentTime[key] = DateTime.Now;
 
                 await _auth.SendPasswordResetEmailAsync(email);
-                Debug.Log($"✅ Письмо для сброса пароля отправлено на {email}");
+                MyLogger.Log($"✅ Письмо для сброса пароля отправлено на {email}", MyLogger.LogCategory.Firebase);
                 return true;
             }
             catch (Exception ex)
@@ -211,11 +212,11 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
                 if (ex.Message.Contains("blocked") && ex.Message.Contains("unusual activity"))
                 {
                     // Письмо отправлено, но Firebase сообщает о блокировке
-                    Debug.LogWarning($"⚠️ Письмо отправлено, но Firebase сообщает о блокировке: {ex.Message}");
+                    MyLogger.LogWarning($"⚠️ Письмо отправлено, но Firebase сообщает о блокировке: {ex.Message}", MyLogger.LogCategory.Firebase);
                     return true; // Возвращаем true, так как письмо фактически отправлено
                 }
                 
-                Debug.LogError($"❌ Ошибка сброса пароля: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка сброса пароля: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return false;
             }
         }
@@ -228,16 +229,16 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
                 // Устанавливаем флаг явного выхода из системы
                 SecurePlayerPrefs.SetBool("explicit_logout", true);
                 SecurePlayerPrefs.Save();
-                Debug.Log("✅ Установлен флаг явного выхода из системы");
+                MyLogger.Log("✅ Установлен флаг явного выхода из системы", MyLogger.LogCategory.Firebase);
                 
                 _auth.SignOut();
                 // Сбрасываем ID пользователя в сервисе базы данных
                 _databaseService.UpdateUserId(null);
-                Debug.Log("✅ Выход выполнен успешно");
+                MyLogger.Log("✅ Выход выполнен успешно", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка при выходе: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка при выходе: {ex.Message}", MyLogger.LogCategory.Firebase);
             }
         }
 

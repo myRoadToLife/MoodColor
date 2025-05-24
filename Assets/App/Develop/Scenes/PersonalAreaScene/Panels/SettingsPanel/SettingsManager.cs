@@ -7,7 +7,6 @@ using Firebase.Auth;
 using Firebase.Database;
 using Firebase.Extensions;
 using UnityEngine;
-using Logger = App.Develop.Utils.Logging.Logger;
 
 namespace App.Develop.Scenes.PersonalAreaScene.Settings
 {
@@ -59,11 +58,11 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
                 _database = container.Resolve<DatabaseReference>();
                 
                 LoadSettings();
-                Logger.Log("✅ SettingsManager успешно инициализирован");
+                MyLogger.Log("✅ SettingsManager успешно инициализирован");
             }
             catch (Exception ex)
             {
-                Logger.LogError($"❌ Ошибка инициализации SettingsManager: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка инициализации SettingsManager: {ex.Message}");
                 throw;
             }
         }
@@ -107,7 +106,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         {
             if (_auth.CurrentUser == null)
             {
-                Logger.LogWarning("Пользователь не авторизован");
+                MyLogger.LogWarning("Пользователь не авторизован");
                 return;
             }
 
@@ -121,11 +120,11 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
 
                 userSettingsRef.SetRawJsonValueAsync(json);
                 SaveLocalSettings();
-                Logger.Log("Настройки успешно сохранены");
+                MyLogger.Log("Настройки успешно сохранены");
             }
             catch (Exception ex)
             {
-                Logger.LogError($"Ошибка сохранения настроек: {ex.Message}");
+                MyLogger.LogError($"Ошибка сохранения настроек: {ex.Message}");
             }
         }
 
@@ -133,7 +132,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         {
             if (_auth.CurrentUser == null)
             {
-                Logger.LogWarning("Пользователь не авторизован");
+                MyLogger.LogWarning("Пользователь не авторизован");
                 return;
             }
 
@@ -146,20 +145,20 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             {
                 if (task.IsFaulted)
                 {
-                    Logger.LogError($"Ошибка загрузки настроек: {task.Exception}");
+                    MyLogger.LogError($"Ошибка загрузки настроек: {task.Exception}");
                     return;
                 }
 
                 if (!task.IsCompleted)
                 {
-                    Logger.LogWarning("Загрузка настроек не завершена");
+                    MyLogger.LogWarning("Загрузка настроек не завершена");
                     return;
                 }
 
                 var snapshot = task.Result;
                 if (!snapshot.Exists)
                 {
-                    Logger.Log("Настройки не найдены, используются значения по умолчанию");
+                    MyLogger.Log("Настройки не найдены, используются значения по умолчанию");
                     SaveSettings();
                     return;
                 }
@@ -178,7 +177,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogError($"Ошибка десериализации настроек: {ex.Message}");
+                    MyLogger.LogError($"Ошибка десериализации настроек: {ex.Message}");
                 }
             });
         }

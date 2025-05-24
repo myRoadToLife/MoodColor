@@ -1,7 +1,6 @@
 using App.Develop.CommonServices.Firebase.Database.Models;
 using App.Develop.CommonServices.Emotion;
 using App.Develop.Utils.Logging;
-using Logger = App.Develop.Utils.Logging.Logger;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -30,7 +29,7 @@ namespace App.Develop.UI.Components
         {
             if (_jarImage == null || _liquidImage == null || _emotionLabel == null || _amountLabel == null)
             {
-                Logger.LogError("Не все UI компоненты присвоены");
+                MyLogger.LogError("Не все UI компоненты присвоены");
             }
         }
         #endregion

@@ -2,7 +2,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using System;
 using App.Develop.Utils.Logging;
-using Logger = App.Develop.Utils.Logging.Logger;
 using TMPro;
 
 namespace App.Develop.Scenes.PersonalAreaScene.UI.Components
@@ -97,7 +96,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI.Components
         
         private void OnQuitButtonClicked()
         {
-            Logger.Log("🔄 [NavigationComponent] Нажата кнопка выхода из приложения");
+            MyLogger.Log("🔄 [NavigationComponent] Нажата кнопка выхода из приложения");
             OnQuitApplication?.Invoke();
         }
         
@@ -175,7 +174,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI.Components
         // Добавляем Initialize для поддержки существующего кода
         public void Initialize()
         {
-            Logger.Log("🔄 [NavigationComponent] Инициализация компонента с улучшенным UI");
+            MyLogger.Log("🔄 [NavigationComponent] Инициализация компонента с улучшенным UI");
             // Инициализация уже происходит в Awake
         }
         
@@ -188,7 +187,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI.Components
         // Метод для поддержки существующего кода
         public void Clear()
         {
-            Logger.Log("🔄 [NavigationComponent] Очистка подписок кнопок");
+            MyLogger.Log("🔄 [NavigationComponent] Очистка подписок кнопок");
             // Очистка будет выполнена автоматически в OnDestroy
         }
     }

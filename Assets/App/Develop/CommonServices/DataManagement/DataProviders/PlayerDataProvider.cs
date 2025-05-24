@@ -5,6 +5,7 @@ using App.Develop.CommonServices.ConfigsManagement;
 using App.Develop.CommonServices.Emotion;
 using App.Develop.CommonServices.Firebase.Database.Services; // Добавлено для IDatabaseService
 using UnityEngine;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.DataManagement.DataProviders
 {
@@ -35,7 +36,7 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка при создании начальных данных: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка при создании начальных данных: {ex.Message}", MyLogger.LogCategory.Default);
                 var data = new PlayerData
                 {
                     EmotionData = new Dictionary<EmotionTypes, EmotionData>()
@@ -49,7 +50,7 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
         {
             if (_cachedData == null)
             {
-                Debug.LogError("[PlayerDataProvider] GetData() вызван, но _cachedData is null. Убедитесь, что Load() был вызван и завершен ранее. Возвращаются данные по умолчанию.");
+                MyLogger.LogError("[PlayerDataProvider] GetData(, MyLogger.LogCategory.Default) вызван, но _cachedData is null. Убедитесь, что Load() был вызван и завершен ранее. Возвращаются данные по умолчанию.");
                 return GetOriginData(); // Возвращаем данные по умолчанию, чтобы избежать null
             }
             return _cachedData;
@@ -59,7 +60,7 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
         {
             if (_cachedData == null)
             {
-                Debug.LogError("[PlayerDataProvider] GetEmotions() вызван, но _cachedData is null. Убедитесь, что Load() был вызван и завершен ранее. Возвращается пустой список.");
+                MyLogger.LogError("[PlayerDataProvider] GetEmotions(, MyLogger.LogCategory.Default) вызван, но _cachedData is null. Убедитесь, что Load() был вызван и завершен ранее. Возвращается пустой список.");
                 return new List<EmotionData>();
             }
 
@@ -76,7 +77,7 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
             }
             else
             {
-                Debug.LogWarning("⚠️ _cachedData.EmotionData is null в PlayerDataProvider.GetEmotions!");
+                MyLogger.LogWarning("⚠️ _cachedData.EmotionData is null в PlayerDataProvider.GetEmotions!", MyLogger.LogCategory.Default);
             }
             return result;
         }
@@ -91,7 +92,7 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
                 // Проверка на null и логирование предупреждения
                 if (_configsProvider.StartEmotionConfig == null)
                 {
-                    Debug.LogWarning("⚠️ StartEmotionConfig is null. Создаем дефолтные эмоции с нулевыми значениями.");
+                    MyLogger.LogWarning("⚠️ StartEmotionConfig is null. Создаем дефолтные эмоции с нулевыми значениями.", MyLogger.LogCategory.Default);
                     
                     // Создаем дефолтные эмоции с нулевыми значениями и белым цветом
                     foreach (EmotionTypes emotionType in Enum.GetValues(typeof(EmotionTypes)))
@@ -116,7 +117,7 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
                     }
                     catch (Exception ex_inner)
                     {
-                        Debug.LogError($"❌ Ошибка при добавлении эмоции {emotionType}: {ex_inner.Message}");
+                        MyLogger.LogError($"❌ Ошибка при добавлении эмоции {emotionType}: {ex_inner.Message}", MyLogger.LogCategory.Default);
                         emotionData.Add(emotionType, new EmotionData { 
                             Type = emotionType.ToString(), 
                             Value = 0, 
@@ -128,7 +129,7 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
             }
             catch (Exception ex_outer)
             {
-                Debug.LogError($"❌ Критическая ошибка в InitEmotionData: {ex_outer.Message}. Создаем дефолтные эмоции.");
+                MyLogger.LogError($"❌ Критическая ошибка в InitEmotionData: {ex_outer.Message}. Создаем дефолтные эмоции.", MyLogger.LogCategory.Default);
                 emotionData.Clear(); // Очищаем, если что-то успело добавиться до критической ошибки
                 foreach (EmotionTypes emotionType in Enum.GetValues(typeof(EmotionTypes)))
                 {
@@ -170,7 +171,7 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
             {
                 try
                 {
-                    Debug.Log("[PlayerDataProvider] Пытаемся загрузить GameData из облака...");
+                    MyLogger.Log("[PlayerDataProvider] Пытаемся загрузить GameData из облака...", MyLogger.LogCategory.Default);
                     GameData cloudGameData = await _databaseService.LoadUserGameData();
                     if (cloudGameData != null)
                     {
@@ -182,11 +183,11 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
                             if (_cachedData == null) _cachedData = GetOriginData();
                         }
                         _cachedData.GameData = cloudGameData; 
-                        Debug.Log("[PlayerDataProvider] GameData успешно загружены из облака.");
+                        MyLogger.Log("[PlayerDataProvider] GameData успешно загружены из облака.", MyLogger.LogCategory.Default);
                     }
                     else
                     {
-                        Debug.LogWarning("[PlayerDataProvider] GameData из облака не найдено или пусто. Используем локальные/дефолтные.");
+                        MyLogger.LogWarning("[PlayerDataProvider] GameData из облака не найдено или пусто. Используем локальные/дефолтные.", MyLogger.LogCategory.Default);
                         base.Load(); 
                         var baseDataProperty = typeof(DataProvider<PlayerData>).GetProperty("Data", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                         if (baseDataProperty != null) _cachedData = (PlayerData)baseDataProperty.GetValue(this);
@@ -195,7 +196,7 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogError($"[PlayerDataProvider] Ошибка при загрузке GameData из облака: {ex.Message}. Используем локальные/дефолтные.");
+                    MyLogger.LogError($"[PlayerDataProvider] Ошибка при загрузке GameData из облака: {ex.Message}. Используем локальные/дефолтные.", MyLogger.LogCategory.Default);
                     base.Load(); 
                     var baseDataProperty = typeof(DataProvider<PlayerData>).GetProperty("Data", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                     if (baseDataProperty != null) _cachedData = (PlayerData)baseDataProperty.GetValue(this);
@@ -219,60 +220,60 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
                     var type = typeof(DataProvider<PlayerData>);
                     var propInfo = type.GetProperty("Data", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                     if (propInfo != null) _cachedData = (PlayerData)propInfo.GetValue(this);
-                    else Debug.LogWarning("[PlayerDataProvider] Не удалось получить доступ к Data через рефлексию в Load");
+                    else MyLogger.LogWarning("[PlayerDataProvider] Не удалось получить доступ к Data через рефлексию в Load", MyLogger.LogCategory.Default);
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogError($"[PlayerDataProvider] Ошибка при попытке доступа к Data через рефлексию в Load: {ex.Message}");
+                    MyLogger.LogError($"[PlayerDataProvider] Ошибка при попытке доступа к Data через рефлексию в Load: {ex.Message}", MyLogger.LogCategory.Default);
                 }
             }
             
             if (_cachedData == null)
             {
-                Debug.LogWarning("[PlayerDataProvider] _cachedData остался null после всех попыток загрузки. Создаем GetOriginData().");
+                MyLogger.LogWarning("[PlayerDataProvider] _cachedData остался null после всех попыток загрузки. Создаем GetOriginData(, MyLogger.LogCategory.Default).");
                 _cachedData = GetOriginData();
             }
         }
 
         public new async Task Save()
         {
-            Debug.Log("[PlayerDataProvider] Save() вызван."); 
+            MyLogger.Log("[PlayerDataProvider] Save(, MyLogger.LogCategory.Default) вызван."); 
             if (_cachedData == null)
             {
-                Debug.LogWarning("[PlayerDataProvider] _cachedData is null in Save(). Попытка загрузить/создать.");
+                MyLogger.LogWarning("[PlayerDataProvider] _cachedData is null in Save(, MyLogger.LogCategory.Default). Попытка загрузить/создать.");
                 await Load(); 
                 if (_cachedData == null) 
                 {
-                     Debug.LogError("[PlayerDataProvider] _cachedData все еще null после Load() в Save(). Нечего сохранять.");
+                     MyLogger.LogError("[PlayerDataProvider] _cachedData все еще null после Load(, MyLogger.LogCategory.Default) в Save(). Нечего сохранять.");
                      return;
                 }
             }
             if (_cachedData.GameData == null)
             {
-                 Debug.LogWarning("[PlayerDataProvider] _cachedData.GameData is null in Save(). Инициализируем новым GameData().");
+                 MyLogger.LogWarning("[PlayerDataProvider] _cachedData.GameData is null in Save(, MyLogger.LogCategory.Default). Инициализируем новым GameData().");
                 _cachedData.GameData = new GameData();
             }
 
-            Debug.Log("[PlayerDataProvider] Попытка локального сохранения (base.Save())."); 
+            MyLogger.Log("[PlayerDataProvider] Попытка локального сохранения (base.Save(, MyLogger.LogCategory.Default))."); 
             base.Save(); 
-            Debug.Log("[PlayerDataProvider] Локальное сохранение (base.Save()) завершено."); 
+            MyLogger.Log("[PlayerDataProvider] Локальное сохранение (base.Save(, MyLogger.LogCategory.Default)) завершено."); 
 
             if (_databaseService != null && _databaseService.IsAuthenticated)
             {
                 try
                 {
-                    Debug.Log($"[PlayerDataProvider] Пытаемся сохранить GameData в облако. Текущие очки для сохранения: {_cachedData.GameData.Points}"); 
+                    MyLogger.Log($"[PlayerDataProvider] Пытаемся сохранить GameData в облако. Текущие очки для сохранения: {_cachedData.GameData.Points}", MyLogger.LogCategory.Default); 
                     await _databaseService.SaveUserGameData(_cachedData.GameData);
-                    Debug.Log("[PlayerDataProvider] GameData успешно сохранено в облако.");
+                    MyLogger.Log("[PlayerDataProvider] GameData успешно сохранено в облако.", MyLogger.LogCategory.Default);
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogError($"[PlayerDataProvider] Ошибка при сохранении GameData в облако: {ex.Message}");
+                    MyLogger.LogError($"[PlayerDataProvider] Ошибка при сохранении GameData в облако: {ex.Message}", MyLogger.LogCategory.Default);
                 }
             }
             else
             {
-                Debug.LogWarning($"[PlayerDataProvider] IDatabaseService не доступен ({_databaseService == null}) или пользователь не аутентифицирован ({(_databaseService != null ? !_databaseService.IsAuthenticated : "N/A")}). GameData не будет сохранено в облако."); 
+                MyLogger.LogWarning($"[PlayerDataProvider] IDatabaseService не доступен ({_databaseService == null}, MyLogger.LogCategory.Default) или пользователь не аутентифицирован ({(_databaseService != null ? !_databaseService.IsAuthenticated : "N/A")}). GameData не будет сохранено в облако."); 
             }
         }
     }

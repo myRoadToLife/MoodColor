@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using App.Develop.CommonServices.Firebase.Common.SecureStorage;
 using Firebase.Auth;
 using UnityEngine;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Firebase.Auth.Services
 {
@@ -44,7 +45,7 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
             
             StartListeningAuthState();
             _isInitialized = true;
-            Debug.Log("✅ AuthStateService инициализирован");
+            MyLogger.Log("✅ AuthStateService инициализирован", MyLogger.LogCategory.Firebase);
         }
         
         /// <summary>
@@ -56,7 +57,7 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
             
             _auth.StateChanged += HandleAuthStateChanged;
             _isListeningAuthState = true;
-            Debug.Log("✅ Начато отслеживание состояния аутентификации");
+            MyLogger.Log("✅ Начато отслеживание состояния аутентификации", MyLogger.LogCategory.Firebase);
         }
         
         /// <summary>
@@ -68,11 +69,11 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
             
             if (user == null)
             {
-                Debug.Log("🔄 Состояние аутентификации изменилось: пользователь не авторизован");
+                MyLogger.Log("🔄 Состояние аутентификации изменилось: пользователь не авторизован", MyLogger.LogCategory.Firebase);
             }
             else
             {
-                Debug.Log($"🔄 Состояние аутентификации изменилось: пользователь {user.Email} авторизован");
+                MyLogger.Log($"🔄 Состояние аутентификации изменилось: пользователь {user.Email} авторизован", MyLogger.LogCategory.Firebase);
             }
             
             // Уведомляем подписчиков о смене состояния
@@ -88,7 +89,7 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
             
             _auth.StateChanged -= HandleAuthStateChanged;
             _isListeningAuthState = false;
-            Debug.Log("✅ Остановлено отслеживание состояния аутентификации");
+            MyLogger.Log("✅ Остановлено отслеживание состояния аутентификации", MyLogger.LogCategory.Firebase);
         }
         
         /// <summary>
@@ -101,7 +102,7 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
                 // Проверяем, есть ли уже авторизованный пользователь
                 if (IsAuthenticated)
                 {
-                    Debug.Log($"✅ Пользователь уже авторизован: {CurrentUser.Email}");
+                    MyLogger.Log($"✅ Пользователь уже авторизован: {CurrentUser.Email}", MyLogger.LogCategory.Firebase);
                     return true;
                 }
                 
@@ -112,29 +113,29 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
                 
                 if (!rememberMe || string.IsNullOrEmpty(savedEmail) || string.IsNullOrEmpty(savedPassword))
                 {
-                    Debug.Log("⚠️ Нет сохраненных учетных данных для восстановления аутентификации");
+                    MyLogger.Log("⚠️ Нет сохраненных учетных данных для восстановления аутентификации", MyLogger.LogCategory.Firebase);
                     return false;
                 }
                 
-                Debug.Log($"🔄 Восстановление аутентификации для: {savedEmail}");
+                MyLogger.Log($"🔄 Восстановление аутентификации для: {savedEmail}", MyLogger.LogCategory.Firebase);
                 
                 // Выполняем вход с сохраненными учетными данными
                 var result = await _authService.LoginUser(savedEmail, savedPassword);
                 
                 if (result.success)
                 {
-                    Debug.Log("✅ Аутентификация успешно восстановлена");
+                    MyLogger.Log("✅ Аутентификация успешно восстановлена", MyLogger.LogCategory.Firebase);
                     return true;
                 }
                 else
                 {
-                    Debug.LogWarning($"⚠️ Не удалось восстановить аутентификацию: {result.error}");
+                    MyLogger.LogWarning($"⚠️ Не удалось восстановить аутентификацию: {result.error}", MyLogger.LogCategory.Firebase);
                     return false;
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка при восстановлении аутентификации: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка при восстановлении аутентификации: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return false;
             }
         }
@@ -148,17 +149,17 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
             {
                 if (CurrentUser == null)
                 {
-                    Debug.LogWarning("⚠️ Нет текущего пользователя для обновления");
+                    MyLogger.LogWarning("⚠️ Нет текущего пользователя для обновления", MyLogger.LogCategory.Firebase);
                     return false;
                 }
                 
                 await CurrentUser.ReloadAsync();
-                Debug.Log($"✅ Информация о пользователе {CurrentUser.Email} обновлена");
+                MyLogger.Log($"✅ Информация о пользователе {CurrentUser.Email} обновлена", MyLogger.LogCategory.Firebase);
                 return true;
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка при обновлении пользователя: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка при обновлении пользователя: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return false;
             }
         }

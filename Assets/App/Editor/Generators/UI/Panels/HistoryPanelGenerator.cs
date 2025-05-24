@@ -6,6 +6,7 @@ using System.IO;
 using App.Develop.Scenes.PersonalAreaScene.UI; // Добавлено для HistoryPanelController
 using App.Editor.Generators.UI.Core; // Для UIComponentGenerator
 using App.Develop.Scenes.PersonalAreaScene.Panels.HistoryPanel; // <--- ДОБАВЛЯЕМ ЭТО
+using App.Develop.Utils.Logging;
 
 namespace App.Editor.Generators.UI.Panels
 {
@@ -65,7 +66,7 @@ namespace App.Editor.Generators.UI.Panels
                 _woodenPlankSprite = AssetDatabase.LoadAssetAtPath<Sprite>(Path.Combine(TexturesFolder, "WoodenPlank.png"));
 
             if (_woodenPlankSprite == null)
-                Debug.LogWarning($"[HistoryPanelGenerator] Текстура WoodenPlank.png не найдена в {TexturesFolder}");
+                MyLogger.EditorLogWarning($"[HistoryPanelGenerator] Текстура WoodenPlank.png не найдена в {TexturesFolder}");
 
             if (_brushyFont == null)
             {
@@ -75,7 +76,7 @@ namespace App.Editor.Generators.UI.Panels
                     _brushyFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(Path.Combine(FontsFolder, "BrushyFont.ttf"));
 
                 if (_brushyFont == null)
-                    Debug.LogWarning($"[HistoryPanelGenerator] TMP_FontAsset BrushyFont (.asset или .ttf) не найден в {FontsFolder}.");
+                    MyLogger.EditorLogWarning($"[HistoryPanelGenerator] TMP_FontAsset BrushyFont (.asset или .ttf) не найден в {FontsFolder}.");
             }
         }
 
@@ -203,35 +204,35 @@ namespace App.Editor.Generators.UI.Panels
                 if (indicator != null)
                     serializedItemView.FindProperty("_emotionIndicator").objectReferenceValue = indicator;
                 else
-                    Debug.LogWarning($"[HistoryPanelGenerator] Не удалось найти Image на {emotionIconGO.name} для HistoryItemView._emotionIndicator");
+                    MyLogger.EditorLogWarning($"[HistoryPanelGenerator] Не удалось найти Image на {emotionIconGO.name} для HistoryItemView._emotionIndicator");
 
                 TextMeshProUGUI dateTMP = dateTextGO.GetComponent<TextMeshProUGUI>();
 
                 if (dateTMP != null)
                     serializedItemView.FindProperty("_dateText").objectReferenceValue = dateTMP;
                 else
-                    Debug.LogWarning($"[HistoryPanelGenerator] Не удалось найти TextMeshProUGUI на {dateTextGO.name} для HistoryItemView._dateText");
+                    MyLogger.EditorLogWarning($"[HistoryPanelGenerator] Не удалось найти TextMeshProUGUI на {dateTextGO.name} для HistoryItemView._dateText");
 
                 TextMeshProUGUI timeTMP = timeTextGO.GetComponent<TextMeshProUGUI>();
 
                 if (timeTMP != null)
                     serializedItemView.FindProperty("_timeText").objectReferenceValue = timeTMP;
                 else
-                    Debug.LogWarning($"[HistoryPanelGenerator] Не удалось найти TextMeshProUGUI на {timeTextGO.name} для HistoryItemView._timeText");
+                    MyLogger.EditorLogWarning($"[HistoryPanelGenerator] Не удалось найти TextMeshProUGUI на {timeTextGO.name} для HistoryItemView._timeText");
 
                 TextMeshProUGUI emotionNameTMP = emotionNameTextGO.GetComponent<TextMeshProUGUI>();
 
                 if (emotionNameTMP != null)
                     serializedItemView.FindProperty("_emotionNameText").objectReferenceValue = emotionNameTMP;
                 else
-                    Debug.LogWarning(
+                    MyLogger.EditorLogWarning(
                         $"[HistoryPanelGenerator] Не удалось найти TextMeshProUGUI на {emotionNameTextGO.name} для HistoryItemView._emotionNameText");
 
                 serializedItemView.ApplyModifiedPropertiesWithoutUndo();
             }
             else
             {
-                Debug.LogError($"[HistoryPanelGenerator] Не удалось добавить компонент HistoryItemView к {itemRoot.name}. " +
+                MyLogger.EditorLogError($"[HistoryPanelGenerator] Не удалось добавить компонент HistoryItemView к {itemRoot.name}. " +
                                $"Убедитесь, что скрипт HistoryItemView.cs существует в проекте и не содержит ошибок компиляции.");
             }
 
@@ -408,7 +409,7 @@ namespace App.Editor.Generators.UI.Panels
             }
             else
             {
-                Debug.LogWarning($"[HistoryPanelGenerator] Префаб {HistoryItemPrefabName} не найден или не создан по пути {itemPrefabFullPath}. " +
+                MyLogger.EditorLogWarning($"[HistoryPanelGenerator] Префаб {HistoryItemPrefabName} не найден или не создан по пути {itemPrefabFullPath}. " +
                                  $"Назначьте его вручную в HistoryPanelController после генерации.");
             }
 
@@ -421,7 +422,7 @@ namespace App.Editor.Generators.UI.Panels
                 GameObject.DestroyImmediate(panelRoot);
             }
 
-            Debug.Log($"[HistoryPanelGenerator] Префаб {panelName} создан в {Path.Combine(PrefabSaveFolderPath, panelName + ".prefab")}");
+            MyLogger.EditorLog($"[HistoryPanelGenerator] Префаб {panelName} создан в {Path.Combine(PrefabSaveFolderPath, panelName + ".prefab")}");
         }
     }
 }

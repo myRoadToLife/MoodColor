@@ -2,7 +2,6 @@ using UnityEngine;
 using UnityEditor;
 using System.IO;
 using App.Develop.Utils.Logging;
-using Logger = App.Develop.Utils.Logging.Logger;
 
 namespace App.Develop.Scenes.PersonalAreaScene.UI
 {
@@ -14,7 +13,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         [MenuItem("MoodColor/Generate/UI Icons")]
         public static void GenerateIcons()
         {
-            Logger.Log("🔄 Начинаем генерацию иконок UI...");
+            MyLogger.Log("🔄 Начинаем генерацию иконок UI...");
             
             // Убедимся, что папка существует
             if (!AssetDatabase.IsValidFolder(ICONS_FOLDER))
@@ -30,7 +29,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
                     if (!AssetDatabase.IsValidFolder(checkPath))
                     {
                         AssetDatabase.CreateFolder(currentPath, newFolder);
-                        Logger.Log($"📁 Создана папка {checkPath}");
+                        MyLogger.Log($"📁 Создана папка {checkPath}");
                     }
                     
                     currentPath = checkPath;
@@ -45,7 +44,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             CreateWorkshopIcon();
             
             AssetDatabase.Refresh();
-            Logger.Log("✅ Генерация иконок UI завершена");
+            MyLogger.Log("✅ Генерация иконок UI завершена");
         }
         
         private static void CreateEmotionPlusIcon()
@@ -476,7 +475,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
                 textureImporter.textureType = TextureImporterType.Sprite;
                 textureImporter.spritePixelsPerUnit = 100;
                 textureImporter.SaveAndReimport();
-                Logger.Log($"🎨 Сохранена иконка {name} в {filePath}");
+                MyLogger.Log($"🎨 Сохранена иконка {name} в {filePath}");
             }
         }
     }

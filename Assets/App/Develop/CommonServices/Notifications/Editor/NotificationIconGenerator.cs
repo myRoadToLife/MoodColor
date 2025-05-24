@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEditor;
 using System.IO;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Notifications.Editor
 {
@@ -71,7 +72,7 @@ namespace App.Develop.CommonServices.Notifications.Editor
             Texture2D largeIcon = CreateCircleTexture(LARGE_ICON_SIZE, Color.white);
             SaveTextureToFile(largeIcon, Path.Combine(ANDROID_DRAWABLE_PATH, "notification_large_icon.png"));
             
-            Debug.Log("Android notification icons generated successfully");
+            MyLogger.Log("Android notification icons generated successfully", MyLogger.LogCategory.Editor);
             AssetDatabase.Refresh();
         }
         
@@ -94,7 +95,7 @@ namespace App.Develop.CommonServices.Notifications.Editor
                 SaveTextureToFile(iconTexture, iconPath);
             }
             
-            Debug.Log("Category notification icons generated successfully");
+            MyLogger.Log("Category notification icons generated successfully", MyLogger.LogCategory.Editor);
             AssetDatabase.Refresh();
         }
         
@@ -382,7 +383,7 @@ namespace App.Develop.CommonServices.Notifications.Editor
         {
             byte[] bytes = texture.EncodeToPNG();
             File.WriteAllBytes(filePath, bytes);
-            Debug.Log($"Saved texture to: {filePath}");
+            MyLogger.Log($"Saved texture to: {filePath}", MyLogger.LogCategory.Editor);
         }
     }
 } 

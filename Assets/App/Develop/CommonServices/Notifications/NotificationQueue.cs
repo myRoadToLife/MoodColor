@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Notifications
 {
@@ -36,13 +37,13 @@ namespace App.Develop.CommonServices.Notifications
         {
             if (_isInitialized) return;
             
-            Debug.Log("Initializing NotificationQueue");
+            MyLogger.Log("Initializing NotificationQueue", MyLogger.LogCategory.Default);
             
             // Запускаем таймер для обработки очереди каждые 500 мс
             _processTimer = new Timer(ProcessQueueCallback, null, 0, 500);
             
             _isInitialized = true;
-            Debug.Log("NotificationQueue initialized successfully");
+            MyLogger.Log("NotificationQueue initialized successfully", MyLogger.LogCategory.Default);
         }
 
         public void Dispose()
@@ -54,7 +55,7 @@ namespace App.Develop.CommonServices.Notifications
         {
             if (_notificationQueue.Count >= _maxQueueSize)
             {
-                Debug.LogWarning($"Notification queue is full. Dropping notification: {notification.Title}");
+                MyLogger.LogWarning($"Notification queue is full. Dropping notification: {notification.Title}", MyLogger.LogCategory.Default);
                 return;
             }
             
@@ -62,7 +63,7 @@ namespace App.Develop.CommonServices.Notifications
             {
                 _notificationQueue.Enqueue(notification);
             }
-            Debug.Log($"Enqueued notification: {notification.Title}. Queue size: {_notificationQueue.Count}");
+            MyLogger.Log($"Enqueued notification: {notification.Title}. Queue size: {_notificationQueue.Count}", MyLogger.LogCategory.Default);
         }
         
         public void ClearQueue()
@@ -71,7 +72,7 @@ namespace App.Develop.CommonServices.Notifications
             {
                 _notificationQueue.Clear();
             }
-            Debug.Log("Notification queue cleared");
+            MyLogger.Log("Notification queue cleared", MyLogger.LogCategory.Default);
         }
         
         private void ProcessQueueCallback(object state)
@@ -97,11 +98,11 @@ namespace App.Develop.CommonServices.Notifications
                     {
                         // Отправляем уведомление через NotificationManager
                         _notificationManager.SendImmediateNotification(notification);
-                        Debug.Log($"Processed queued notification: {notification.Title}. Remaining in queue: {_notificationQueue.Count}");
+                        MyLogger.Log($"Processed queued notification: {notification.Title}. Remaining in queue: {_notificationQueue.Count}", MyLogger.LogCategory.Default);
                     }
                     else
                     {
-                        Debug.Log($"Skipped expired notification: {notification.Title}");
+                        MyLogger.Log($"Skipped expired notification: {notification.Title}", MyLogger.LogCategory.Default);
                     }
                 }
                 

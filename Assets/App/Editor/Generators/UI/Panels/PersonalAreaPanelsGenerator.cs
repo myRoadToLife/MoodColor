@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEditor;
 using System.IO;
+using App.Develop.Utils.Logging;
 
 namespace App.Editor.Generators.UI.Panels
 {
@@ -10,14 +11,14 @@ namespace App.Editor.Generators.UI.Panels
         public static void GenerateFriendsPanels()
         {
             // Генерируем панель друзей
-            Debug.Log("🔄 Генерация панели друзей...");
+            MyLogger.EditorLog("🔄 Генерация панели друзей...");
             FriendsPanelGenerator.CreateFriendsPanelPrefab();
             
             // Генерируем панель поиска друзей
-            Debug.Log("🔄 Генерация панели поиска друзей...");
+            MyLogger.EditorLog("🔄 Генерация панели поиска друзей...");
             FriendSearchPanelGenerator.GenerateFriendSearchPanel();
             
-            Debug.Log("✅ Все панели для функциональности друзей успешно сгенерированы!");
+            MyLogger.EditorLog("✅ Все панели для функциональности друзей успешно сгенерированы!");
         }
     }
 }

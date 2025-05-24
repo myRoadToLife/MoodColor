@@ -1,6 +1,7 @@
 using System;
 using Newtonsoft.Json;
 using UnityEngine;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.DataManagement
 {
@@ -19,7 +20,7 @@ namespace App.Develop.CommonServices.DataManagement
             if (!string.IsNullOrEmpty(hex) && ColorUtility.TryParseHtmlString(hex, out Color color))
                 return color;
 
-            Debug.LogWarning($"Invalid color hex: {hex}. Returning white.");
+            MyLogger.LogWarning($"Invalid color hex: {hex}. Returning white.", MyLogger.LogCategory.Default);
             return Color.white;
         }
     }

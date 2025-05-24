@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using UnityEngine;
 using System.IO;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Notifications
 {
@@ -39,7 +40,7 @@ namespace App.Develop.CommonServices.Notifications
             CreateNotificationIcons();
             #endif
             
-            Debug.Log("NotificationExampleUsage initialized successfully");
+            MyLogger.Log("NotificationExampleUsage initialized successfully", MyLogger.LogCategory.Default);
         }
         
         /// <summary>
@@ -79,7 +80,7 @@ namespace App.Develop.CommonServices.Notifications
             byte[] bytes = icon.EncodeToPNG();
             File.WriteAllBytes(directoryPath + "/" + name + ".png", bytes);
             
-            Debug.Log($"Icon saved to {directoryPath}/{name}.png");
+            MyLogger.Log($"Icon saved to {directoryPath}/{name}.png", MyLogger.LogCategory.Default);
             
             // Заставим Unity обновить Project View
             UnityEditor.AssetDatabase.Refresh();
@@ -94,7 +95,7 @@ namespace App.Develop.CommonServices.Notifications
             // Проверяем, что менеджер уведомлений создан
             if (_notificationManager == null)
             {
-                Debug.LogError("NotificationManager not initialized");
+                MyLogger.LogError("NotificationManager not initialized", MyLogger.LogCategory.Default);
                 return;
             }
             
@@ -118,7 +119,7 @@ namespace App.Develop.CommonServices.Notifications
             // Проверяем, что менеджер уведомлений создан
             if (_notificationManager == null)
             {
-                Debug.LogError("NotificationManager not initialized");
+                MyLogger.LogError("NotificationManager not initialized", MyLogger.LogCategory.Default);
                 return;
             }
             
@@ -136,7 +137,7 @@ namespace App.Develop.CommonServices.Notifications
             // Планируем отправку через указанное количество секунд
             _notificationManager.ScheduleNotification(notification, DateTime.Now.AddSeconds(seconds));
             
-            Debug.Log($"Notification scheduled for {seconds} seconds from now");
+            MyLogger.Log($"Notification scheduled for {seconds} seconds from now", MyLogger.LogCategory.Default);
         }
         
         /// <summary>
@@ -152,7 +153,7 @@ namespace App.Develop.CommonServices.Notifications
             // Проверяем, что менеджер уведомлений создан
             if (_notificationManager == null)
             {
-                Debug.LogError("NotificationManager not initialized");
+                MyLogger.LogError("NotificationManager not initialized", MyLogger.LogCategory.Default);
                 yield break;
             }
             
@@ -172,7 +173,7 @@ namespace App.Develop.CommonServices.Notifications
                 yield return new WaitForSeconds(2f);
             }
             
-            Debug.Log("All category notifications sent");
+            MyLogger.Log("All category notifications sent", MyLogger.LogCategory.Default);
         }
         
         /// <summary>
@@ -183,12 +184,12 @@ namespace App.Develop.CommonServices.Notifications
             // Проверяем, что менеджер уведомлений создан
             if (_notificationManager == null)
             {
-                Debug.LogError("NotificationManager not initialized");
+                MyLogger.LogError("NotificationManager not initialized", MyLogger.LogCategory.Default);
                 return;
             }
             
             _notificationManager.CancelAllNotifications();
-            Debug.Log("All notifications cancelled");
+            MyLogger.Log("All notifications cancelled", MyLogger.LogCategory.Default);
         }
     }
 }

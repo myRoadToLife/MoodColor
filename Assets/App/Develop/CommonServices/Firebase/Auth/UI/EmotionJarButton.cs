@@ -4,7 +4,8 @@ using System;
 using App.Develop.CommonServices.Firebase.Database.Services;
 using App.Develop.CommonServices.Emotion;
 using UnityEngine;
-using UnityEngine.EventSystems; // Для IPointerClickHandler
+using UnityEngine.EventSystems;
+using App.Develop.Utils.Logging; // Для IPointerClickHandler
 
 namespace App.Develop.MoodColor.UI
 {
@@ -20,7 +21,7 @@ namespace App.Develop.MoodColor.UI
             _selectionManager = FindFirstObjectByType<EmotionSelectionManager>();
             if (_selectionManager == null)
             {
-                Debug.LogError("EmotionSelectionManager не найден!");
+                MyLogger.LogError("EmotionSelectionManager не найден!", MyLogger.LogCategory.Firebase);
             }
         }
 

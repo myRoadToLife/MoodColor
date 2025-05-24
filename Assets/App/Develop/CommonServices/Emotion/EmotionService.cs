@@ -12,6 +12,7 @@ using UnityEngine;
 using App.Develop.CommonServices.Firebase.Common.SecureStorage;
 using App.Develop.CommonServices.GameSystem;
 using App.Develop.DI;
+using App.Develop.Utils.Logging;
 
 // Используем IDatabaseService только из пространства имен Services
 using IDatabaseService = App.Develop.CommonServices.Firebase.Database.Services.IDatabaseService;
@@ -82,7 +83,7 @@ namespace App.Develop.CommonServices.Emotion
             catch (Exception ex)
             {
                 // Если произошла ошибка при создании кэша, создаем пустую историю
-                Debug.LogError($"Ошибка при инициализации кэша истории эмоций: {ex.Message}. Будет использована пустая история.");
+                MyLogger.LogWarning($"Ошибка при инициализации кэша истории эмоций: {ex.Message}. Будет использована пустая история.");
                 _emotionHistory = new EmotionHistory();
             }
 
@@ -120,13 +121,13 @@ namespace App.Develop.CommonServices.Emotion
         {
             if (!_isInitialized)
             {
-                Debug.LogError("EmotionService не инициализирован");
+                MyLogger.LogError("EmotionService не инициализирован", MyLogger.LogCategory.Bootstrap);
                 return;
             }
             
             if (databaseService == null || syncService == null)
             {
-                Debug.LogError("Невозможно инициализировать синхронизацию: отсутствуют необходимые зависимости");
+                MyLogger.LogWarning("Невозможно инициализировать синхронизацию: отсутствуют необходимые зависимости", MyLogger.LogCategory.Firebase);
                 return;
             }
             
@@ -145,11 +146,11 @@ namespace App.Develop.CommonServices.Emotion
                 _syncService.OnSyncConflict += HandleSyncConflict;
                 
                 _isFirebaseInitialized = true;
-                Debug.Log("Синхронизация с Firebase инициализирована");
+                MyLogger.Log("Синхронизация с Firebase инициализирована", MyLogger.LogCategory.Firebase);
             }
             else
             {
-                Debug.LogWarning("Невозможно инициализировать сервис синхронизации: отсутствуют необходимые компоненты");
+                MyLogger.LogWarning("Невозможно инициализировать сервис синхронизации: отсутствуют необходимые компоненты", MyLogger.LogCategory.Firebase);
             }
         }
         
@@ -160,11 +161,165 @@ namespace App.Develop.CommonServices.Emotion
         {
             if (!_isFirebaseInitialized || _syncService == null)
             {
-                Debug.LogWarning("Синхронизация недоступна: Firebase не инициализирован");
+                MyLogger.LogWarning("Синхронизация недоступна: Firebase не инициализирован", MyLogger.LogCategory.Firebase);
                 return;
             }
             
             _syncService.StartSync();
+        }
+        
+        /// <summary>
+        /// Принудительно обновляет историю из Firebase (мягкое обновление - сохраняет локальные записи)
+        /// </summary>
+        public async System.Threading.Tasks.Task RefreshHistoryFromFirebase()
+        {
+            if (!_isFirebaseInitialized)
+            {
+                MyLogger.LogWarning("Обновление истории недоступно: Firebase не инициализирован", MyLogger.LogCategory.Firebase);
+                return;
+            }
+            
+            if (_databaseService == null)
+            {
+                MyLogger.LogWarning("Обновление истории недоступно: DatabaseService не инициализирован", MyLogger.LogCategory.Firebase);
+                return;
+            }
+            
+            if (_emotionHistoryCache == null)
+            {
+                MyLogger.LogWarning("Обновление истории недоступно: EmotionHistoryCache не инициализирован", MyLogger.LogCategory.Firebase);
+                return;
+            }
+            
+            if (!_databaseService.IsAuthenticated)
+            {
+                MyLogger.LogWarning("Обновление истории недоступно: пользователь не аутентифицирован", MyLogger.LogCategory.Firebase);
+                return;
+            }
+            
+            try
+            {
+                MyLogger.Log("Принудительное обновление истории эмоций из Firebase (мягкое)...", MyLogger.LogCategory.Firebase);
+                
+                // Проверяем сколько записей в кэше до обновления
+                int beforeCount = _emotionHistoryCache.GetAllRecords().Count;
+                MyLogger.Log($"Перед обновлением в кэше {beforeCount} записей", MyLogger.LogCategory.Firebase);
+                
+                // Обновляем кэш из Firebase (мягкое обновление)
+                bool success = await _emotionHistoryCache.RefreshFromFirebase(_databaseService);
+                
+                if (success)
+                {
+                    // Проверяем сколько записей в кэше после обновления
+                    int afterCount = _emotionHistoryCache.GetAllRecords().Count;
+                    MyLogger.Log($"После обновления в кэше {afterCount} записей (изменение: {afterCount - beforeCount})", MyLogger.LogCategory.Firebase);
+                    
+                    // Сохраняем количество записей в истории до обновления
+                    int historyCountBefore = 0;
+                    if (_emotionHistory != null)
+                    {
+                        historyCountBefore = _emotionHistory.GetHistory().Count();
+                        MyLogger.Log($"Перед обновлением в истории {historyCountBefore} записей", MyLogger.LogCategory.Firebase);
+                    }
+                    
+                    // Перезагружаем историю из обновленного кэша
+                    _emotionHistory.SetCache(_emotionHistoryCache);
+                    
+                    // Проверяем количество записей в истории после обновления
+                    if (_emotionHistory != null)
+                    {
+                        int historyCountAfter = _emotionHistory.GetHistory().Count();
+                        MyLogger.Log($"После обновления в истории {historyCountAfter} записей (изменение: {historyCountAfter - historyCountBefore})", MyLogger.LogCategory.Firebase);
+                    }
+                    
+                    MyLogger.Log("История эмоций успешно обновлена из Firebase", MyLogger.LogCategory.Firebase);
+                }
+                else
+                {
+                    MyLogger.LogWarning("Не удалось обновить историю из Firebase: RefreshFromFirebase вернул false", MyLogger.LogCategory.Firebase);
+                }
+            }
+            catch (Exception ex)
+            {
+                MyLogger.LogError($"Ошибка при обновлении истории из Firebase: {ex.Message}", MyLogger.LogCategory.Firebase);
+            }
+        }
+
+        /// <summary>
+        /// Полностью заменяет локальную историю данными из Firebase (жесткое обновление)
+        /// </summary>
+        public async System.Threading.Tasks.Task ReplaceHistoryFromFirebase()
+        {
+            if (!_isFirebaseInitialized)
+            {
+                MyLogger.LogWarning("Замена истории недоступна: Firebase не инициализирован", MyLogger.LogCategory.Firebase);
+                return;
+            }
+            
+            if (_databaseService == null)
+            {
+                MyLogger.LogWarning("Замена истории недоступна: DatabaseService не инициализирован", MyLogger.LogCategory.Firebase);
+                return;
+            }
+            
+            if (_emotionHistoryCache == null)
+            {
+                MyLogger.LogWarning("Замена истории недоступна: EmotionHistoryCache не инициализирован", MyLogger.LogCategory.Firebase);
+                return;
+            }
+            
+            if (!_databaseService.IsAuthenticated)
+            {
+                MyLogger.LogWarning("Замена истории недоступна: пользователь не аутентифицирован", MyLogger.LogCategory.Firebase);
+                return;
+            }
+            
+            try
+            {
+                MyLogger.Log("�� Полная замена локальной истории данными из Firebase...", MyLogger.LogCategory.Firebase);
+                
+                // Проверяем сколько записей в кэше до замены
+                int beforeCount = _emotionHistoryCache.GetAllRecords().Count;
+                MyLogger.Log($"Перед заменой в кэше {beforeCount} записей", MyLogger.LogCategory.Firebase);
+                
+                // Полностью заменяем кэш данными из Firebase
+                bool success = await _emotionHistoryCache.ReplaceFromFirebase(_databaseService);
+                
+                if (success)
+                {
+                    // Проверяем сколько записей в кэше после замены
+                    int afterCount = _emotionHistoryCache.GetAllRecords().Count;
+                    MyLogger.Log($"После замены в кэше {afterCount} записей", MyLogger.LogCategory.Firebase);
+                    
+                    // Сохраняем количество записей в истории до обновления
+                    int historyCountBefore = 0;
+                    if (_emotionHistory != null)
+                    {
+                        historyCountBefore = _emotionHistory.GetHistory().Count();
+                        MyLogger.Log($"Перед обновлением в истории {historyCountBefore} записей", MyLogger.LogCategory.Firebase);
+                    }
+                    
+                    // Перезагружаем историю из обновленного кэша
+                    _emotionHistory.SetCache(_emotionHistoryCache);
+                    
+                    // Проверяем количество записей в истории после обновления
+                    if (_emotionHistory != null)
+                    {
+                        int historyCountAfter = _emotionHistory.GetHistory().Count();
+                        MyLogger.Log($"После обновления в истории {historyCountAfter} записей", MyLogger.LogCategory.Firebase);
+                    }
+                    
+                    MyLogger.Log("✅ Локальная история полностью заменена данными из Firebase", MyLogger.LogCategory.Firebase);
+                }
+                else
+                {
+                    MyLogger.LogWarning("❌ Не удалось заменить историю данными из Firebase: ReplaceFromFirebase вернул false", MyLogger.LogCategory.Firebase);
+                }
+            }
+            catch (Exception ex)
+            {
+                MyLogger.LogError($"❌ Ошибка при замене истории данными из Firebase: {ex.Message}", MyLogger.LogCategory.Firebase);
+            }
         }
         
         /// <summary>
@@ -174,7 +329,7 @@ namespace App.Develop.CommonServices.Emotion
         {
             if (!_isFirebaseInitialized || _syncService == null)
             {
-                Debug.LogWarning("Синхронизация недоступна: Firebase не инициализирован");
+                MyLogger.LogWarning("Синхронизация недоступна: Firebase не инициализирован", MyLogger.LogCategory.Firebase);
                 return;
             }
             
@@ -201,7 +356,7 @@ namespace App.Develop.CommonServices.Emotion
         {
             if (!_isFirebaseInitialized || _syncService == null)
             {
-                Debug.LogWarning("Резервное копирование недоступно: Firebase не инициализирован");
+                MyLogger.LogWarning("Резервное копирование недоступно: Firebase не инициализирован", MyLogger.LogCategory.Firebase);
                 return;
             }
             
@@ -215,7 +370,7 @@ namespace App.Develop.CommonServices.Emotion
         {
             if (!_isFirebaseInitialized || _syncService == null)
             {
-                Debug.LogWarning("Восстановление недоступно: Firebase не инициализирован");
+                MyLogger.LogWarning("Восстановление недоступно: Firebase не инициализирован", MyLogger.LogCategory.Firebase);
                 return;
             }
             
@@ -245,7 +400,7 @@ namespace App.Develop.CommonServices.Emotion
         {
             if (!_isFirebaseInitialized || _databaseService == null)
             {
-                Debug.LogWarning("Обновление эмоций недоступно: Firebase не инициализирован");
+                MyLogger.LogWarning("Обновление эмоций недоступно: Firebase не инициализирован", MyLogger.LogCategory.Firebase);
                 return;
             }
             
@@ -272,12 +427,12 @@ namespace App.Develop.CommonServices.Emotion
                         }
                     }
                     
-                    Debug.Log($"Обновлено {emotions.Count} эмоций из Firebase");
+                    MyLogger.Log($"Обновлено {emotions.Count} эмоций из Firebase", MyLogger.LogCategory.Firebase);
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при обновлении эмоций из Firebase: {ex.Message}");
+                MyLogger.LogError($"Ошибка при обновлении эмоций из Firebase: {ex.Message}", MyLogger.LogCategory.Firebase);
             }
         }
         
@@ -288,7 +443,7 @@ namespace App.Develop.CommonServices.Emotion
         /// </summary>
         private void HandleSyncComplete(bool success, string message)
         {
-            Debug.Log($"Синхронизация эмоций завершена. Успех: {success}. {message}");
+            MyLogger.Log($"Синхронизация эмоций завершена. Успех: {success}. {message}", MyLogger.LogCategory.Firebase);
             OnSyncComplete?.Invoke(success, message);
         }
         
@@ -314,7 +469,7 @@ namespace App.Develop.CommonServices.Emotion
         /// </summary>
         private void HandleSyncConflict(EmotionHistoryRecord record)
         {
-            Debug.LogWarning($"Конфликт синхронизации записи {record.Id} типа {record.Type}");
+            MyLogger.LogWarning($"Конфликт синхронизации записи {record.Id} типа {record.Type}", MyLogger.LogCategory.Firebase);
             // Здесь можно добавить логику обработки конфликтов, например, показать UI для выбора пользователем
         }
         
@@ -333,7 +488,7 @@ namespace App.Develop.CommonServices.Emotion
                 return emotion;
             }
 
-            Debug.LogWarning($"⚠️ Эмоция {type} не найдена!");
+            MyLogger.LogWarning($"⚠️ Эмоция {type} не найдена!", MyLogger.LogCategory.Emotion);
             return null;
         }
 
@@ -365,7 +520,7 @@ namespace App.Develop.CommonServices.Emotion
         {
             if (data?.EmotionData == null)
             {
-                Debug.LogWarning("⚠️ EmotionData отсутствует при ReadFrom. Пропускаем.");
+                MyLogger.LogWarning("⚠️ EmotionData отсутствует при ReadFrom. Пропускаем.", MyLogger.LogCategory.Emotion);
                 return;
             }
 
@@ -386,7 +541,7 @@ namespace App.Develop.CommonServices.Emotion
             {
                 if (!_emotions.ContainsKey(type))
                 {
-                    Debug.LogWarning($"⚠️ Emotion {type} не был загружен. Создаём по умолчанию.");
+                    MyLogger.LogWarning($"⚠️ Emotion {type} не был загружен. Создаём по умолчанию.", MyLogger.LogCategory.Emotion);
                     _emotions[type] = new EmotionData
                     {
                         Type = type.ToString(),
@@ -414,14 +569,110 @@ namespace App.Develop.CommonServices.Emotion
 
         private void InitializeEmotions()
         {
-            var emotionsList = _playerDataProvider.GetEmotions();
-            foreach (var emotionData in emotionsList)
+            try
             {
-                if (Enum.TryParse(emotionData.Type, out EmotionTypes type))
+                var emotionsList = _playerDataProvider.GetEmotions();
+                
+                if (emotionsList == null || emotionsList.Count == 0)
                 {
-                    _emotions[type] = emotionData;
+                    MyLogger.LogWarning("⚠️ PlayerDataProvider вернул пустой список эмоций. Инициализируем дефолтные эмоции.", MyLogger.LogCategory.Emotion);
+                    InitializeDefaultEmotions();
+                    return;
+                }
+                
+                foreach (var emotionData in emotionsList)
+                {
+                    if (emotionData == null)
+                    {
+                        MyLogger.LogWarning("⚠️ Найдена NULL эмоция в списке. Пропускаем.", MyLogger.LogCategory.Emotion);
+                        continue;
+                    }
+                    
+                    if (string.IsNullOrEmpty(emotionData.Type))
+                    {
+                        MyLogger.LogWarning("⚠️ Найдена эмоция с пустым Type. Пропускаем.", MyLogger.LogCategory.Emotion);
+                        continue;
+                    }
+                    
+                    if (Enum.TryParse(emotionData.Type, out EmotionTypes type))
+                    {
+                        _emotions[type] = emotionData;
+                    }
+                    else
+                    {
+                        MyLogger.LogWarning($"⚠️ Не удалось распарсить тип эмоции: {emotionData.Type}", MyLogger.LogCategory.Emotion);
+                    }
+                }
+                
+                // Проверяем, что все типы эмоций присутствуют
+                foreach (EmotionTypes type in Enum.GetValues(typeof(EmotionTypes)))
+                {
+                    if (!_emotions.ContainsKey(type))
+                    {
+                        MyLogger.LogWarning($"⚠️ Эмоция {type} отсутствует. Создаем по умолчанию.", MyLogger.LogCategory.Emotion);
+                        _emotions[type] = CreateDefaultEmotion(type);
+                    }
                 }
             }
+            catch (Exception ex)
+            {
+                MyLogger.LogError($"❌ Ошибка при инициализации эмоций: {ex.Message}. Инициализируем дефолтные эмоции.", MyLogger.LogCategory.Emotion);
+                InitializeDefaultEmotions();
+            }
+        }
+        
+        /// <summary>
+        /// Инициализирует дефолтные эмоции при ошибке
+        /// </summary>
+        private void InitializeDefaultEmotions()
+        {
+            _emotions.Clear();
+            foreach (EmotionTypes type in Enum.GetValues(typeof(EmotionTypes)))
+            {
+                _emotions[type] = CreateDefaultEmotion(type);
+            }
+        }
+        
+        /// <summary>
+        /// Создает эмоцию с дефолтными значениями
+        /// </summary>
+        private EmotionData CreateDefaultEmotion(EmotionTypes type)
+        {
+            var config = _emotionConfigs.ContainsKey(type) ? _emotionConfigs[type] : null;
+            
+            return new EmotionData
+            {
+                Type = type.ToString(),
+                Value = 0f,
+                Intensity = 0f,
+                Color = config?.BaseColor ?? GetDefaultColor(type),
+                MaxCapacity = config?.MaxCapacity ?? 100f,
+                DrainRate = config?.DefaultDrainRate ?? 0.1f,
+                BubbleThreshold = config?.BubbleThreshold ?? 80f,
+                LastUpdate = DateTime.UtcNow
+            };
+        }
+        
+        /// <summary>
+        /// Возвращает дефолтный цвет для эмоции
+        /// </summary>
+        private Color GetDefaultColor(EmotionTypes type)
+        {
+            return type switch
+            {
+                EmotionTypes.Joy => new Color(1f, 0.85f, 0.1f), // Желтый
+                EmotionTypes.Sadness => new Color(0.15f, 0.3f, 0.8f), // Синий
+                EmotionTypes.Anger => new Color(0.9f, 0.1f, 0.1f), // Красный
+                EmotionTypes.Fear => new Color(0.5f, 0.1f, 0.6f), // Фиолетовый
+                EmotionTypes.Disgust => new Color(0.1f, 0.6f, 0.2f), // Зеленый
+                EmotionTypes.Trust => new Color(0f, 0.6f, 0.9f), // Голубой
+                EmotionTypes.Anticipation => new Color(1f, 0.5f, 0f), // Оранжевый
+                EmotionTypes.Surprise => new Color(0.8f, 0.4f, 0.9f), // Лавандовый
+                EmotionTypes.Love => new Color(0.95f, 0.3f, 0.6f), // Розовый
+                EmotionTypes.Anxiety => new Color(0.7f, 0.7f, 0.7f), // Серый
+                EmotionTypes.Neutral => Color.white,
+                _ => Color.white
+            };
         }
 
         private void LoadEmotionConfigs(IConfigsProvider configsProvider)
@@ -464,7 +715,7 @@ namespace App.Develop.CommonServices.Emotion
             EmotionEventType eventType = oldValue < emotion.BubbleThreshold && value >= emotion.BubbleThreshold ? 
                 EmotionEventType.CapacityExceeded : EmotionEventType.ValueChanged;
             
-            Debug.Log($"[EmotionService] Before AddEntry in UpdateEmotionValue: EmotionType='{emotion.Type}', LastUpdate='{emotion.LastUpdate}', CurrentTime='{DateTime.Now}'");
+            MyLogger.Log($"[EmotionService] Before AddEntry in UpdateEmotionValue: EmotionType='{emotion.Type}', LastUpdate='{emotion.LastUpdate}', CurrentTime='{DateTime.Now}'", MyLogger.LogCategory.Emotion);
             // Добавляем в историю
             _emotionHistory.AddEntry(emotion, eventType, emotion.LastUpdate);
             
@@ -507,7 +758,7 @@ namespace App.Develop.CommonServices.Emotion
             emotion.Intensity = Mathf.Clamp01(intensity);
             emotion.LastUpdate = DateTime.Now;
 
-            Debug.Log($"[EmotionService] Before AddEntry in UpdateEmotionIntensity: EmotionType='{emotion.Type}', LastUpdate='{emotion.LastUpdate}', CurrentTime='{DateTime.Now}'");
+            MyLogger.Log($"[EmotionService] Before AddEntry in UpdateEmotionIntensity: EmotionType='{emotion.Type}', LastUpdate='{emotion.LastUpdate}', CurrentTime='{DateTime.Now}'", MyLogger.LogCategory.Emotion);
             _emotionHistory.AddEntry(emotion, EmotionEventType.IntensityChanged, emotion.LastUpdate);
             
             RaiseEmotionEvent(new EmotionEvent(type, EmotionEventType.IntensityChanged, emotion.Value, emotion.Intensity));
@@ -531,7 +782,7 @@ namespace App.Develop.CommonServices.Emotion
                         resultEmotion.Note = $"{source1} + {source2}";
                         resultEmotion.LastUpdate = DateTime.UtcNow;
                         ValidateAndUpdateEmotion(resultEmotion, newValue);
-                        Debug.Log($"[EmotionService] Before AddEntry in TryMixEmotions: EmotionType='{resultEmotion.Type}', LastUpdate='{resultEmotion.LastUpdate}', CurrentTime='{DateTime.Now}'");
+                        MyLogger.Log($"[EmotionService] Before AddEntry in TryMixEmotions: EmotionType='{resultEmotion.Type}', LastUpdate='{resultEmotion.LastUpdate}', CurrentTime='{DateTime.Now}'", MyLogger.LogCategory.Emotion);
                         _emotionHistory.AddEntry(resultEmotion, EmotionEventType.EmotionMixed, resultEmotion.LastUpdate);
                         
                         // Синхронизируем с Firebase
@@ -661,7 +912,7 @@ namespace App.Develop.CommonServices.Emotion
             // Загружаем эмоции из провайдера данных
             InitializeEmotions();
             
-            Debug.Log("EmotionService инициализирован");
+            MyLogger.Log("EmotionService инициализирован", MyLogger.LogCategory.Bootstrap);
         }
 
         #endregion
@@ -766,7 +1017,7 @@ namespace App.Develop.CommonServices.Emotion
                 _playerDataProvider.Save();
             }
             
-            Debug.Log("Все эмоции сброшены к начальным значениям");
+            MyLogger.Log("Все эмоции сброшены к начальным значениям", MyLogger.LogCategory.Emotion);
         }
         
         #endregion
@@ -777,30 +1028,54 @@ namespace App.Develop.CommonServices.Emotion
         /// </summary>
         private async void SyncEmotionWithFirebase(EmotionData emotion, EmotionEventType eventType)
         {
-            if (!_isFirebaseInitialized || _databaseService == null || !_databaseService.IsAuthenticated)
+            MyLogger.Log($"🔄 [SyncEmotionWithFirebase] Начало синхронизации: Type={emotion.Type}, EventType={eventType}", MyLogger.LogCategory.Firebase);
+            
+            if (!_isFirebaseInitialized)
             {
+                MyLogger.LogWarning($"❌ [SyncEmotionWithFirebase] Firebase не инициализирован для {emotion.Type}", MyLogger.LogCategory.Firebase);
+                return;
+            }
+            
+            if (_databaseService == null)
+            {
+                MyLogger.LogWarning($"❌ [SyncEmotionWithFirebase] DatabaseService не доступен для {emotion.Type}", MyLogger.LogCategory.Firebase);
+                return;
+            }
+            
+            if (!_databaseService.IsAuthenticated)
+            {
+                MyLogger.LogWarning($"❌ [SyncEmotionWithFirebase] Пользователь не аутентифицирован для {emotion.Type}", MyLogger.LogCategory.Firebase);
                 return;
             }
             
             try
             {
+                MyLogger.Log($"📝 [SyncEmotionWithFirebase] Создаем запись для Firebase: Type={emotion.Type}, Value={emotion.Value}, Timestamp={emotion.LastUpdate:O}", MyLogger.LogCategory.Firebase);
+                
                 // Создаем запись для истории эмоций в Firebase
                 var record = new EmotionHistoryRecord(emotion, eventType);
+                
+                MyLogger.Log($"💾 [SyncEmotionWithFirebase] Отправляем запись в Firebase: Id={record.Id}, Type={record.Type}", MyLogger.LogCategory.Firebase);
                 
                 // Отправляем на сервер
                 await _databaseService.AddEmotionHistoryRecord(record);
                 
+                MyLogger.Log($"✅ [SyncEmotionWithFirebase] Запись успешно добавлена в Firebase: Id={record.Id}", MyLogger.LogCategory.Firebase);
+                
                 // Обновляем текущую эмоцию в Firebase
                 if (eventType == EmotionEventType.ValueChanged || eventType == EmotionEventType.IntensityChanged)
                 {
+                    MyLogger.Log($"🔄 [SyncEmotionWithFirebase] Обновляем текущую эмоцию в Firebase: Type={emotion.Type}, Intensity={emotion.Intensity}", MyLogger.LogCategory.Firebase);
                     await _databaseService.UpdateCurrentEmotion(emotion.Type, emotion.Intensity);
+                    MyLogger.Log($"✅ [SyncEmotionWithFirebase] Текущая эмоция обновлена в Firebase: Type={emotion.Type}", MyLogger.LogCategory.Firebase);
                 }
                 
-                Debug.Log($"Эмоция {emotion.Type} синхронизирована с Firebase");
+                MyLogger.Log($"🎉 [SyncEmotionWithFirebase] Эмоция {emotion.Type} полностью синхронизирована с Firebase", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка синхронизации эмоции с Firebase: {ex.Message}");
+                MyLogger.LogError($"❌ [SyncEmotionWithFirebase] Ошибка синхронизации эмоции {emotion.Type} с Firebase: {ex.Message}", MyLogger.LogCategory.Firebase);
+                MyLogger.LogError($"❌ [SyncEmotionWithFirebase] Stack trace: {ex.StackTrace}", MyLogger.LogCategory.Firebase);
             }
         }
         #endregion
@@ -811,18 +1086,33 @@ namespace App.Develop.CommonServices.Emotion
             var emotion = GetEmotion(type);
             if (emotion == null)
             {
-                Debug.LogWarning($"[EmotionService.LogEmotionEvent] Emotion type '{type}' not found.");
+                MyLogger.LogWarning($"[EmotionService.LogEmotionEvent] Emotion type '{type}' not found.", MyLogger.LogCategory.Emotion);
                 return;
             }
 
             if (_emotionHistory == null)
             {
-                Debug.LogError("[EmotionService.LogEmotionEvent] _emotionHistory is null. Cannot log event.");
+                MyLogger.LogError("[EmotionService.LogEmotionEvent] _emotionHistory is null. Cannot log event.", MyLogger.LogCategory.Emotion);
                 return;
             }
+            
+            // Добавляем запись точно с настоящим временем
+            DateTime now = DateTime.UtcNow;
+            emotion.LastUpdate = now;
+            
+            MyLogger.Log($"[EmotionService.LogEmotionEvent] Добавляем запись: Type='{type}', EventType='{eventType}', Timestamp='{now:O}'", MyLogger.LogCategory.Emotion);
+            
             // Убедимся в правильном порядке: emotion, eventType, DateTime.Now, note
-            _emotionHistory.AddEntry(emotion, eventType, DateTime.Now, note); 
-            Debug.Log($"[EmotionService.LogEmotionEvent] Logged event: Type='{type}', EventType='{eventType}', Timestamp='{DateTime.Now:O}'{(string.IsNullOrEmpty(note) ? "" : $", Note='{note}'")}");
+            _emotionHistory.AddEntry(emotion, eventType, now, note); 
+            
+            MyLogger.Log($"[EmotionService.LogEmotionEvent] Logged event: Type='{type}', EventType='{eventType}', Timestamp='{now:O}'{(string.IsNullOrEmpty(note) ? "" : $", Note='{note}'")}", MyLogger.LogCategory.Emotion);
+            
+            // Синхронизируем с Firebase, если возможно
+            if (_isFirebaseInitialized && _databaseService != null && _databaseService.IsAuthenticated)
+            {
+                MyLogger.Log($"[EmotionService.LogEmotionEvent] Синхронизируем с Firebase запись: Type='{type}'", MyLogger.LogCategory.Firebase);
+                SyncEmotionWithFirebase(emotion, eventType);
+            }
         }
 
         public void ClearHistory()
@@ -834,8 +1124,18 @@ namespace App.Develop.CommonServices.Emotion
             if (_emotionHistoryCache != null)
             {
                 _emotionHistoryCache.ClearCache();
-                Debug.Log("✅ Кэш истории эмоций успешно очищен");
+                MyLogger.Log("✅ Кэш истории эмоций успешно очищен", MyLogger.LogCategory.Firebase);
             }
         }
+        
+        /// <summary>
+        /// Проверяет, инициализирован ли Firebase
+        /// </summary>
+        public bool IsFirebaseInitialized => _isFirebaseInitialized;
+        
+        /// <summary>
+        /// Проверяет, аутентифицирован ли пользователь в Firebase
+        /// </summary>
+        public bool IsAuthenticated => _isFirebaseInitialized && _databaseService != null && _databaseService.IsAuthenticated;
     }
 }

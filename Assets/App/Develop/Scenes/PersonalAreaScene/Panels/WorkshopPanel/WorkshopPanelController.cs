@@ -2,7 +2,6 @@ using App.Develop.CommonServices.AssetManagement;
 using App.Develop.CommonServices.UI;
 using App.Develop.DI;
 using App.Develop.Utils.Logging;
-using Logger = App.Develop.Utils.Logging.Logger;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -67,7 +66,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         private void LoadWorkshopData()
         {
             // TODO: Загрузка данных мастерской
-            Logger.Log("Загрузка данных мастерской...");
+            MyLogger.Log("Загрузка данных мастерской...");
         }
         
         private void ClosePanel()

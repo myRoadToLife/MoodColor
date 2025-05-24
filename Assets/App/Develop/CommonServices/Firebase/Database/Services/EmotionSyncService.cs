@@ -11,6 +11,7 @@ using Newtonsoft.Json;
 using Firebase.Database;
 using UnityEngine;
 using App.Develop.CommonServices.Firebase.Common.SecureStorage;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Firebase.Database.Services
 {
@@ -87,7 +88,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             _lastSyncAttempt = DateTime.Now;
             _isInitialized = true;
             
-            Debug.Log("EmotionSyncService инициализирован");
+            MyLogger.Log("EmotionSyncService инициализирован", MyLogger.LogCategory.Firebase);
         }
         #endregion
         
@@ -100,13 +101,13 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (!_isInitialized)
             {
-                Debug.LogError("EmotionSyncService не инициализирован");
+                MyLogger.LogError("EmotionSyncService не инициализирован", MyLogger.LogCategory.Firebase);
                 return;
             }
             
             if (_isSyncing)
             {
-                Debug.LogWarning("Синхронизация уже выполняется");
+                MyLogger.LogWarning("Синхронизация уже выполняется", MyLogger.LogCategory.Firebase);
                 return;
             }
             
@@ -124,7 +125,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                     throw new InvalidOperationException("Пользователь не авторизован");
                 }
                 
-                Debug.Log("Начинаем синхронизацию данных с сервером...");
+                MyLogger.Log("Начинаем синхронизацию данных с сервером...", MyLogger.LogCategory.Firebase);
                 OnSyncProgress?.Invoke(0f);
                 
                 // Загружаем настройки синхронизации с сервера
@@ -139,7 +140,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 var unsyncedRecords = _cache.GetUnsyncedRecords(_syncSettings.MaxRecordsPerSync);
                 int totalRecords = unsyncedRecords.Count;
                 
-                Debug.Log($"Найдено {totalRecords} несинхронизированных записей");
+                MyLogger.Log($"Найдено {totalRecords} несинхронизированных записей", MyLogger.LogCategory.Firebase);
                 
                 if (totalRecords == 0)
                 {
@@ -197,7 +198,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                     }
                     catch (Exception ex)
                     {
-                        Debug.LogError($"Ошибка пакетной синхронизации: {ex.Message}");
+                        MyLogger.LogError($"Ошибка пакетной синхронизации: {ex.Message}", MyLogger.LogCategory.Firebase);
                         
                         // Отмечаем все записи в партии как непрошедшие синхронизацию
                         foreach (var record in batch)
@@ -223,14 +224,14 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             {
                 success = false;
                 message = $"Ошибка синхронизации: {ex.Message}";
-                Debug.LogError(message);
+                MyLogger.LogError(message, MyLogger.LogCategory.Firebase);
             }
             finally
             {
                 _isSyncing = false;
                 OnSyncProgress?.Invoke(1f); // Завершающий прогресс 100%
                 OnSyncComplete?.Invoke(success, message);
-                Debug.Log(message);
+                MyLogger.Log(message, MyLogger.LogCategory.Firebase);
             }
         }
         
@@ -251,12 +252,12 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 await _databaseService.UpdateSyncSettings(_syncSettings);
                 _cache.SaveSyncSettings(_syncSettings);
                 
-                Debug.Log($"Резервная копия создана: {backupId}");
+                MyLogger.Log($"Резервная копия создана: {backupId}", MyLogger.LogCategory.Firebase);
                 return backupId;
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка создания резервной копии: {ex.Message}");
+                MyLogger.LogError($"Ошибка создания резервной копии: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -279,11 +280,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 _cache.ClearCache();
                 await SyncFromServer();
                 
-                Debug.Log($"Данные восстановлены из резервной копии: {backupId}");
+                MyLogger.Log($"Данные восстановлены из резервной копии: {backupId}", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка восстановления из резервной копии: {ex.Message}");
+                MyLogger.LogError($"Ошибка восстановления из резервной копии: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -305,11 +306,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                     await _databaseService.UpdateSyncSettings(settings);
                 }
                 
-                Debug.Log("Настройки синхронизации обновлены");
+                MyLogger.Log("Настройки синхронизации обновлены", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка обновления настроек синхронизации: {ex.Message}");
+                MyLogger.LogError($"Ошибка обновления настроек синхронизации: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -331,7 +332,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при проверке резервного копирования: {ex.Message}");
+                MyLogger.LogError($"Ошибка при проверке резервного копирования: {ex.Message}", MyLogger.LogCategory.Firebase);
             }
         }
         #endregion
@@ -345,7 +346,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             try
             {
-                Debug.Log("Получение данных с сервера...");
+                MyLogger.Log("Получение данных с сервера...", MyLogger.LogCategory.Firebase);
                 
                 DateTime? lastSyncTime = _syncSettings.LastSyncTime != DateTime.MinValue ? 
                     _syncSettings.LastSyncTime : null;
@@ -353,7 +354,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 // Получаем записи с сервера, которые появились после последней синхронизации
                 var serverRecords = await _databaseService.GetEmotionHistory(lastSyncTime, null, _syncSettings.MaxRecordsPerSync);
                 
-                Debug.Log($"Получено {serverRecords.Count} записей с сервера");
+                MyLogger.Log($"Получено {serverRecords.Count} записей с сервера", MyLogger.LogCategory.Firebase);
                 
                 // Группируем записи по типу обработки
                 var newRecords = new List<EmotionHistoryRecord>();
@@ -393,7 +394,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                     {
                         _cache.AddRecord(record);
                     }
-                    Debug.Log($"Добавлено {newRecords.Count} новых записей в кэш");
+                    MyLogger.Log($"Добавлено {newRecords.Count} новых записей в кэш", MyLogger.LogCategory.Firebase);
                 }
                 
                 // Обрабатываем обновления пакетно
@@ -404,7 +405,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                     {
                         _cache.UpdateRecord(record);
                     }
-                    Debug.Log($"Обновлено {updateRecords.Count} записей в кэше");
+                    MyLogger.Log($"Обновлено {updateRecords.Count} записей в кэше", MyLogger.LogCategory.Firebase);
                 }
                 
                 // Обрабатываем конфликты индивидуально, так как требуется особая логика
@@ -415,12 +416,12 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                         // Разрешаем конфликт согласно стратегии
                         ResolveSyncConflict(pair.Item1, pair.Item2);
                     }
-                    Debug.Log($"Разрешено {conflictRecords.Count} конфликтов");
+                    MyLogger.Log($"Разрешено {conflictRecords.Count} конфликтов", MyLogger.LogCategory.Firebase);
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при синхронизации с сервера: {ex.Message}");
+                MyLogger.LogError($"Ошибка при синхронизации с сервера: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -490,7 +491,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при сохранении настроек синхронизации: {ex.Message}");
+                MyLogger.LogError($"Ошибка при сохранении настроек синхронизации: {ex.Message}", MyLogger.LogCategory.Firebase);
             }
         }
         #endregion

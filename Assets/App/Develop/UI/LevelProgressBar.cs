@@ -2,7 +2,6 @@ using System;
 using App.Develop.CommonServices.GameSystem;
 using App.Develop.DI;
 using App.Develop.Utils.Logging;
-using Logger = App.Develop.Utils.Logging.Logger;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -39,7 +38,7 @@ namespace App.Develop.UI
         {
             if (_levelSystem == null)
             {
-                Logger.LogError("LevelSystem не инициализирован. Используйте метод Inject.");
+                MyLogger.LogError("LevelSystem не инициализирован. Используйте метод Inject.");
                 return;
             }
             

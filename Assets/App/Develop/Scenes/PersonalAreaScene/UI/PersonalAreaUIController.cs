@@ -4,7 +4,6 @@ using App.Develop.CommonServices.Emotion;
 using UnityEngine;
 using App.Develop.Scenes.PersonalAreaScene.UI.Components;
 using App.Develop.Utils.Logging;
-using Logger = App.Develop.Utils.Logging.Logger;
 
 namespace App.Develop.Scenes.PersonalAreaScene.UI
 {
@@ -53,48 +52,48 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
 
         private void ValidateComponents()
         {
-            Logger.Log("🔄 [PersonalAreaUIController] Валидация компонентов...");
+            MyLogger.Log("🔄 [PersonalAreaUIController] Валидация компонентов...", MyLogger.LogCategory.UI);
             
             if (_profileInfo == null) 
             {
-                Logger.LogError("❌ [PersonalAreaUIController] ProfileInfoComponent не назначен");
+                MyLogger.LogError("❌ [PersonalAreaUIController] ProfileInfoComponent не назначен", MyLogger.LogCategory.UI);
             }
             else
             {
-                Logger.Log("✅ [PersonalAreaUIController] ProfileInfoComponent валиден");
+                MyLogger.Log("✅ [PersonalAreaUIController] ProfileInfoComponent валиден", MyLogger.LogCategory.UI);
             }
             
             if (_emotionJars == null) 
             {
-                Logger.LogError("❌ [PersonalAreaUIController] EmotionJarView не назначен");
+                MyLogger.LogError("❌ [PersonalAreaUIController] EmotionJarView не назначен", MyLogger.LogCategory.UI);
             }
             else
             {
-                Logger.Log("✅ [PersonalAreaUIController] EmotionJarView валиден: " + _emotionJars.name);
+                MyLogger.Log("✅ [PersonalAreaUIController] EmotionJarView валиден: " + _emotionJars.name, MyLogger.LogCategory.UI);
             }
             
             if (_statistics == null) 
             {
-                Logger.LogError("❌ [PersonalAreaUIController] StatisticsComponent не назначен");
+                MyLogger.LogError("❌ [PersonalAreaUIController] StatisticsComponent не назначен", MyLogger.LogCategory.UI);
             }
             else
             {
-                Logger.Log("✅ [PersonalAreaUIController] StatisticsComponent валиден");
+                MyLogger.Log("✅ [PersonalAreaUIController] StatisticsComponent валиден", MyLogger.LogCategory.UI);
             }
             
             if (_navigation == null) 
             {
-                Logger.LogError("❌ [PersonalAreaUIController] NavigationComponent не назначен");
+                MyLogger.LogError("❌ [PersonalAreaUIController] NavigationComponent не назначен", MyLogger.LogCategory.UI);
             }
             else
             {
-                Logger.Log("✅ [PersonalAreaUIController] NavigationComponent валиден");
+                MyLogger.Log("✅ [PersonalAreaUIController] NavigationComponent валиден", MyLogger.LogCategory.UI);
             }
         }
 
         public void Initialize()
         {
-            Logger.Log("🔄 [PersonalAreaUIController] Начало инициализации...");
+            MyLogger.Log("🔄 [PersonalAreaUIController] Начало инициализации...", MyLogger.LogCategory.UI);
             
             try
             {
@@ -102,37 +101,37 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
                 
                 if (_navigation != null)
                 {
-                    Logger.Log("🔄 [PersonalAreaUIController] Инициализация NavigationComponent...");
+                    MyLogger.Log("🔄 [PersonalAreaUIController] Инициализация NavigationComponent...", MyLogger.LogCategory.UI);
                     try
                     {
                         _navigation.Initialize();
-                        Logger.Log("✅ [PersonalAreaUIController] NavigationComponent инициализирован");
+                        MyLogger.Log("✅ [PersonalAreaUIController] NavigationComponent инициализирован", MyLogger.LogCategory.UI);
                     }
                     catch (Exception ex)
                     {
-                        Logger.LogError($"❌ [PersonalAreaUIController] Ошибка инициализации NavigationComponent: {ex.Message}");
+                        MyLogger.LogError($"❌ [PersonalAreaUIController] Ошибка инициализации NavigationComponent: {ex.Message}", MyLogger.LogCategory.UI);
                     }
                 }
                 
                 if (_emotionJars != null)
                 {
-                    Logger.Log("🔄 [PersonalAreaUIController] Инициализация EmotionJarView...");
+                    MyLogger.Log("🔄 [PersonalAreaUIController] Инициализация EmotionJarView...", MyLogger.LogCategory.UI);
                     try
                     {
                         _emotionJars.Initialize();
-                        Logger.Log("✅ [PersonalAreaUIController] EmotionJarView инициализирован");
+                        MyLogger.Log("✅ [PersonalAreaUIController] EmotionJarView инициализирован", MyLogger.LogCategory.UI);
                     }
                     catch (Exception ex)
                     {
-                        Logger.LogError($"❌ [PersonalAreaUIController] Ошибка инициализации EmotionJarView: {ex.Message}\n{ex.StackTrace}");
+                        MyLogger.LogError($"❌ [PersonalAreaUIController] Ошибка инициализации EmotionJarView: {ex.Message}\n{ex.StackTrace}", MyLogger.LogCategory.UI);
                     }
                 }
                 
-                Logger.Log("✅ [PersonalAreaUIController] Инициализация завершена успешно");
+                MyLogger.Log("✅ [PersonalAreaUIController] Инициализация завершена успешно", MyLogger.LogCategory.UI);
             }
             catch (Exception ex)
             {
-                Logger.LogError($"❌ [PersonalAreaUIController] Ошибка инициализации UI контроллера: {ex.Message}\n{ex.StackTrace}");
+                MyLogger.LogError($"❌ [PersonalAreaUIController] Ошибка инициализации UI контроллера: {ex.Message}\n{ex.StackTrace}", MyLogger.LogCategory.UI);
             }
         }
 
@@ -140,11 +139,11 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         {
             if (_profileInfo == null)
             {
-                Logger.LogError("❌ [PersonalAreaUIController] Невозможно установить имя пользователя: ProfileInfoComponent отсутствует");
+                MyLogger.LogError("❌ [PersonalAreaUIController] Невозможно установить имя пользователя: ProfileInfoComponent отсутствует", MyLogger.LogCategory.UI);
                 return;
             }
             
-            Logger.Log($"🔄 [PersonalAreaUIController] Установка имени пользователя: {username}");
+            MyLogger.Log($"🔄 [PersonalAreaUIController] Установка имени пользователя: {username}", MyLogger.LogCategory.UI);
             _profileInfo.SetUsername(username);
         }
         
@@ -152,11 +151,11 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         {
             if (_profileInfo == null)
             {
-                Logger.LogError("❌ [PersonalAreaUIController] Невозможно установить текущую эмоцию: ProfileInfoComponent отсутствует");
+                MyLogger.LogError("❌ [PersonalAreaUIController] Невозможно установить текущую эмоцию: ProfileInfoComponent отсутствует", MyLogger.LogCategory.UI);
                 return;
             }
             
-            Logger.Log($"🔄 [PersonalAreaUIController] Установка текущей эмоции: {(emotionSprite != null ? emotionSprite.name : "null")}");
+            MyLogger.Log($"🔄 [PersonalAreaUIController] Установка текущей эмоции: {(emotionSprite != null ? emotionSprite.name : "null")}", MyLogger.LogCategory.UI);
             _profileInfo.SetCurrentEmotion(emotionSprite);
         }
         
@@ -164,19 +163,19 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         {
             if (_emotionJars == null)
             {
-                Logger.LogError($"❌ [PersonalAreaUIController] Невозможно установить количество для банки {type}: EmotionJarView отсутствует");
+                MyLogger.LogError($"❌ [PersonalAreaUIController] Невозможно установить количество для банки {type}: EmotionJarView отсутствует", MyLogger.LogCategory.UI);
                 return;
             }
             
             try
             {
-                Logger.Log($"🔄 [PersonalAreaUIController] Установка количества {amount} для банки типа {type}");
+                MyLogger.Log($"🔄 [PersonalAreaUIController] Установка количества {amount} для банки типа {type}", MyLogger.LogCategory.Gameplay);
                 _emotionJars.SetJar(type, amount);
-                Logger.Log($"✅ [PersonalAreaUIController] Количество для банки {type} установлено: {amount}");
+                MyLogger.Log($"✅ [PersonalAreaUIController] Количество для банки {type} установлено: {amount}", MyLogger.LogCategory.Gameplay);
             }
             catch (Exception ex)
             {
-                Logger.LogError($"❌ [PersonalAreaUIController] Ошибка при установке количества для банки {type}: {ex.Message}");
+                MyLogger.LogError($"❌ [PersonalAreaUIController] Ошибка при установке количества для банки {type}: {ex.Message}", MyLogger.LogCategory.UI);
             }
         }
 
@@ -189,11 +188,11 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         {
             if (_statistics == null)
             {
-                Logger.LogError("❌ [PersonalAreaUIController] Невозможно установить очки: StatisticsComponent отсутствует");
+                MyLogger.LogError("❌ [PersonalAreaUIController] Невозможно установить очки: StatisticsComponent отсутствует", MyLogger.LogCategory.UI);
                 return;
             }
             
-            Logger.Log($"🔄 [PersonalAreaUIController] Установка очков: {points}");
+            MyLogger.Log($"🔄 [PersonalAreaUIController] Установка очков: {points}", MyLogger.LogCategory.Gameplay);
             _statistics.SetPoints(points);
         }
         
@@ -201,11 +200,11 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         {
             if (_statistics == null)
             {
-                Logger.LogError("❌ [PersonalAreaUIController] Невозможно установить записи: StatisticsComponent отсутствует");
+                MyLogger.LogError("❌ [PersonalAreaUIController] Невозможно установить записи: StatisticsComponent отсутствует", MyLogger.LogCategory.UI);
                 return;
             }
             
-            Logger.Log($"🔄 [PersonalAreaUIController] Установка записей: {entries}");
+            MyLogger.Log($"🔄 [PersonalAreaUIController] Установка записей: {entries}", MyLogger.LogCategory.Gameplay);
             _statistics.SetEntries(entries);
         }
 
@@ -214,57 +213,57 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         /// </summary>
         public EmotionJarView GetEmotionJarView()
         {
-            Logger.Log($"🔄 [PersonalAreaUIController] Запрошен EmotionJarView: {(_emotionJars != null ? _emotionJars.name : "null")}"); 
+            MyLogger.Log($"🔄 [PersonalAreaUIController] Запрошен EmotionJarView: {(_emotionJars != null ? _emotionJars.name : "null")}", MyLogger.LogCategory.UI); 
             return _emotionJars;
         }
 
         public void ClearAll()
         {
-            Logger.Log("🔄 [PersonalAreaUIController] Очистка всех компонентов...");
+            MyLogger.Log("🔄 [PersonalAreaUIController] Очистка всех компонентов...", MyLogger.LogCategory.UI);
             
             try
             {
                 if (_profileInfo != null)
                 {
                     _profileInfo.Clear();
-                    Logger.Log("✅ [PersonalAreaUIController] ProfileInfoComponent очищен");
+                    MyLogger.Log("✅ [PersonalAreaUIController] ProfileInfoComponent очищен", MyLogger.LogCategory.UI);
                 }
                 
                 if (_emotionJars != null)
                 {
                     _emotionJars.Clear();
-                    Logger.Log("✅ [PersonalAreaUIController] EmotionJarView очищен");
+                    MyLogger.Log("✅ [PersonalAreaUIController] EmotionJarView очищен", MyLogger.LogCategory.UI);
                 }
                 
                 if (_statistics != null)
                 {
                     _statistics.Clear();
-                    Logger.Log("✅ [PersonalAreaUIController] StatisticsComponent очищен");
+                    MyLogger.Log("✅ [PersonalAreaUIController] StatisticsComponent очищен", MyLogger.LogCategory.UI);
                 }
                 
                 if (_navigation != null)
                 {
                     _navigation.Clear();
-                    Logger.Log("✅ [PersonalAreaUIController] NavigationComponent очищен");
+                    MyLogger.Log("✅ [PersonalAreaUIController] NavigationComponent очищен", MyLogger.LogCategory.UI);
                 }
                 
-                Logger.Log("✅ [PersonalAreaUIController] Все компоненты очищены");
+                MyLogger.Log("✅ [PersonalAreaUIController] Все компоненты очищены", MyLogger.LogCategory.UI);
             }
             catch (Exception ex)
             {
-                Logger.LogError($"❌ [PersonalAreaUIController] Ошибка при очистке компонентов: {ex.Message}");
+                MyLogger.LogError($"❌ [PersonalAreaUIController] Ошибка при очистке компонентов: {ex.Message}", MyLogger.LogCategory.UI);
             }
         }
 
         private void OnDestroy()
         {
-            Logger.Log("🔄 [PersonalAreaUIController] OnDestroy вызван, очищаем компоненты");
+            MyLogger.Log("🔄 [PersonalAreaUIController] OnDestroy вызван, очищаем компоненты", MyLogger.LogCategory.UI);
             ClearAll();
         }
 
         public NavigationComponent GetNavigationComponent()
         {
-            Logger.Log($"🔄 [PersonalAreaUIController] Запрошен NavigationComponent: {(_navigation != null ? _navigation.name : "null")}"); 
+            MyLogger.Log($"🔄 [PersonalAreaUIController] Запрошен NavigationComponent: {(_navigation != null ? _navigation.name : "null")}", MyLogger.LogCategory.UI); 
             return _navigation;
         }
     }

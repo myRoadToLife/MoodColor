@@ -4,6 +4,7 @@ using System.Text;
 using System.Security.Cryptography;
 using UnityEngine;
 using System.IO;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Firebase.Common.SecureStorage
 {
@@ -44,12 +45,12 @@ namespace App.Develop.CommonServices.Firebase.Common.SecureStorage
                         {
                             throw new Exception("Ключ шифрования изменился");
                         }
-                        Debug.Log("✅ Проверка ключа шифрования успешна");
+                        MyLogger.Log("✅ Проверка ключа шифрования успешна", MyLogger.LogCategory.Firebase);
                     }
                     catch
                     {
                         // Если не удалось расшифровать, значит ключ изменился
-                        Debug.LogWarning("⚠️ Обнаружено изменение ключа шифрования. Очистка данных.");
+                        MyLogger.LogWarning("⚠️ Обнаружено изменение ключа шифрования. Очистка данных.", MyLogger.LogCategory.Firebase);
                         PlayerPrefs.DeleteAll();
                         
                         // Сохраняем новое проверочное значение
@@ -68,10 +69,10 @@ namespace App.Develop.CommonServices.Firebase.Common.SecureStorage
                     string encryptedCheck = EncryptString(CHECK_VALUE);
                     PlayerPrefs.SetString(CHECK_KEY, encryptedCheck);
                     PlayerPrefs.Save();
-                    Debug.Log("✅ Первичная инициализация SecurePlayerPrefs выполнена");
+                    MyLogger.Log("✅ Первичная инициализация SecurePlayerPrefs выполнена", MyLogger.LogCategory.Firebase);
                 }
                 
-                Debug.Log("✅ SecurePlayerPrefs инициализирован успешно");
+                MyLogger.Log("✅ SecurePlayerPrefs инициализирован успешно", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
@@ -79,7 +80,7 @@ namespace App.Develop.CommonServices.Firebase.Common.SecureStorage
                 PlayerPrefs.DeleteAll();
                 PlayerPrefs.Save();
                 
-                Debug.LogError($"❌ Ошибка инициализации SecurePlayerPrefs: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка инициализации SecurePlayerPrefs: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -121,7 +122,7 @@ namespace App.Develop.CommonServices.Firebase.Common.SecureStorage
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка сохранения строки для ключа {key}: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка сохранения строки для ключа {key}: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -140,7 +141,7 @@ namespace App.Develop.CommonServices.Firebase.Common.SecureStorage
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"⚠️ Не удалось расшифровать значение для ключа {key}: {ex.Message}");
+                MyLogger.LogWarning($"⚠️ Не удалось расшифровать значение для ключа {key}: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return defaultValue;
             }
         }
@@ -263,7 +264,7 @@ namespace App.Develop.CommonServices.Firebase.Common.SecureStorage
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка шифрования: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка шифрования: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -315,7 +316,7 @@ namespace App.Develop.CommonServices.Firebase.Common.SecureStorage
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка расшифровки: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка расшифровки: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }

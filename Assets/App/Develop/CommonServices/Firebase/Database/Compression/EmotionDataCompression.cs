@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Text;
 using App.Develop.CommonServices.Firebase.Database.Models;
 using App.Develop.CommonServices.DataManagement.DataProviders;
+using App.Develop.Utils.Logging;
 using Firebase.Database;
 using Newtonsoft.Json;
 using UnityEngine;
@@ -95,7 +96,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Compression
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при распаковке данных эмоции: {ex.Message}");
+                MyLogger.LogError($"Ошибка при распаковке данных эмоции: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return null;
             }
         }
@@ -130,7 +131,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Compression
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при распаковке истории эмоций: {ex.Message}");
+                MyLogger.LogError($"Ошибка при распаковке истории эмоций: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return new List<EmotionHistoryRecord>();
             }
         }

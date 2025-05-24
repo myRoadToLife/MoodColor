@@ -7,6 +7,7 @@ using Firebase.Auth;
 using UnityEngine;
 using App.Develop.CommonServices.Firebase.Database.Models;
 using UserProfile = App.Develop.CommonServices.Firebase.Database.Models.UserProfile;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Social
 {
@@ -64,7 +65,7 @@ namespace App.Develop.CommonServices.Social
             }
             catch (Exception e)
             {
-                Debug.LogError($"Error handling notification: {e.Message}");
+                MyLogger.LogError($"Error handling notification: {e.Message}", MyLogger.LogCategory.Firebase);
             }
         }
 
@@ -102,7 +103,7 @@ namespace App.Develop.CommonServices.Social
             }
             catch (Exception e)
             {
-                Debug.LogError($"Error handling friendship change: {e.Message}");
+                MyLogger.LogError($"Error handling friendship change: {e.Message}", MyLogger.LogCategory.Firebase);
             }
         }
 
@@ -129,7 +130,7 @@ namespace App.Develop.CommonServices.Social
             }
             catch (Exception e)
             {
-                Debug.LogError($"Error adding friend: {e.Message}");
+                MyLogger.LogError($"Error adding friend: {e.Message}", MyLogger.LogCategory.Firebase);
                 return false;
             }
         }
@@ -149,7 +150,7 @@ namespace App.Develop.CommonServices.Social
             }
             catch (Exception e)
             {
-                Debug.LogError($"Error removing friend: {e.Message}");
+                MyLogger.LogError($"Error removing friend: {e.Message}", MyLogger.LogCategory.Firebase);
                 return false;
             }
         }
@@ -183,7 +184,7 @@ namespace App.Develop.CommonServices.Social
             }
             catch (Exception e)
             {
-                Debug.LogError($"Error getting friends list: {e.Message}");
+                MyLogger.LogError($"Error getting friends list: {e.Message}", MyLogger.LogCategory.Firebase);
                 return new Dictionary<string, UserProfile>();
             }
         }
@@ -216,7 +217,7 @@ namespace App.Develop.CommonServices.Social
             }
             catch (Exception e)
             {
-                Debug.LogError($"Error searching users: {e.Message}");
+                MyLogger.LogError($"Error searching users: {e.Message}", MyLogger.LogCategory.Firebase);
                 return new Dictionary<string, UserProfile>();
             }
         }
@@ -235,7 +236,7 @@ namespace App.Develop.CommonServices.Social
             }
             catch (Exception e)
             {
-                Debug.LogError($"Error getting regional stats: {e.Message}");
+                MyLogger.LogError($"Error getting regional stats: {e.Message}", MyLogger.LogCategory.Firebase);
                 return null;
             }
         }
@@ -282,7 +283,7 @@ namespace App.Develop.CommonServices.Social
             }
             catch (Exception e)
             {
-                Debug.LogError($"Error sending emotion reaction: {e.Message}");
+                MyLogger.LogError($"Error sending emotion reaction: {e.Message}", MyLogger.LogCategory.Firebase);
                 return false;
             }
         }
@@ -311,7 +312,7 @@ namespace App.Develop.CommonServices.Social
             }
             catch (Exception e)
             {
-                Debug.LogError($"Error getting privacy settings: {e.Message}");
+                MyLogger.LogError($"Error getting privacy settings: {e.Message}", MyLogger.LogCategory.Firebase);
                 return null;
             }
         }
@@ -327,7 +328,7 @@ namespace App.Develop.CommonServices.Social
             }
             catch (Exception e)
             {
-                Debug.LogError($"Error updating privacy settings: {e.Message}");
+                MyLogger.LogError($"Error updating privacy settings: {e.Message}", MyLogger.LogCategory.Firebase);
                 return false;
             }
         }
@@ -346,7 +347,7 @@ namespace App.Develop.CommonServices.Social
             }
             catch (Exception e)
             {
-                Debug.LogError($"Error getting user profile: {e.Message}");
+                MyLogger.LogError($"Error getting user profile: {e.Message}", MyLogger.LogCategory.Firebase);
                 return null;
             }
         }
@@ -375,7 +376,7 @@ namespace App.Develop.CommonServices.Social
             }
             catch (Exception e)
             {
-                Debug.LogError($"Error accepting friend request: {e.Message}");
+                MyLogger.LogError($"Error accepting friend request: {e.Message}", MyLogger.LogCategory.Firebase);
                 return false;
             }
         }

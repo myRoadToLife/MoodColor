@@ -8,6 +8,7 @@ using App.Develop.DI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Firebase.Auth
 {
@@ -59,7 +60,7 @@ namespace App.Develop.CommonServices.Firebase.Auth
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка инициализации ProfileSetupUI: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка инициализации ProfileSetupUI: {ex.Message}", MyLogger.LogCategory.Firebase);
             }
         }
 
@@ -92,7 +93,7 @@ namespace App.Develop.CommonServices.Firebase.Auth
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка при установке профиля: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка при установке профиля: {ex.Message}", MyLogger.LogCategory.Firebase);
                 ShowPopup("Произошла ошибка. Попробуйте позже.");
             }
             finally

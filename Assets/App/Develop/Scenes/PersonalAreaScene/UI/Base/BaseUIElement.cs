@@ -1,6 +1,5 @@
 using App.Develop.Utils.Logging;
 using UnityEngine;
-using Logger = App.Develop.Utils.Logging.Logger;
 
 namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Base
 {
@@ -22,12 +21,12 @@ namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Base
 
         protected void LogError(string message)
         {
-            Logger.LogError($"[{GetType().Name}] {message}");
+            MyLogger.LogError($"[{GetType().Name}] {message}");
         }
 
         protected void LogWarning(string message)
         {
-            Logger.LogWarning($"[{GetType().Name}] {message}");
+            MyLogger.LogWarning($"[{GetType().Name}] {message}");
         }
     }
 } 

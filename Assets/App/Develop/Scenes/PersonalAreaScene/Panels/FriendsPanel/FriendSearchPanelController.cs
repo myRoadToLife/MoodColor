@@ -10,7 +10,6 @@ using App.Develop.Utils.Logging;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using Logger = App.Develop.Utils.Logging.Logger;
 
 namespace App.Develop.Scenes.PersonalAreaScene.UI
 {
@@ -66,19 +65,19 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             try
             {
                 _socialService = container.Resolve<ISocialService>();
-                if (_socialService == null) Logger.LogError("❌ FriendSearchPanelController: Не удалось получить ISocialService!");
+                if (_socialService == null) MyLogger.LogError("❌ FriendSearchPanelController: Не удалось получить ISocialService!");
                 
                 _panelManager = container.Resolve<PanelManager>();
-                if (_panelManager == null) Logger.LogError("❌ FriendSearchPanelController: Не удалось получить PanelManager!");
+                if (_panelManager == null) MyLogger.LogError("❌ FriendSearchPanelController: Не удалось получить PanelManager!");
                 
                 SubscribeEvents();
                 _isInitialized = true;
                 
-                Logger.Log("✅ FriendSearchPanelController успешно инициализирован");
+                MyLogger.Log("✅ FriendSearchPanelController успешно инициализирован");
             }
             catch (Exception ex)
             {
-                Logger.LogError($"❌ Ошибка инициализации FriendSearchPanelController: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка инициализации FriendSearchPanelController: {ex.Message}");
             }
         }
         
@@ -159,7 +158,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             }
             catch (Exception ex)
             {
-                Logger.LogError($"❌ Ошибка при поиске пользователей: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка при поиске пользователей: {ex.Message}");
                 ShowPopup("Произошла ошибка при поиске. Попробуйте позже.");
             }
             finally
@@ -232,7 +231,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             }
             catch (Exception ex)
             {
-                Logger.LogError($"❌ Ошибка при добавлении друга: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка при добавлении друга: {ex.Message}");
                 ShowPopup("Произошла ошибка. Попробуйте позже.");
             }
         }
@@ -261,7 +260,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             }
             catch (Exception ex)
             {
-                Logger.LogError($"❌ Ошибка при отмене запроса в друзья: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка при отмене запроса в друзья: {ex.Message}");
                 ShowPopup("Произошла ошибка. Попробуйте позже.");
             }
         }
@@ -273,15 +272,15 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         /// </summary>
         private void ClosePanel()
         {
-            Logger.Log($"[FriendSearchPanelController] Кнопка ClosePanel нажата!");
+            MyLogger.Log($"[FriendSearchPanelController] Кнопка ClosePanel нажата!");
             if (_panelManager != null)
             {
-                Logger.Log($"[FriendSearchPanelController] Вызов TogglePanelAsync для {AssetAddresses.FriendSearchPanel}");
+                MyLogger.Log($"[FriendSearchPanelController] Вызов TogglePanelAsync для {AssetAddresses.FriendSearchPanel}");
                 _ = _panelManager.TogglePanelAsync<FriendSearchPanelController>(AssetAddresses.FriendSearchPanel);
             }
             else
             {
-                Logger.LogError("[FriendSearchPanelController] _panelManager is null!");
+                MyLogger.LogError("[FriendSearchPanelController] _panelManager is null!");
             }
         }
         #endregion

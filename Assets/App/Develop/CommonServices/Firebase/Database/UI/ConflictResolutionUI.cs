@@ -8,6 +8,7 @@ using App.Develop.DI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Firebase.Database.UI
 {
@@ -122,7 +123,7 @@ namespace App.Develop.CommonServices.Firebase.Database.UI
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при инициализации UI разрешения конфликтов: {ex.Message}");
+                MyLogger.LogError($"Ошибка при инициализации UI разрешения конфликтов: {ex.Message}", MyLogger.LogCategory.Firebase);
             }
         }
         
@@ -140,7 +141,7 @@ namespace App.Develop.CommonServices.Firebase.Database.UI
         {
             if (_isProcessing)
             {
-                Debug.LogWarning("Диалог разрешения конфликтов уже открыт");
+                MyLogger.LogWarning("Диалог разрешения конфликтов уже открыт", MyLogger.LogCategory.Firebase);
                 return null;
             }
             
@@ -344,7 +345,7 @@ namespace App.Develop.CommonServices.Firebase.Database.UI
             PlayerPrefs.SetInt("ConflictStrategy", (int)strategy);
             PlayerPrefs.Save();
             
-            Debug.Log($"Стратегия разрешения конфликтов изменена на: {strategy}");
+            MyLogger.Log($"Стратегия разрешения конфликтов изменена на: {strategy}", MyLogger.LogCategory.Firebase);
         }
         
         #endregion

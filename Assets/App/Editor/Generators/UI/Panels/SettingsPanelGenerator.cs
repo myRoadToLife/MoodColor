@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using System.IO;
 // using App.Develop.Scenes.PersonalAreaScene.UI; // TODO: Add controller if needed
 using App.Editor.Generators.UI.Core; // Для UIComponentGenerator
+using App.Develop.Utils.Logging;
 
 namespace App.Editor.Generators.UI.Panels
 {
@@ -27,7 +28,7 @@ namespace App.Editor.Generators.UI.Panels
             if (_woodenPlankSprite == null)
                 _woodenPlankSprite = AssetDatabase.LoadAssetAtPath<Sprite>(Path.Combine(TexturesFolder, "WoodenPlank.png"));
             if (_woodenPlankSprite == null) 
-                Debug.LogWarning($"[SettingsPanelGenerator] Текстура WoodenPlank.png не найдена в {TexturesFolder}");
+                MyLogger.EditorLogWarning($"[SettingsPanelGenerator] Текстура WoodenPlank.png не найдена в {TexturesFolder}");
 
             if (_brushyFont == null)
             {
@@ -35,7 +36,7 @@ namespace App.Editor.Generators.UI.Panels
                 if (_brushyFont == null) 
                     _brushyFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(Path.Combine(FontsFolder, "BrushyFont.ttf"));
                 if (_brushyFont == null) 
-                    Debug.LogWarning($"[SettingsPanelGenerator] TMP_FontAsset BrushyFont (.asset или .ttf) не найден в {FontsFolder}.");
+                    MyLogger.EditorLogWarning($"[SettingsPanelGenerator] TMP_FontAsset BrushyFont (.asset или .ttf) не найден в {FontsFolder}.");
             }
         }
 
@@ -80,7 +81,7 @@ namespace App.Editor.Generators.UI.Panels
                  GameObject.DestroyImmediate(panelRoot);
             }
 
-            Debug.Log($"[SettingsPanelGenerator] Префаб {panelName} создан в {Path.Combine(PrefabSaveFolderPath, panelName + ".prefab")}");
+            MyLogger.EditorLog($"[SettingsPanelGenerator] Префаб {panelName} создан в {Path.Combine(PrefabSaveFolderPath, panelName + ".prefab")}");
         }
     }
 } 

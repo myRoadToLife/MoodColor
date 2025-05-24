@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Firebase;
 using Firebase.Extensions;
 using UnityEngine;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Firebase.Common.Helpers
 {
@@ -34,7 +35,7 @@ namespace App.Develop.CommonServices.Firebase.Common.Helpers
                 
                 if (!string.IsNullOrEmpty(successMessage))
                 {
-                    Debug.Log($"✅ {successMessage}");
+                    MyLogger.Log($"✅ {successMessage}", MyLogger.LogCategory.Firebase);
                 }
                 
                 return result;
@@ -52,7 +53,7 @@ namespace App.Develop.CommonServices.Firebase.Common.Helpers
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ {errorMessage ?? "Ошибка Firebase"}: {ex.Message}");
+                MyLogger.LogError($"❌ {errorMessage ?? "Ошибка Firebase"}: {ex.Message}", MyLogger.LogCategory.Firebase);
                 
                 if (throwOnError)
                 {
@@ -83,7 +84,7 @@ namespace App.Develop.CommonServices.Firebase.Common.Helpers
                 
                 if (!string.IsNullOrEmpty(successMessage))
                 {
-                    Debug.Log($"✅ {successMessage}");
+                    MyLogger.Log($"✅ {successMessage}", MyLogger.LogCategory.Firebase);
                 }
                 
                 return true;
@@ -101,7 +102,7 @@ namespace App.Develop.CommonServices.Firebase.Common.Helpers
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ {errorMessage ?? "Ошибка Firebase"}: {ex.Message}");
+                MyLogger.LogError($"❌ {errorMessage ?? "Ошибка Firebase"}: {ex.Message}", MyLogger.LogCategory.Firebase);
                 
                 if (throwOnError)
                 {
@@ -178,7 +179,7 @@ namespace App.Develop.CommonServices.Firebase.Common.Helpers
                 logMessage = $"❌ {customErrorMessage}: {friendlyMessage} ({errorCode}{ex.Message})";
             }
             
-            Debug.LogError(logMessage);
+            MyLogger.LogError(logMessage, MyLogger.LogCategory.Firebase);
         }
         
         #endregion

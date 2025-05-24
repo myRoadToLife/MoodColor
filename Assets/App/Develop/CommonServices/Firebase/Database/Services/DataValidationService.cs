@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using App.Develop.CommonServices.Firebase.Database.Services;
 using UnityEngine;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Firebase.Database.Services
 {
@@ -22,11 +23,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             var type = typeof(T);
             if (_validators.ContainsKey(type))
             {
-                Debug.LogWarning($"Валидатор для типа {type.Name} уже зарегистрирован. Будет использован новый валидатор.");
+                MyLogger.LogWarning($"Валидатор для типа {type.Name} уже зарегистрирован. Будет использован новый валидатор.", MyLogger.LogCategory.Firebase);
             }
             
             _validators[type] = validator;
-            Debug.Log($"Зарегистрирован валидатор для типа {type.Name}");
+            MyLogger.Log($"Зарегистрирован валидатор для типа {type.Name}", MyLogger.LogCategory.Firebase);
         }
         
         /// <summary>
@@ -59,7 +60,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             
             if (!result.IsValid)
             {
-                Debug.LogWarning($"Валидация данных типа {type.Name} не пройдена. Ошибок: {result.Errors.Count}");
+                MyLogger.LogWarning($"Валидация данных типа {type.Name} не пройдена. Ошибок: {result.Errors.Count}", MyLogger.LogCategory.Firebase);
             }
             
             return result;

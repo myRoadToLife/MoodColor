@@ -4,7 +4,6 @@ using App.App.Develop.Scenes.PersonalAreaScene.UI.Base;
 using App.Develop.CommonServices.Emotion;
 using App.Develop.Scenes.PersonalAreaScene.UI.Base;
 using App.Develop.Utils.Logging;
-using Logger = App.Develop.Utils.Logging.Logger;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -77,15 +76,16 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI.Components
         #region Public Methods
         public void Initialize()
         {
-            Logger.Log("EmotionJarView: Начало инициализации");
+            MyLogger.Log("EmotionJarView: Начало инициализации", MyLogger.LogCategory.UI);
             try
             {
                 InitializeJarsDictionary();
-                Logger.Log("EmotionJarView: Инициализация завершена");
+                
+                MyLogger.Log("EmotionJarView: Инициализация завершена", MyLogger.LogCategory.UI);
             }
             catch (Exception ex)
             {
-                Logger.LogError($"EmotionJarView: Ошибка инициализации - {ex.Message}");
+                MyLogger.LogError($"EmotionJarView: Ошибка инициализации - {ex.Message}", MyLogger.LogCategory.UI);
             }
         }
 
@@ -165,7 +165,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI.Components
                 EmotionTypes emotionType = (EmotionTypes)type;
                 if (!_emotionJars.ContainsKey(emotionType) || _emotionJars[emotionType] == null)
                 {
-                    Logger.LogWarning($"Банка для типа {emotionType} отсутствует, но будет обрабатываться без отображения");
+                    MyLogger.LogWarning($"Банка для типа {emotionType} отсутствует, но будет обрабатываться без отображения", MyLogger.LogCategory.Gameplay);
                 }
             }
         }

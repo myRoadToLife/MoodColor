@@ -5,6 +5,7 @@ using App.Develop.CommonServices.DataManagement.DataProviders;
 using App.Develop.CommonServices.GameSystem.Conditions;
 using App.Develop.DI;
 using UnityEngine;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.GameSystem
 {
@@ -89,7 +90,7 @@ namespace App.Develop.CommonServices.GameSystem
                 _playerDataProvider.Save();
             }
             
-            Debug.Log($"Инициализирована система достижений. Всего достижений: {_gameData.Achievements.Count}");
+            MyLogger.Log($"Инициализирована система достижений. Всего достижений: {_gameData.Achievements.Count}", MyLogger.LogCategory.Default);
         }
 
         #endregion
@@ -135,7 +136,7 @@ namespace App.Develop.CommonServices.GameSystem
                 return achievement.Progress;
             }
             
-            Debug.LogWarning($"Достижение с ID {achievementId} не найдено");
+            MyLogger.LogWarning($"Достижение с ID {achievementId} не найдено", MyLogger.LogCategory.Default);
             return 0f;
         }
 
@@ -148,7 +149,7 @@ namespace App.Develop.CommonServices.GameSystem
         {
             if (!_gameData.AchievementsMap.TryGetValue(achievementId, out var achievement))
             {
-                Debug.LogWarning($"Достижение с ID {achievementId} не найдено");
+                MyLogger.LogWarning($"Достижение с ID {achievementId} не найдено", MyLogger.LogCategory.Default);
                 return;
             }
             
@@ -244,7 +245,7 @@ namespace App.Develop.CommonServices.GameSystem
             // Для каждого условия будет своя реализация
             // В будущем можно добавить и другие условия
             
-            Debug.Log($"Зарегистрировано {_achievementConditions.Count} условий достижений");
+            MyLogger.Log($"Зарегистрировано {_achievementConditions.Count} условий достижений", MyLogger.LogCategory.Default);
         }
 
         /// <summary>
@@ -309,7 +310,7 @@ namespace App.Develop.CommonServices.GameSystem
             _gameData.Achievements.Add(achievement);
             _gameData.AchievementsMap[id] = achievement;
             
-            Debug.Log($"Добавлено достижение: {name}");
+            MyLogger.Log($"Добавлено достижение: {name}", MyLogger.LogCategory.Default);
         }
 
         /// <summary>
@@ -335,13 +336,13 @@ namespace App.Develop.CommonServices.GameSystem
                 // Начисляем опыт в зависимости от награды достижения
                 int xpReward = achievement.PointsReward * 2; // XP = Очки * 2
                 _levelSystem.AddXP(xpReward, XPSource.Achievement);
-                Debug.Log($"Начислено {xpReward} опыта за достижение: {achievement.Name}");
+                MyLogger.Log($"Начислено {xpReward} опыта за достижение: {achievement.Name}", MyLogger.LogCategory.Default);
             }
             
             // Вызываем событие
             OnAchievementCompleted?.Invoke(achievement);
             
-            Debug.Log($"Достижение выполнено: {achievement.Name}, награда: {achievement.PointsReward} очков");
+            MyLogger.Log($"Достижение выполнено: {achievement.Name}, награда: {achievement.PointsReward} очков", MyLogger.LogCategory.Default);
         }
 
         #endregion

@@ -1,6 +1,7 @@
 using App.Develop.CommonServices.Firebase.Database.Models;
 using System.Threading.Tasks;
 using UnityEngine;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Firebase.Database.Services
 {
@@ -23,14 +24,14 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (record == null)
             {
-                Debug.LogError("Невозможно сохранить пустую запись");
+                MyLogger.LogError("Невозможно сохранить пустую запись", MyLogger.LogCategory.Firebase);
                 return false;
             }
             
             // Если сервис валидации не доступен, пропускаем валидацию
             if (validationService == null || !validationService.HasValidator<EmotionHistoryRecord>())
             {
-                Debug.LogWarning("Валидация пропущена: сервис валидации не доступен");
+                MyLogger.LogWarning("Валидация пропущена: сервис валидации не доступен", MyLogger.LogCategory.Firebase);
                 return await databaseService.SaveEmotionHistoryRecord(record);
             }
             
@@ -60,14 +61,14 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (userData == null)
             {
-                Debug.LogError("Невозможно обновить пустые данные пользователя");
+                MyLogger.LogError("Невозможно обновить пустые данные пользователя", MyLogger.LogCategory.Firebase);
                 return false;
             }
             
             // Если сервис валидации не доступен, пропускаем валидацию
             if (validationService == null || !validationService.HasValidator<UserData>())
             {
-                Debug.LogWarning("Валидация пропущена: сервис валидации не доступен");
+                MyLogger.LogWarning("Валидация пропущена: сервис валидации не доступен", MyLogger.LogCategory.Firebase);
                 await databaseService.UpdateUserProfile(userData.Profile);
                 return true; // Предполагаем успех, если нет явных ошибок
             }
@@ -102,13 +103,13 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             // Проверки основных параметров
             if (string.IsNullOrEmpty(emotionType))
             {
-                Debug.LogError("Невозможно обновить эмоцию с пустым типом");
+                MyLogger.LogError("Невозможно обновить эмоцию с пустым типом", MyLogger.LogCategory.Firebase);
                 return;
             }
             
             if (intensity < 0 || intensity > 1)
             {
-                Debug.LogError($"Интенсивность эмоции должна быть в диапазоне от 0 до 1, текущее значение: {intensity}");
+                MyLogger.LogError($"Интенсивность эмоции должна быть в диапазоне от 0 до 1, текущее значение: {intensity}", MyLogger.LogCategory.Firebase);
                 return;
             }
             

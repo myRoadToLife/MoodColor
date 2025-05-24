@@ -384,13 +384,6 @@
       },
       "url": "https://packages.unity.com"
     },
-    "io.sentry.unity": {
-      "version": "https://github.com/getsentry/unity.git#3.2.2",
-      "depth": 0,
-      "source": "git",
-      "dependencies": {},
-      "hash": "07c39f9d99552c9dd57d5e09bbdfd4b409089a01"
-    },
     "com.unity.modules.ai": {
       "version": "1.0.0",
       "depth": 0,

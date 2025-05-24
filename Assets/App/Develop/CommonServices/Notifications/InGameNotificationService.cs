@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using App.Develop.CommonServices.AssetManagement;
 using System.Threading.Tasks;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Notifications
 {
@@ -96,12 +97,12 @@ namespace App.Develop.CommonServices.Notifications
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning($"Не удалось загрузить префаб уведомления через Addressables: {ex.Message}");
+                    MyLogger.LogWarning($"Не удалось загрузить префаб уведомления через Addressables: {ex.Message}", MyLogger.LogCategory.Default);
                 }
                 
                 if (_notificationPrefab == null)
                 {
-                    Debug.Log("Префаб уведомления не найден, создаем простой префаб");
+                    MyLogger.Log("Префаб уведомления не найден, создаем простой префаб", MyLogger.LogCategory.Default);
                     // Создаем простой префаб уведомления программно
                     _notificationPrefab = new GameObject("InGameNotification");
                     RectTransform prefabRect = _notificationPrefab.AddComponent<RectTransform>();
@@ -166,7 +167,7 @@ namespace App.Develop.CommonServices.Notifications
             }
             
             _isInitialized = true;
-            Debug.Log("InGameNotificationService initialized successfully");
+            MyLogger.Log("InGameNotificationService initialized successfully", MyLogger.LogCategory.Default);
         }
         
         /// <summary>
@@ -181,7 +182,7 @@ namespace App.Develop.CommonServices.Notifications
             
             if (_notificationPrefab == null)
             {
-                Debug.LogError("Cannot show notification: notification prefab is missing");
+                MyLogger.LogError("Cannot show notification: notification prefab is missing", MyLogger.LogCategory.Default);
                 return;
             }
             
@@ -276,7 +277,7 @@ namespace App.Develop.CommonServices.Notifications
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"Не удалось загрузить иконку для категории {category}: {ex.Message}");
+                MyLogger.LogWarning($"Не удалось загрузить иконку для категории {category}: {ex.Message}", MyLogger.LogCategory.Default);
                 return null;
             }
         }
@@ -298,7 +299,7 @@ namespace App.Develop.CommonServices.Notifications
             }
             catch
             {
-                Debug.LogWarning($"Не удалось загрузить иконку для категории {category}");
+                MyLogger.LogWarning($"Не удалось загрузить иконку для категории {category}", MyLogger.LogCategory.Default);
                 return null;
             }
         }

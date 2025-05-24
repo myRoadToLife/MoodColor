@@ -5,7 +5,6 @@ using App.Develop.CommonServices.UI;
 using App.Develop.DI;
 using App.Develop.Utils.Logging;
 using UnityEngine;
-using Logger = App.Develop.Utils.Logging.Logger;
 
 namespace App.Develop.CommonServices.Social
 {
@@ -34,25 +33,25 @@ namespace App.Develop.CommonServices.Social
                 _socialService = container.Resolve<ISocialService>();
                 if (_socialService == null)
                 {
-                    Logger.LogError("❌ FriendRequestNotificationHandler: Не удалось получить ISocialService!");
+                    MyLogger.LogError("❌ FriendRequestNotificationHandler: Не удалось получить ISocialService!");
                     return;
                 }
                 
                 _notificationManager = container.Resolve<NotificationManager>();
                 if (_notificationManager == null)
                 {
-                    Logger.LogError("❌ FriendRequestNotificationHandler: Не удалось получить NotificationManager!");
+                    MyLogger.LogError("❌ FriendRequestNotificationHandler: Не удалось получить NotificationManager!");
                     return;
                 }
                 
                 // Подписываемся на события уведомлений
                 SubscribeToEvents();
                 
-                Logger.Log("✅ FriendRequestNotificationHandler успешно инициализирован");
+                MyLogger.Log("✅ FriendRequestNotificationHandler успешно инициализирован");
             }
             catch (Exception ex)
             {
-                Logger.LogError($"❌ Ошибка инициализации FriendRequestNotificationHandler: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка инициализации FriendRequestNotificationHandler: {ex.Message}");
             }
         }
         
@@ -197,7 +196,7 @@ namespace App.Develop.CommonServices.Social
             }
             catch (Exception ex)
             {
-                Logger.LogError($"❌ Ошибка при принятии запроса в друзья: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка при принятии запроса в друзья: {ex.Message}");
             }
         }
         
@@ -233,7 +232,7 @@ namespace App.Develop.CommonServices.Social
             }
             catch (Exception ex)
             {
-                Logger.LogError($"❌ Ошибка при отклонении запроса в друзья: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка при отклонении запроса в друзья: {ex.Message}");
             }
         }
         #endregion

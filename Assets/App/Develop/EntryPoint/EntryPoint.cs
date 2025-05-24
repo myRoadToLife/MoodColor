@@ -28,10 +28,13 @@ using App.Develop.CommonServices.Social;
 using App.Develop.Scenes.PersonalAreaScene.Infrastructure;
 using App.Develop.Scenes.PersonalAreaScene.Settings;
 using App.Develop.Scenes.PersonalAreaScene.UI.Components;
+using App.Develop.Scenes.PersonalAreaScene.Handlers;
+using App.Develop.Utils.Logging;
 using UnityEngine.AddressableAssets;
 
 #if !DISABLE_AUTO_ADDRESSABLES_IMPORT
 using UnityEngine.AddressableAssets;
+using App.Develop.Utils.Logging;
 #endif
 
 namespace App.Develop.EntryPoint
@@ -51,6 +54,7 @@ namespace App.Develop.EntryPoint
 
         private void Awake()
         {
+            MyLogger.Log("🚀 EntryPoint.Awake(, MyLogger.LogCategory.Bootstrap) вызван");
             // DontDestroyOnLoad(gameObject); // ВРЕМЕННО ЗАКОММЕНТИРОВАТЬ
             InitializeApplication();
         }
@@ -62,24 +66,29 @@ namespace App.Develop.EntryPoint
         {
             try
             {
+                MyLogger.Log("📦 Инициализация Addressables...", MyLogger.LogCategory.Bootstrap);
                 await Addressables.InitializeAsync().Task;
-
+                
+                MyLogger.Log("⚙️ Настройка приложения...", MyLogger.LogCategory.Bootstrap);
                 SetupAppSettings();
                 _projectContainer = new DIContainer();
                 InitializeSecureStorage(_projectContainer);
-
+                
+                MyLogger.Log("🔧 Регистрация основных сервисов...", MyLogger.LogCategory.Bootstrap);
                 await RegisterCoreServices(_projectContainer);
-
                 ShowInitialLoadingScreen();
 
+                MyLogger.Log("🔥 Инициализация Firebase...", MyLogger.LogCategory.Bootstrap);
                 if (!await InitFirebaseAsync())
                 {
-                    Debug.LogError("❌ Не удалось инициализировать Firebase");
+                    MyLogger.LogError("❌ Не удалось инициализировать Firebase", MyLogger.LogCategory.Bootstrap);
                     return;
                 }
 
+                MyLogger.Log("🔥 Регистрация Firebase сервисов...", MyLogger.LogCategory.Bootstrap);
                 RegisterFirebaseServices();
 
+                MyLogger.Log("👤 Регистрация PlayerDataProvider...", MyLogger.LogCategory.Bootstrap);
                 _projectContainer.RegisterAsSingle(c =>
                     new PlayerDataProvider(
                         c.Resolve<ISaveLoadService>(),
@@ -88,15 +97,21 @@ namespace App.Develop.EntryPoint
                     )
                 );
 
-
+                MyLogger.Log("🎮 Регистрация игровой системы...", MyLogger.LogCategory.Bootstrap);
                 RegisterGameSystem(_projectContainer);
-
+                
+                MyLogger.Log("📊 Инициализация контейнера и загрузка данных...", MyLogger.LogCategory.Bootstrap);
                 await InitializeContainerAndLoadData();
+                
+                MyLogger.Log("🚀 Запуск Bootstrap...", MyLogger.LogCategory.Bootstrap);
                 StartBootstrapProcess();
+                
+                MyLogger.Log("✅ Приложение инициализировано успешно", MyLogger.LogCategory.Bootstrap);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка инициализации приложения: {ex}");
+                MyLogger.LogError($"❌ КРИТИЧЕСКАЯ ОШИБКА инициализации: {ex}", MyLogger.LogCategory.Bootstrap);
+                MyLogger.LogError($"❌ Stack trace: {ex.StackTrace}", MyLogger.LogCategory.Bootstrap);
             }
         }
 
@@ -107,7 +122,6 @@ namespace App.Develop.EntryPoint
         {
             QualitySettings.vSyncCount = 0;
             Application.targetFrameRate = 60;
-            Debug.Log("✅ Настройки приложения установлены");
         }
 
         /// <summary>
@@ -117,7 +131,6 @@ namespace App.Develop.EntryPoint
         {
             ILoadingScreen loadingScreen = _projectContainer.Resolve<ILoadingScreen>();
             loadingScreen.Show();
-            Debug.Log("Вызван Show() на ILoadingScreen");
         }
 
         /// <summary>
@@ -131,11 +144,9 @@ namespace App.Develop.EntryPoint
                 try
                 {
                     var existingApp = FirebaseApp.GetInstance(FIREBASE_APP_NAME);
-
                     if (existingApp != null)
                     {
                         existingApp.Dispose();
-                        Debug.Log($"Удален существующий экземпляр Firebase с именем {FIREBASE_APP_NAME}");
                     }
                 }
                 catch (Exception)
@@ -151,7 +162,7 @@ namespace App.Develop.EntryPoint
 
                 if (dependencyStatus != DependencyStatus.Available)
                 {
-                    Debug.LogError($"❌ Firebase не доступен: {dependencyStatus}");
+                    MyLogger.LogError($"❌ Firebase зависимости недоступны: {dependencyStatus}", MyLogger.LogCategory.Bootstrap);
                     return false;
                 }
 
@@ -171,7 +182,8 @@ namespace App.Develop.EntryPoint
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка инициализации Firebase: {ex.Message}");
+                MyLogger.LogError($"❌ ОШИБКА Firebase инициализации: {ex.Message}", MyLogger.LogCategory.Bootstrap);
+                MyLogger.LogError($"❌ Firebase Stack trace: {ex.StackTrace}", MyLogger.LogCategory.Bootstrap);
                 return false;
             }
         }
@@ -206,20 +218,6 @@ namespace App.Develop.EntryPoint
         /// </summary>
         private async Task InitializeContainerAndLoadData()
         {
-            _projectContainer.RegisterAsSingle<EmotionService>(c =>
-                new EmotionService(
-                    c.Resolve<PlayerDataProvider>(),
-                    c.Resolve<IConfigsProvider>(),
-                    c.Resolve<EmotionConfigService>(),
-                    c.Resolve<IPointsService>(),
-                    c.Resolve<ILevelSystem>()
-                )
-            ).NonLazy();
-
-            Debug.Log("✅ EmotionService зарегистрирован (в InitializeContainerAndLoadData).");
-
-            await RegisterPersonalAreaServices(_projectContainer);
-
             // Сначала инициализируем ConfigsProviderService и EmotionConfigService
             var configsProvider = _projectContainer.Resolve<IConfigsProvider>() as ConfigsProviderService;
 
@@ -229,7 +227,7 @@ namespace App.Develop.EntryPoint
             }
             else
             {
-                Debug.LogError("[EntryPoint] ConfigsProviderService не удалось разрезолвить как конкретный тип для InitializeAsync.");
+                MyLogger.LogError("[EntryPoint] ConfigsProviderService не удалось разрезолвить как конкретный тип для InitializeAsync.", MyLogger.LogCategory.Bootstrap);
             }
 
             var emotionCfgService = _projectContainer.Resolve<EmotionConfigService>();
@@ -240,12 +238,26 @@ namespace App.Develop.EntryPoint
             }
             else
             {
-                Debug.LogWarning("[EntryPoint] EmotionConfigService не удалось разрезолвить как конкретный тип для InitializeAsync.");
+                MyLogger.LogWarning("[EntryPoint] EmotionConfigService не удалось разрезолвить как конкретный тип для InitializeAsync.", MyLogger.LogCategory.Bootstrap);
             }
 
-            // Затем загружаем PlayerDataProvider и IPointsService
+            // Затем загружаем PlayerDataProvider ПЕРЕД созданием EmotionService
             await _projectContainer.Resolve<PlayerDataProvider>().Load();
 
+            // ТЕПЕРЬ регистрируем EmotionService после загрузки PlayerDataProvider
+            _projectContainer.RegisterAsSingle<EmotionService>(c =>
+                new EmotionService(
+                    c.Resolve<PlayerDataProvider>(),
+                    c.Resolve<IConfigsProvider>(),
+                    c.Resolve<EmotionConfigService>(),
+                    c.Resolve<IPointsService>(),
+                    c.Resolve<ILevelSystem>()
+                )
+            ).NonLazy();
+
+            MyLogger.Log("✅ EmotionService зарегистрирован (в InitializeContainerAndLoadData, MyLogger.LogCategory.Bootstrap).");
+            
+            // Загружаем PointsService ПОСЛЕ EmotionService
             var pointsService = _projectContainer.Resolve<IPointsService>();
 
             if (pointsService != null)
@@ -255,7 +267,34 @@ namespace App.Develop.EntryPoint
             }
             else
             {
-                Debug.LogError("[EntryPoint] IPointsService не удалось разрезолвить из контейнера.");
+                MyLogger.LogError("[EntryPoint] IPointsService не удалось разрезолвить из контейнера.", MyLogger.LogCategory.Bootstrap);
+            }
+
+            await RegisterPersonalAreaServices(_projectContainer);
+
+            // Инициализируем Firebase синхронизацию для EmotionService ПОСЛЕ регистрации всех сервисов
+            var emotionService = _projectContainer.Resolve<EmotionService>();
+            var databaseService = _projectContainer.Resolve<IDatabaseService>();
+            var syncService = _projectContainer.Resolve<EmotionSyncService>();
+            
+            if (emotionService != null && databaseService != null && syncService != null)
+            {
+                emotionService.InitializeFirebaseSync(databaseService, syncService);
+                
+                // Запускаем синхронизацию ТОЛЬКО если пользователь аутентифицирован
+                if (databaseService.IsAuthenticated)
+                {
+                    emotionService.StartSync();
+                    MyLogger.Log("✅ Firebase синхронизация для EmotionService инициализирована и запущена", MyLogger.LogCategory.Bootstrap);
+                }
+                else
+                {
+                    MyLogger.LogWarning("⚠️ Firebase синхронизация инициализирована, но не запущена: пользователь не аутентифицирован", MyLogger.LogCategory.Bootstrap);
+                }
+            }
+            else
+            {
+                MyLogger.LogError("❌ Не удалось инициализировать Firebase синхронизацию для EmotionService", MyLogger.LogCategory.Bootstrap);
             }
         }
 
@@ -274,7 +313,7 @@ namespace App.Develop.EntryPoint
             // (это уже должно было произойти в InitializeApplication)
             if (_projectContainer == null)
             {
-                Debug.LogError("[EntryPoint] Контейнер не инициализирован или данные не загружены перед запуском Bootstrap!");
+                MyLogger.LogError("[EntryPoint] Контейнер не инициализирован или данные не загружены перед запуском Bootstrap!", MyLogger.LogCategory.Bootstrap);
                 yield break;
             }
 
@@ -343,7 +382,7 @@ namespace App.Develop.EntryPoint
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка регистрации базовых сервисов: {ex}");
+                MyLogger.LogError($"❌ Ошибка регистрации базовых сервисов: {ex}", MyLogger.LogCategory.Bootstrap);
                 throw;
             }
         }
@@ -364,7 +403,7 @@ namespace App.Develop.EntryPoint
 
                 if (notificationManagerType == null)
                 {
-                    Debug.LogError("Не удалось найти тип NotificationManager. Убедитесь, что сборка App.Develop.CommonServices.Notifications скомпилирована.");
+                    MyLogger.LogError("Не удалось найти тип NotificationManager. Убедитесь, что сборка App.Develop.CommonServices.Notifications скомпилирована.", MyLogger.LogCategory.Bootstrap);
                     return;
                 }
 
@@ -377,11 +416,11 @@ namespace App.Develop.EntryPoint
                 // Регистрируем через лямбду, чтобы избежать проблем с типами
                 container.RegisterAsSingle(c => manager).NonLazy();
 
-                Debug.Log("✅ Система уведомлений зарегистрирована");
+                MyLogger.Log("✅ Система уведомлений зарегистрирована", MyLogger.LogCategory.Bootstrap);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка регистрации системы уведомлений: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка регистрации системы уведомлений: {ex.Message}", MyLogger.LogCategory.Bootstrap);
                 throw;
             }
         }
@@ -439,7 +478,7 @@ namespace App.Develop.EntryPoint
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка регистрации аутентификационных сервисов: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка регистрации аутентификационных сервисов: {ex.Message}", MyLogger.LogCategory.Bootstrap);
                 throw;
             }
         }
@@ -492,7 +531,7 @@ namespace App.Develop.EntryPoint
                         }
                         else
                         {
-                            Debug.LogError($"❌ Не удалось загрузить EmotionJarView с ключом: {AssetAddresses.EmotionJarView}");
+                            MyLogger.LogError($"❌ Не удалось загрузить EmotionJarView с ключом: {AssetAddresses.EmotionJarView}", MyLogger.LogCategory.Bootstrap);
                         }
                     }, TaskContinuationOptions.OnlyOnRanToCompletion);
 
@@ -501,7 +540,7 @@ namespace App.Develop.EntryPoint
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка регистрации сервисов личного кабинета: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка регистрации сервисов личного кабинета: {ex.Message}", MyLogger.LogCategory.Bootstrap);
                 throw;
             }
         }
@@ -519,7 +558,7 @@ namespace App.Develop.EntryPoint
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка инициализации SecurePlayerPrefs: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка инициализации SecurePlayerPrefs: {ex.Message}", MyLogger.LogCategory.Bootstrap);
                 throw;
             }
         }
@@ -654,7 +693,7 @@ namespace App.Develop.EntryPoint
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка регистрации Firebase сервисов: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка регистрации Firebase сервисов: {ex.Message}", MyLogger.LogCategory.Bootstrap);
                 throw;
             }
         }

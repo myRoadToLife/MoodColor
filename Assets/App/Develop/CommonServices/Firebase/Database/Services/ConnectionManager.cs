@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Firebase;
 using Firebase.Database;
 using UnityEngine;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Firebase.Database.Services
 {
@@ -93,7 +94,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 StartConnectionMonitoring();
             }
             
-            Debug.Log("✅ ConnectionManager инициализирован");
+            MyLogger.Log("✅ ConnectionManager инициализирован", MyLogger.LogCategory.Firebase);
         }
         #endregion
 
@@ -119,7 +120,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 StopConnectionMonitoring();
             }
             
-            Debug.Log($"ConnectionManager: Режим поддержания соединения {(_keepConnection ? "включен" : "выключен")}");
+            MyLogger.Log($"ConnectionManager: Режим поддержания соединения {(_keepConnection ? "включен" : "выключен", MyLogger.LogCategory.Firebase)}");
         }
         
         /// <summary>
@@ -128,7 +129,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         private void StartConnectionMonitoring()
         {
             _connectedRef.ValueChanged += _connectionCallback;
-            Debug.Log("ConnectionManager: Наблюдение за соединением запущено");
+            MyLogger.Log("ConnectionManager: Наблюдение за соединением запущено", MyLogger.LogCategory.Firebase);
         }
         
         /// <summary>
@@ -137,7 +138,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         private void StopConnectionMonitoring()
         {
             _connectedRef.ValueChanged -= _connectionCallback;
-            Debug.Log("ConnectionManager: Наблюдение за соединением остановлено");
+            MyLogger.Log("ConnectionManager: Наблюдение за соединением остановлено", MyLogger.LogCategory.Firebase);
         }
         
         /// <summary>
@@ -147,7 +148,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (e.DatabaseError != null)
             {
-                Debug.LogError($"ConnectionManager: Ошибка проверки соединения: {e.DatabaseError.Message}");
+                MyLogger.LogError($"ConnectionManager: Ошибка проверки соединения: {e.DatabaseError.Message}", MyLogger.LogCategory.Firebase);
                 _isConnected = false;
             }
             else if (e.Snapshot != null && e.Snapshot.Exists)
@@ -158,7 +159,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                     _isConnected = connected;
                     NotifyConnectionStateChanged(_isConnected);
                     
-                    Debug.Log($"ConnectionManager: Состояние соединения изменилось: {(_isConnected ? "подключено" : "отключено")}");
+                    MyLogger.Log($"ConnectionManager: Состояние соединения изменилось: {(_isConnected ? "подключено" : "отключено", MyLogger.LogCategory.Firebase)}");
                 }
             }
         }
@@ -208,7 +209,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogError($"ConnectionManager: Ошибка в обработчике состояния соединения: {ex.Message}");
+                    MyLogger.LogError($"ConnectionManager: Ошибка в обработчике состояния соединения: {ex.Message}", MyLogger.LogCategory.Firebase);
                 }
             }
         }
@@ -236,7 +237,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             }
             catch (Exception ex)
             {
-                Debug.LogError($"ConnectionManager: Ошибка проверки соединения: {ex.Message}");
+                MyLogger.LogError($"ConnectionManager: Ошибка проверки соединения: {ex.Message}", MyLogger.LogCategory.Firebase);
                 _isConnected = false;
                 return false;
             }
@@ -272,18 +273,18 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 {
                     FirebaseDatabase.DefaultInstance.SetPersistenceEnabled(true);
                     _isPersistenceEnabled = true;
-                    Debug.Log("ConnectionManager: Офлайн кэширование включено");
+                    MyLogger.Log("ConnectionManager: Офлайн кэширование включено", MyLogger.LogCategory.Firebase);
                 }
                 else
                 {
                     FirebaseDatabase.DefaultInstance.SetPersistenceEnabled(false);
                     _isPersistenceEnabled = false;
-                    Debug.Log("ConnectionManager: Офлайн кэширование отключено");
+                    MyLogger.Log("ConnectionManager: Офлайн кэширование отключено", MyLogger.LogCategory.Firebase);
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogError($"ConnectionManager: Ошибка при изменении режима кэширования: {ex.Message}");
+                MyLogger.LogError($"ConnectionManager: Ошибка при изменении режима кэширования: {ex.Message}", MyLogger.LogCategory.Firebase);
             }
         }
         
@@ -301,11 +302,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 {
                     FirebaseDatabase.DefaultInstance.SetPersistenceEnabled(true);
                     _isPersistenceEnabled = true;
-                    Debug.Log("ConnectionManager: Персистентность включена после активности пользователя");
+                    MyLogger.Log("ConnectionManager: Персистентность включена после активности пользователя", MyLogger.LogCategory.Firebase);
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogError($"ConnectionManager: Ошибка при включении персистентности: {ex.Message}");
+                    MyLogger.LogError($"ConnectionManager: Ошибка при включении персистентности: {ex.Message}", MyLogger.LogCategory.Firebase);
                 }
             }
             
@@ -335,11 +336,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             {
                 FirebaseDatabase.DefaultInstance.SetPersistenceEnabled(false);
                 _isPersistenceEnabled = false;
-                Debug.Log("ConnectionManager: Персистентность отключена для экономии ресурсов");
+                MyLogger.Log("ConnectionManager: Персистентность отключена для экономии ресурсов", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"ConnectionManager: Ошибка при отключении персистентности: {ex.Message}");
+                MyLogger.LogError($"ConnectionManager: Ошибка при отключении персистентности: {ex.Message}", MyLogger.LogCategory.Firebase);
             }
         }
         
@@ -354,17 +355,17 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 if (prioritizeNetwork)
                 {
                     FirebaseDatabase.DefaultInstance.GoOnline();
-                    Debug.Log("ConnectionManager: Установлен приоритет сетевого доступа");
+                    MyLogger.Log("ConnectionManager: Установлен приоритет сетевого доступа", MyLogger.LogCategory.Firebase);
                 }
                 else
                 {
                     FirebaseDatabase.DefaultInstance.GoOffline();
-                    Debug.Log("ConnectionManager: Установлен приоритет кэшированных данных");
+                    MyLogger.Log("ConnectionManager: Установлен приоритет кэшированных данных", MyLogger.LogCategory.Firebase);
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogError($"ConnectionManager: Ошибка при изменении приоритета доступа: {ex.Message}");
+                MyLogger.LogError($"ConnectionManager: Ошибка при изменении приоритета доступа: {ex.Message}", MyLogger.LogCategory.Firebase);
             }
         }
         
@@ -377,12 +378,12 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             try
             {
                 // Метод SetPersistenceCacheSizeBytes не существует, поэтому просто логируем действие
-                Debug.Log($"ConnectionManager: Установка тайм-аута сетевых операций: {timeoutMs} мс " +
-                          "(примечание: реальная установка не выполнена из-за ограничений SDK)");
+                MyLogger.Log($"ConnectionManager: Установка тайм-аута сетевых операций: {timeoutMs} мс " +
+                          "(примечание: реальная установка не выполнена из-за ограничений SDK, MyLogger.LogCategory.Firebase)");
             }
             catch (Exception ex)
             {
-                Debug.LogError($"ConnectionManager: Ошибка при установке тайм-аута: {ex.Message}");
+                MyLogger.LogError($"ConnectionManager: Ошибка при установке тайм-аута: {ex.Message}", MyLogger.LogCategory.Firebase);
             }
         }
         
@@ -396,12 +397,12 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             {
                 // В Firebase SDK нет прямого метода установки размера кэша
                 // Используем доступный метод SetPersistenceCacheSizeBytes, если он будет добавлен в SDK
-                Debug.Log($"ConnectionManager: Установка размера кэша: {sizeBytes} байт " +
-                          "(примечание: реальная установка не выполнена из-за ограничений SDK)");
+                MyLogger.Log($"ConnectionManager: Установка размера кэша: {sizeBytes} байт " +
+                          "(примечание: реальная установка не выполнена из-за ограничений SDK, MyLogger.LogCategory.Firebase)");
             }
             catch (Exception ex)
             {
-                Debug.LogError($"ConnectionManager: Ошибка при установке размера кэша: {ex.Message}");
+                MyLogger.LogError($"ConnectionManager: Ошибка при установке размера кэша: {ex.Message}", MyLogger.LogCategory.Firebase);
             }
         }
         #endregion
@@ -418,7 +419,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             _persistenceCts?.Dispose();
             _persistenceCts = null;
             
-            Debug.Log("ConnectionManager: Ресурсы освобождены");
+            MyLogger.Log("ConnectionManager: Ресурсы освобождены", MyLogger.LogCategory.Firebase);
         }
         #endregion
     }

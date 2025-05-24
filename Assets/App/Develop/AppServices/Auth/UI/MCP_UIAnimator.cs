@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.AppServices.Auth.UI
 {
@@ -19,7 +20,7 @@ namespace App.Develop.AppServices.Auth.UI
                 _canvasGroup = GetComponent<CanvasGroup>();
                 
             if (_canvasGroup == null)
-                Debug.LogError($"MCP_UIAnimator на {gameObject.name} не имеет CanvasGroup!");
+                MyLogger.LogError($"MCP_UIAnimator на {gameObject.name} не имеет CanvasGroup!", MyLogger.LogCategory.UI);
         }
         
         /// <summary>

@@ -1,5 +1,6 @@
 using UnityEngine;
 using App.Develop.CommonServices.Social;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.UI.Components
 {
@@ -27,13 +28,13 @@ namespace App.Develop.UI.Components
         {
             if (_friendsPanelPrefab == null)
             {
-                Debug.LogError("FriendsPanelPrefab не назначен!");
+                MyLogger.LogError("FriendsPanelPrefab не назначен!", MyLogger.LogCategory.UI);
                 return null;
             }
             
             if (_uiRoot == null)
             {
-                Debug.LogWarning("UIRoot не назначен, используется корень сцены.");
+                MyLogger.LogWarning("UIRoot не назначен, используется корень сцены.", MyLogger.LogCategory.UI);
                 _uiRoot = null;
             }
             
@@ -42,7 +43,7 @@ namespace App.Develop.UI.Components
             
             if (friendsPanel == null)
             {
-                Debug.LogError("FriendsPanel компонент не найден на префабе!");
+                MyLogger.LogError("FriendsPanel компонент не найден на префабе!", MyLogger.LogCategory.UI);
                 Destroy(panelInstance);
                 return null;
             }
@@ -53,7 +54,7 @@ namespace App.Develop.UI.Components
             
             if (friendsGenerator == null || requestsGenerator == null || searchGenerator == null)
             {
-                Debug.LogError("Не все генераторы найдены на панели друзей!");
+                MyLogger.LogError("Не все генераторы найдены на панели друзей!", MyLogger.LogCategory.UI);
                 Destroy(panelInstance);
                 return null;
             }

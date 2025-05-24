@@ -6,6 +6,7 @@ using App.Develop.CommonServices.Firebase.Database.Services;
 using Firebase.Database;
 using Firebase.Extensions;
 using UnityEngine;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Firebase.Auth.Services
 {
@@ -24,7 +25,7 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
             {
                 if (string.IsNullOrEmpty(nickname) || string.IsNullOrEmpty(gender))
                 {
-                    Debug.LogWarning("⚠️ Никнейм и пол не могут быть пустыми");
+                    MyLogger.LogWarning("⚠️ Никнейм и пол не могут быть пустыми", MyLogger.LogCategory.Firebase);
                     return false;
                 }
 
@@ -40,7 +41,7 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка при настройке профиля: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка при настройке профиля: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return false;
             }
         }
@@ -59,7 +60,7 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка при обновлении lastActive: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка при обновлении lastActive: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return false;
             }
         }
@@ -80,7 +81,7 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка при обновлении настроек: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка при обновлении настроек: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return false;
             }
         }

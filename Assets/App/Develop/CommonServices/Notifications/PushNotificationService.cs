@@ -2,11 +2,13 @@ using System;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using App.Develop.Utils.Logging;
 #if UNITY_ANDROID
 using Unity.Notifications.Android;
 #endif
 #if UNITY_IOS
 using Unity.Notifications.iOS;
+using App.Develop.Utils.Logging;
 #endif
 
 namespace App.Develop.CommonServices.Notifications
@@ -35,14 +37,14 @@ namespace App.Develop.CommonServices.Notifications
         {
             if (_isInitialized) return Task.CompletedTask;
             
-            Debug.Log("Initializing PushNotificationService");
+            MyLogger.Log("Initializing PushNotificationService", MyLogger.LogCategory.Default);
 
 #if UNITY_ANDROID
             InitializeAndroid();
 #endif
 
             _isInitialized = true;
-            Debug.Log("PushNotificationService initialized successfully");
+            MyLogger.Log("PushNotificationService initialized successfully", MyLogger.LogCategory.Default);
             
             return Task.CompletedTask;
         }
@@ -100,12 +102,12 @@ namespace App.Develop.CommonServices.Notifications
                 await Initialize();
             }
             
-            Debug.Log($"Sending push notification: {notificationData.Title}");
+            MyLogger.Log($"Sending push notification: {notificationData.Title}", MyLogger.LogCategory.Default);
 
 #if UNITY_ANDROID
             SendAndroidNotification(notificationData);
 #else
-            Debug.LogWarning("Push notifications are only supported on mobile platforms");
+            MyLogger.LogWarning("Push notifications are only supported on mobile platforms", MyLogger.LogCategory.Default);
 #endif
         }
 
@@ -146,7 +148,7 @@ namespace App.Develop.CommonServices.Notifications
             
             int id = AndroidNotificationCenter.SendNotification(notification, channelId);
             
-            Debug.Log($"Android notification sent with ID: {id}");
+            MyLogger.Log($"Android notification sent with ID: {id}");
         }
         
         private string GetAndroidChannelId(NotificationCategory category, NotificationPriority priority)
@@ -172,7 +174,7 @@ namespace App.Develop.CommonServices.Notifications
                 await Initialize();
             }
             
-            Debug.Log($"Cancelling push notification with ID: {notificationId}");
+            MyLogger.Log($"Cancelling push notification with ID: {notificationId}", MyLogger.LogCategory.Default);
 
 #if UNITY_ANDROID
             if (int.TryParse(notificationId, out int id))
@@ -190,7 +192,7 @@ namespace App.Develop.CommonServices.Notifications
                 await Initialize();
             }
             
-            Debug.Log("Cancelling all push notifications");
+            MyLogger.Log("Cancelling all push notifications", MyLogger.LogCategory.Default);
 
 #if UNITY_ANDROID
             AndroidNotificationCenter.CancelAllScheduledNotifications();

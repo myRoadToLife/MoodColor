@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Notifications
 {
@@ -52,14 +53,14 @@ namespace App.Develop.CommonServices.Notifications
         {
             if (_isInitialized) return;
             
-            Debug.Log("Initializing UserPreferencesManager");
+            MyLogger.Log("Initializing UserPreferencesManager", MyLogger.LogCategory.Default);
             
             LoadPreferences();
             InitializeDefaultCategorySettings();
             UpdateCategoryCache();
             
             _isInitialized = true;
-            Debug.Log("UserPreferencesManager initialized successfully");
+            MyLogger.Log("UserPreferencesManager initialized successfully", MyLogger.LogCategory.Default);
         }
         
         private void InitializeDefaultCategorySettings()
@@ -227,18 +228,18 @@ namespace App.Develop.CommonServices.Notifications
                 try
                 {
                     _preferences = JsonUtility.FromJson<NotificationPreferences>(json);
-                    Debug.Log("Notification preferences loaded from PlayerPrefs");
+                    MyLogger.Log("Notification preferences loaded from PlayerPrefs", MyLogger.LogCategory.Default);
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError($"Failed to load notification preferences: {e.Message}");
+                    MyLogger.LogError($"Failed to load notification preferences: {e.Message}", MyLogger.LogCategory.Default);
                     _preferences = new NotificationPreferences();
                 }
             }
             else
             {
                 _preferences = new NotificationPreferences();
-                Debug.Log("Using default notification preferences");
+                MyLogger.Log("Using default notification preferences", MyLogger.LogCategory.Default);
             }
         }
         
@@ -249,11 +250,11 @@ namespace App.Develop.CommonServices.Notifications
                 string json = JsonUtility.ToJson(_preferences);
                 PlayerPrefs.SetString(PREFS_KEY, json);
                 PlayerPrefs.Save();
-                Debug.Log("Notification preferences saved to PlayerPrefs");
+                MyLogger.Log("Notification preferences saved to PlayerPrefs", MyLogger.LogCategory.Default);
             }
             catch (Exception e)
             {
-                Debug.LogError($"Failed to save notification preferences: {e.Message}");
+                MyLogger.LogError($"Failed to save notification preferences: {e.Message}", MyLogger.LogCategory.Default);
             }
         }
 

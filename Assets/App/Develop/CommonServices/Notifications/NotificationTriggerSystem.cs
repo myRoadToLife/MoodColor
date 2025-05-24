@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Notifications
 {
@@ -35,13 +36,13 @@ namespace App.Develop.CommonServices.Notifications
         {
             if (_isInitialized) return;
             
-            Debug.Log("Initializing NotificationTriggerSystem");
+            MyLogger.Log("Initializing NotificationTriggerSystem", MyLogger.LogCategory.Default);
 
             // Запускаем таймер, который будет проверять уведомления каждую секунду
             _checkTimer = new Timer(CheckScheduledNotificationsCallback, null, 0, 1000);
             
             _isInitialized = true;
-            Debug.Log("NotificationTriggerSystem initialized successfully");
+            MyLogger.Log("NotificationTriggerSystem initialized successfully", MyLogger.LogCategory.Default);
         }
 
         public void Dispose()
@@ -53,14 +54,14 @@ namespace App.Develop.CommonServices.Notifications
         {
             if (scheduledTime < DateTime.Now)
             {
-                Debug.LogWarning("Cannot schedule notification in the past");
+                MyLogger.LogWarning("Cannot schedule notification in the past", MyLogger.LogCategory.Default);
                 return;
             }
             
             var scheduledNotification = new ScheduledNotification(notification, scheduledTime);
             _scheduledNotifications[notification.Id] = scheduledNotification;
             
-            Debug.Log($"Scheduled notification '{notification.Title}' for {scheduledTime}");
+            MyLogger.Log($"Scheduled notification '{notification.Title}' for {scheduledTime}", MyLogger.LogCategory.Default);
         }
         
         public void CancelScheduledNotification(string notificationId)
@@ -68,14 +69,14 @@ namespace App.Develop.CommonServices.Notifications
             if (_scheduledNotifications.ContainsKey(notificationId))
             {
                 _scheduledNotifications.Remove(notificationId);
-                Debug.Log($"Cancelled scheduled notification with ID: {notificationId}");
+                MyLogger.Log($"Cancelled scheduled notification with ID: {notificationId}", MyLogger.LogCategory.Default);
             }
         }
         
         public void CancelAllScheduledNotifications()
         {
             _scheduledNotifications.Clear();
-            Debug.Log("Cancelled all scheduled notifications");
+            MyLogger.Log("Cancelled all scheduled notifications", MyLogger.LogCategory.Default);
         }
         
         private void CheckScheduledNotificationsCallback(object state)

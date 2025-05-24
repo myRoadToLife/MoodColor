@@ -5,6 +5,7 @@ using App.Develop.CommonServices.Firebase.Database.Models;
 using App.Develop.CommonServices.Firebase.Database.Services;
 using App.Develop.CommonServices.DataManagement.DataProviders;
 using UnityEngine;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Emotion
 {
@@ -57,6 +58,8 @@ namespace App.Develop.CommonServices.Emotion
             _cache = cache;
             _useCache = _cache != null;
             
+            MyLogger.Log($"[EmotionHistory] Создан новый экземпляр. _useCache={_useCache}, _cache={(_cache == null ? "NULL" : "не NULL")}", MyLogger.LogCategory.Emotion);
+            
             if (_useCache)
             {
                 LoadFromCache();
@@ -84,11 +87,11 @@ namespace App.Develop.CommonServices.Emotion
         {
             if (emotion == null)
             {
-                Debug.LogWarning("❌ Попытка добавить null запись в историю эмоций");
+                MyLogger.LogWarning("❌ Попытка добавить null запись в историю эмоций", MyLogger.LogCategory.Emotion);
                 return;
             }
 
-            Debug.Log($"AddEntry: Adding entry for {emotion.Type} with EventType={eventType} at {timestamp ?? emotion.LastUpdate}");
+            MyLogger.Log($"AddEntry: Adding entry for {emotion.Type} with EventType={eventType} at {timestamp ?? emotion.LastUpdate}", MyLogger.LogCategory.Emotion);
 
             var entry = new EmotionHistoryEntry
             {
@@ -99,9 +102,20 @@ namespace App.Develop.CommonServices.Emotion
             };
 
             // НОВЫЙ ЛОГ ЗДЕСЬ
-            Debug.Log($"[EmotionHistory.AddEntry] Creating new entry: Timestamp='{entry.Timestamp:O}', Type='{entry.EmotionData?.Type}', Value='{entry.EmotionData?.Value}', EventType='{entry.EventType}', Note='{entry.Note}', SyncId='{entry.SyncId}'");
+            MyLogger.Log($"[EmotionHistory.AddEntry] Creating new entry: Timestamp='{entry.Timestamp:O}', Type='{entry.EmotionData?.Type}', Value='{entry.EmotionData?.Value}', EventType='{entry.EventType}', Note='{entry.Note}', SyncId='{entry.SyncId}'", MyLogger.LogCategory.Emotion);
 
-            // Debug.Log($"Created entry: Type={entry.EmotionData.Type}, Value={entry.EmotionData.Value}, EventType={entry.EventType}, Timestamp={entry.Timestamp}"); // Старый лог, можно закомментировать или удалить, если новый его покрывает
+            // Проверяем, не существует ли уже запись с таким SyncId (для избежания дубликатов)
+            if (!string.IsNullOrEmpty(entry.SyncId))
+            {
+                var existingEntry = _historyQueue.FirstOrDefault(e => e.SyncId == entry.SyncId);
+                if (existingEntry != null)
+                {
+                    MyLogger.Log($"[EmotionHistory] Запись с SyncId={entry.SyncId} уже существует, пропускаем добавление");
+                    return;
+                }
+            }
+
+            // MyLogger.Log($"Created entry: Type={entry.EmotionData.Type}, Value={entry.EmotionData.Value}, EventType={entry.EventType}, Timestamp={entry.Timestamp}", MyLogger.LogCategory.Emotion); // Старый лог, можно закомментировать или удалить, если новый его покрывает
 
             // Добавляем в очередь
             _historyQueue.Enqueue(entry);
@@ -145,22 +159,58 @@ namespace App.Develop.CommonServices.Emotion
         /// </summary>
         public void AddEntry(EmotionHistoryRecord record)
         {
-            if (record == null) return;
-            
-            // Конвертируем в EmotionData
-            var emotionData = record.ToEmotionData();
-            
-            // Парсим тип события
-            if (Enum.TryParse<EmotionEventType>(record.EventType, out var eventType))
+            if (record == null)
             {
+                MyLogger.LogWarning("[EmotionHistory] Попытка добавить NULL EmotionHistoryRecord");
+                return;
+            }
+            
+            try
+            {
+                // Проверяем, не существует ли уже запись с таким SyncId
+                if (!string.IsNullOrEmpty(record.Id))
+                {
+                    var existingEntry = _historyQueue.FirstOrDefault(e => e.SyncId == record.Id);
+                    if (existingEntry != null)
+                    {
+                        MyLogger.Log($"[EmotionHistory] Запись с SyncId={record.Id} уже существует, пропускаем добавление");
+                        return;
+                    }
+                }
+                
+                // Конвертируем в EmotionData
+                var emotionData = record.ToEmotionData();
+                
+                if (emotionData == null)
+                {
+                    MyLogger.LogError($"[EmotionHistory] Ошибка конвертации EmotionHistoryRecord в EmotionData: record.Id={record.Id}, record.Type={record.Type}");
+                    return;
+                }
+                
+                if (string.IsNullOrEmpty(emotionData.Type))
+                {
+                    MyLogger.LogError($"[EmotionHistory] EmotionData после конвертации содержит пустой Type: record.Id={record.Id}");
+                    return;
+                }
+                
+                // Парсим тип события
+                if (!Enum.TryParse<EmotionEventType>(record.EventType, out var eventType))
+                {
+                    MyLogger.LogWarning($"[EmotionHistory] Не удалось распознать тип события: {record.EventType}, используем ValueChanged");
+                    eventType = EmotionEventType.ValueChanged;
+                }
+                
                 var entry = new EmotionHistoryEntry
                 {
                     EmotionData = emotionData,
                     Timestamp = record.RecordTime,
                     EventType = eventType,
                     SyncId = record.Id,
-                    IsSynced = record.SyncStatus == SyncStatus.Synced
+                    IsSynced = record.SyncStatus == SyncStatus.Synced,
+                    Note = record.Note
                 };
+                
+                MyLogger.Log($"[EmotionHistory] Добавление записи из Firebase: Id={record.Id}, Type={emotionData.Type}, Timestamp={record.RecordTime}");
                 
                 // Добавляем в очередь
                 _historyQueue.Enqueue(entry);
@@ -175,6 +225,10 @@ namespace App.Develop.CommonServices.Emotion
                     
                     _historyByType[emotionType].Add(entry);
                 }
+                else
+                {
+                    MyLogger.LogWarning($"[EmotionHistory] Не удалось распознать тип эмоции: {emotionData.Type}");
+                }
                 
                 // Ограничиваем размер истории
                 if (_historyQueue.Count > MAX_HISTORY_ENTRIES)
@@ -182,7 +236,9 @@ namespace App.Develop.CommonServices.Emotion
                     var oldestEntry = _historyQueue.Dequeue();
                     
                     // Также удаляем из словаря по типу
-                    if (Enum.TryParse<EmotionTypes>(oldestEntry.EmotionData.Type, out var oldEmotionType) && 
+                    if (oldestEntry != null && oldestEntry.EmotionData != null && 
+                        !string.IsNullOrEmpty(oldestEntry.EmotionData.Type) &&
+                        Enum.TryParse<EmotionTypes>(oldestEntry.EmotionData.Type, out var oldEmotionType) && 
                         _historyByType.TryGetValue(oldEmotionType, out var entries))
                     {
                         entries.Remove(oldestEntry);
@@ -192,6 +248,10 @@ namespace App.Develop.CommonServices.Emotion
                 // Вызываем событие
                 OnHistoryEntryAdded?.Invoke(entry);
             }
+            catch (Exception ex)
+            {
+                MyLogger.LogError($"[EmotionHistory] Ошибка при добавлении записи из Firebase: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -199,37 +259,53 @@ namespace App.Develop.CommonServices.Emotion
         /// </summary>
         public IEnumerable<EmotionHistoryEntry> GetHistory(DateTime? from = null, DateTime? to = null)
         {
-            // Создаем IEnumerable из актуального состояния _historyQueue.
-            IEnumerable<EmotionHistoryEntry> currentEntriesQuery = _historyQueue.AsEnumerable();
+            // Отладочная информация о вызове
+            MyLogger.Log($"[EmotionHistory.GetHistory] Вызван с параметрами: from={from?.ToString() ?? "NULL"}, to={to?.ToString() ?? "NULL"}, _historyQueue.Count={_historyQueue.Count}");
+            
+            // Если очередь пуста, возвращаем пустой список
+            if (_historyQueue.Count == 0)
+            {
+                MyLogger.LogWarning("[EmotionHistory.GetHistory] Очередь истории пуста");
+                return new List<EmotionHistoryEntry>();
+            }
 
+            // Создаем список из очереди (делаем копию, чтобы не изменять исходную очередь)
+            var entriesList = _historyQueue.ToList();
+            MyLogger.Log($"[EmotionHistory.GetHistory] Создан список из очереди, размер: {entriesList.Count}");
+            
+            // Логируем типы событий в истории
+            var eventTypeCounts = entriesList.GroupBy(e => e.EventType).ToDictionary(g => g.Key, g => g.Count());
+            MyLogger.Log($"[EmotionHistory.GetHistory] Типы событий в истории: {string.Join(", ", eventTypeCounts.Select(kvp => $"{kvp.Key}={kvp.Value}"))}");
+            
+            // Применяем фильтры по датам, если указаны
             if (from.HasValue)
             {
-                currentEntriesQuery = currentEntriesQuery.Where(e => e.Timestamp >= from.Value);
+                entriesList = entriesList.Where(e => e.Timestamp >= from.Value).ToList();
+                MyLogger.Log($"[EmotionHistory.GetHistory] После фильтра from, размер: {entriesList.Count}");
             }
+            
             if (to.HasValue)
             {
-                currentEntriesQuery = currentEntriesQuery.Where(e => e.Timestamp <= to.Value);
+                entriesList = entriesList.Where(e => e.Timestamp <= to.Value).ToList();
+                MyLogger.Log($"[EmotionHistory.GetHistory] После фильтра to, размер: {entriesList.Count}");
             }
-
-            // Новый лог перед возвратом
-            var listForLogging = currentEntriesQuery.ToList(); // Материализуем для логирования и возврата
-            Debug.Log($"[EmotionHistory.GetHistory] ==== Full content of listForLogging (Count: {listForLogging.Count}) BEFORE OrderByDescending ====");
-            int count = 0;
-            // foreach (var entryInQueue in listForLogging.Take(15)) // Старый лог - показывал только первые 15
-            foreach (var entryInQueue in listForLogging) // НОВЫЙ ЛОГ - показываем ВСЕ
+            
+            // Сортируем для отображения (последние записи сверху)
+            var sortedEntries = entriesList.OrderByDescending(e => e.Timestamp).ToList();
+            MyLogger.Log($"[EmotionHistory.GetHistory] Отсортированный список, размер: {sortedEntries.Count}");
+            
+            // Логирование некоторых записей для отладки
+            if (sortedEntries.Count > 0)
             {
-                Debug.Log($"[EmotionHistory.GetHistory Detailed] Item {count++}: Timestamp='{entryInQueue.Timestamp:O}', Kind='{entryInQueue.Timestamp.Kind}', Type='{entryInQueue.EmotionData?.Type}', Event='{entryInQueue.EventType}', Note='{entryInQueue.Note}', SyncId='{entryInQueue.SyncId}'");
+                MyLogger.Log("[EmotionHistory.GetHistory] Примеры записей:");
+                for (int i = 0; i < Math.Min(5, sortedEntries.Count); i++)
+                {
+                    var entry = sortedEntries[i];
+                    MyLogger.Log($"  {i}: Timestamp={entry.Timestamp:O}, Type={entry.EmotionData?.Type}, Event={entry.EventType}, Note={entry.Note}");
+                }
             }
-
-            // Сортируем для отображения (последние сверху)
-            var sortedListToReturn = listForLogging.OrderByDescending(e => e.Timestamp).ToList();
-            Debug.Log($"[EmotionHistory.GetHistory] ==== Full content of sortedListToReturn (Count: {sortedListToReturn.Count}) AFTER OrderByDescending ====");
-            count = 0;
-            foreach (var entryInSortedList in sortedListToReturn.Take(15)) // Посмотрим на первые 15 отсортированных для сравнения
-            {
-                Debug.Log($"[EmotionHistory.GetHistory Sorted Detailed] Item {count++}: Timestamp='{entryInSortedList.Timestamp:O}', Kind='{entryInSortedList.Timestamp.Kind}', Type='{entryInSortedList.EmotionData?.Type}'");
-            }
-            return sortedListToReturn;
+            
+            return sortedEntries;
         }
 
         /// <summary>
@@ -320,17 +396,17 @@ namespace App.Develop.CommonServices.Emotion
 
         public IEnumerable<EmotionFrequencyStats> GetLoggingFrequency(DateTime from, DateTime to, bool groupByDay = true)
         {
-            Debug.Log($"GetLoggingFrequency: from={from}, to={to}, groupByDay={groupByDay}");
+            MyLogger.Log($"GetLoggingFrequency: from={from}, to={to}, groupByDay={groupByDay}");
             
             var history = GetHistory(from, to);
             var valueChangedEntries = history.Where(e => e.EventType == EmotionEventType.ValueChanged);
-            Debug.Log($"Value changed entries: {valueChangedEntries.Count()}");
+            MyLogger.Log($"Value changed entries: {valueChangedEntries.Count()}");
             
             var groupedEntries = groupByDay
                 ? valueChangedEntries.GroupBy(e => e.Timestamp.Date)
                 : valueChangedEntries.GroupBy(e => new DateTime(e.Timestamp.Year, e.Timestamp.Month, e.Timestamp.Day, e.Timestamp.Hour, 0, 0));
                 
-            Debug.Log($"Grouped entries count: {groupedEntries.Count()}");
+            MyLogger.Log($"Grouped entries count: {groupedEntries.Count()}");
             
             var stats = groupedEntries.Select(group =>
             {
@@ -338,7 +414,7 @@ namespace App.Develop.CommonServices.Emotion
                     .GroupBy(e => Enum.Parse<EmotionTypes>(e.EmotionData.Type))
                     .ToDictionary(g => g.Key, g => g.Count());
                     
-                Debug.Log($"For {group.Key}: Total entries={group.Count()}, Emotion types={string.Join(", ", emotionTypeCounts.Select(kvp => $"{kvp.Key}={kvp.Value}"))}");
+                MyLogger.Log($"For {group.Key}: Total entries={group.Count()}, Emotion types={string.Join(", ", emotionTypeCounts.Select(kvp => $"{kvp.Key}={kvp.Value}"))}");
                 
                 return new EmotionFrequencyStats
                 {
@@ -348,7 +424,7 @@ namespace App.Develop.CommonServices.Emotion
                 };
             }).ToList();
             
-            Debug.Log($"Returning {stats.Count} frequency stats");
+            MyLogger.Log($"Returning {stats.Count} frequency stats");
             return stats;
         }
 
@@ -470,6 +546,60 @@ namespace App.Develop.CommonServices.Emotion
             _historyByType.Clear();
         }
 
+        /// <summary>
+        /// Удаляет дубликаты записей на основе SyncId
+        /// </summary>
+        public void RemoveDuplicates()
+        {
+            MyLogger.Log($"[EmotionHistory] Начало удаления дубликатов. Текущее количество записей: {_historyQueue.Count}");
+            
+            var uniqueEntries = new List<EmotionHistoryEntry>();
+            var seenSyncIds = new HashSet<string>();
+            
+            // Проходим по всем записям и оставляем только уникальные
+            foreach (var entry in _historyQueue)
+            {
+                if (string.IsNullOrEmpty(entry.SyncId))
+                {
+                    // Записи без SyncId всегда добавляем (это локальные записи)
+                    uniqueEntries.Add(entry);
+                }
+                else if (!seenSyncIds.Contains(entry.SyncId))
+                {
+                    // Первая запись с таким SyncId
+                    seenSyncIds.Add(entry.SyncId);
+                    uniqueEntries.Add(entry);
+                }
+                else
+                {
+                    MyLogger.Log($"[EmotionHistory] Найден дубликат с SyncId={entry.SyncId}, удаляем");
+                }
+            }
+            
+            // Очищаем и заново заполняем очередь
+            _historyQueue.Clear();
+            _historyByType.Clear();
+            
+            foreach (var entry in uniqueEntries)
+            {
+                _historyQueue.Enqueue(entry);
+                
+                // Добавляем в словарь по типу
+                if (entry.EmotionData != null && !string.IsNullOrEmpty(entry.EmotionData.Type) &&
+                    Enum.TryParse<EmotionTypes>(entry.EmotionData.Type, out var emotionType))
+                {
+                    if (!_historyByType.ContainsKey(emotionType))
+                    {
+                        _historyByType[emotionType] = new List<EmotionHistoryEntry>();
+                    }
+                    
+                    _historyByType[emotionType].Add(entry);
+                }
+            }
+            
+            MyLogger.Log($"[EmotionHistory] Удаление дубликатов завершено. Осталось записей: {_historyQueue.Count}");
+        }
+
         #region Sync Methods
         
         /// <summary>
@@ -477,30 +607,32 @@ namespace App.Develop.CommonServices.Emotion
         /// </summary>
         private void LoadFromCache()
         {
-            if (_cache == null) return;
+            if (_cache == null) 
+            {
+                MyLogger.LogWarning("[EmotionHistory] Попытка загрузить из кэша, но _cache = null");
+                return;
+            }
+            
+            MyLogger.Log("[EmotionHistory] Загрузка записей из кэша...");
             
             try
             {
-                Debug.Log("Загрузка истории эмоций из кэша...");
-                
-                // Очищаем текущую историю
-                _historyQueue.Clear();
-                _historyByType.Clear();
-                
-                // Получаем все записи из кэша
                 var records = _cache.GetAllRecords();
-                Debug.Log($"Найдено {records.Count} записей в кэше");
+                MyLogger.Log($"[EmotionHistory] Получено {records.Count} записей из кэша");
                 
-                // Добавляем записи в историю
                 foreach (var record in records)
                 {
                     AddEntry(record);
                 }
+                
+                MyLogger.Log($"[EmotionHistory] Загрузка из кэша завершена. В _historyQueue теперь {_historyQueue.Count} записей");
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при загрузке истории из кэша: {ex.Message}");
+                MyLogger.LogError($"[EmotionHistory] Ошибка при загрузке из кэша: {ex.Message}");
             }
+
+            RemoveDuplicates();
         }
         
         /// <summary>
@@ -520,7 +652,7 @@ namespace App.Develop.CommonServices.Emotion
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при сохранении записи в кэш: {ex.Message}");
+                MyLogger.LogError($"Ошибка при сохранении записи в кэш: {ex.Message}");
             }
         }
         

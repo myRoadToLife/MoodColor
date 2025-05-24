@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Mail;
 using System.Threading.Tasks;
 using UnityEngine;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Notifications
 {
@@ -91,7 +92,7 @@ namespace App.Develop.CommonServices.Notifications
             CreateSmtpClient();
             
             _isInitialized = true;
-            Debug.Log("EmailNotificationService initialized successfully");
+            MyLogger.Log("EmailNotificationService initialized successfully", MyLogger.LogCategory.Default);
             
             return Task.CompletedTask;
         }
@@ -108,7 +109,7 @@ namespace App.Develop.CommonServices.Notifications
             
             if (string.IsNullOrEmpty(recipientEmail))
             {
-                Debug.LogError("Cannot send email notification: recipient email is empty");
+                MyLogger.LogError("Cannot send email notification: recipient email is empty", MyLogger.LogCategory.Default);
                 return;
             }
             
@@ -210,7 +211,7 @@ namespace App.Develop.CommonServices.Notifications
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Failed to create SMTP client: {ex.Message}");
+                MyLogger.LogError($"Failed to create SMTP client: {ex.Message}", MyLogger.LogCategory.Default);
             }
         }
         
@@ -267,17 +268,17 @@ namespace App.Develop.CommonServices.Notifications
                     try
                     {
                         _smtpClient.Send(message);
-                        Debug.Log($"Email notification sent to {task.RecipientEmail}");
+                        MyLogger.Log($"Email notification sent to {task.RecipientEmail}", MyLogger.LogCategory.Default);
                     }
                     catch (Exception ex)
                     {
-                        Debug.LogError($"Failed to send email: {ex.Message}");
+                        MyLogger.LogError($"Failed to send email: {ex.Message}", MyLogger.LogCategory.Default);
                     }
                 });
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Error preparing email: {ex.Message}");
+                MyLogger.LogError($"Error preparing email: {ex.Message}", MyLogger.LogCategory.Default);
             }
         }
         
@@ -307,7 +308,7 @@ namespace App.Develop.CommonServices.Notifications
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning($"Failed to parse extra data: {ex.Message}");
+                    MyLogger.LogWarning($"Failed to parse extra data: {ex.Message}", MyLogger.LogCategory.Default);
                 }
             }
             

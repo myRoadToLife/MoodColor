@@ -4,7 +4,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using App.Develop.CommonServices.Firebase.Database.Models;
 using App.Develop.Utils.Logging;
-using Logger = App.Develop.Utils.Logging.Logger;
 
 namespace App.Develop.Scenes.PersonalAreaScene.UI
 {
@@ -39,7 +38,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         {
             if (userProfile == null)
             {
-                Logger.LogError("FriendItemView: Получен null UserProfile");
+                MyLogger.LogError("FriendItemView: Получен null UserProfile");
                 return;
             }
             
@@ -103,13 +102,13 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         #region Private Methods
         private void OnViewProfileClick()
         {
-            Logger.Log($"Нажатие на кнопку просмотра профиля пользователя {_userId}");
+            MyLogger.Log($"Нажатие на кнопку просмотра профиля пользователя {_userId}");
             _onViewProfileClicked?.Invoke(_userId);
         }
         
         private void OnRemoveFriendClick()
         {
-            Logger.Log($"Нажатие на кнопку удаления друга {_userId}");
+            MyLogger.Log($"Нажатие на кнопку удаления друга {_userId}");
             _onRemoveFriendClicked?.Invoke(_userId);
         }
         

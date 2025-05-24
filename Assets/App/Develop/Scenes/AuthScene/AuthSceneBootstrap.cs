@@ -6,6 +6,7 @@ using App.Develop.DI;
 using UnityEngine;
 using System.Threading.Tasks;
 using App.Develop.CommonServices.UI;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.Scenes.AuthScene
 {
@@ -18,12 +19,12 @@ namespace App.Develop.Scenes.AuthScene
             _container = container;
             _container.Initialize();
 
-            Debug.Log("✅ [AuthSceneBootstrap] сцена загружена");
+            MyLogger.Log("✅ [AuthSceneBootstrap] сцена загружена", MyLogger.LogCategory.Bootstrap);
 
             var panelManager = _container.Resolve<PanelManager>();
             if (panelManager == null)
             {
-                Debug.LogError("❌ PanelManager не найден в контейнере!");
+                MyLogger.LogError("❌ PanelManager не найден в контейнере!", MyLogger.LogCategory.Bootstrap);
                 return;
             }
             
@@ -31,7 +32,7 @@ namespace App.Develop.Scenes.AuthScene
             
             if (authUIController == null)
             {
-                Debug.LogError($"❌ Не удалось загрузить или найти AuthUIController на панели {AssetAddresses.AuthPanel}");
+                MyLogger.LogError($"❌ Не удалось загрузить или найти AuthUIController на панели {AssetAddresses.AuthPanel}", MyLogger.LogCategory.Bootstrap);
                 return;
             }
             
@@ -40,7 +41,7 @@ namespace App.Develop.Scenes.AuthScene
             var authManager = _container.Resolve<IAuthManager>();
             if (authManager == null)
             {
-                Debug.LogError("❌ IAuthManager не найден в контейнере!");
+                MyLogger.LogError("❌ IAuthManager не найден в контейнере!", MyLogger.LogCategory.Bootstrap);
                 return;
             }
             
@@ -49,7 +50,7 @@ namespace App.Develop.Scenes.AuthScene
             var profileSetupUI = authPanelInstance.GetComponent<ProfileSetupUI>();
             if (profileSetupUI == null)
             {
-                Debug.LogError("❌ Не найден компонент ProfileSetupUI на префабе AuthPanel");
+                MyLogger.LogError("❌ Не найден компонент ProfileSetupUI на префабе AuthPanel", MyLogger.LogCategory.Bootstrap);
             }
             else if (profileSetupUI is IInjectable injectableProfile)
             {

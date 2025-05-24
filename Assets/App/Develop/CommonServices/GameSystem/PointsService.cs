@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using App.Develop.CommonServices.DataManagement.DataProviders;
 using App.Develop.DI;
 using UnityEngine;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.GameSystem
 {
@@ -63,7 +64,7 @@ namespace App.Develop.CommonServices.GameSystem
 
         public void Initialize()
         {
-            Debug.Log("[PointsService] Синхронная часть Initialize вызвана.");
+            MyLogger.Log("[PointsService] Синхронная часть Initialize вызвана.", MyLogger.LogCategory.Default);
         }
 
         public async Task InitializeAsync()
@@ -73,24 +74,24 @@ namespace App.Develop.CommonServices.GameSystem
             
             if (playerData == null)
             {
-                Debug.LogError("[PointsService] PlayerData is null after Load. Это не должно происходить.");
+                MyLogger.LogError("[PointsService] PlayerData is null after Load. Это не должно происходить.", MyLogger.LogCategory.Default);
                 playerData = _playerDataProvider.GetData();
                  if (playerData == null) {
-                    Debug.LogError("[PointsService] PlayerData все еще null. Сервис не может быть инициализирован.");
+                    MyLogger.LogError("[PointsService] PlayerData все еще null. Сервис не может быть инициализирован.", MyLogger.LogCategory.Default);
                     return;
                  }
             }
 
             if (playerData.GameData == null)
             {
-                Debug.LogWarning("[PointsService] GameData is null. Создаем новый GameData.");
+                MyLogger.LogWarning("[PointsService] GameData is null. Создаем новый GameData.", MyLogger.LogCategory.Default);
                 playerData.GameData = new GameData();
                 await _playerDataProvider.Save();
             }
             
             _playerData = playerData.GameData;
             
-            Debug.Log($"[PointsService] Асинхронная инициализация системы очков завершена. Текущее количество: {CurrentPoints}");
+            MyLogger.Log($"[PointsService] Асинхронная инициализация системы очков завершена. Текущее количество: {CurrentPoints}", MyLogger.LogCategory.Default);
         }
 
         #endregion
@@ -99,16 +100,16 @@ namespace App.Develop.CommonServices.GameSystem
 
         public async Task AddPoints(int amount, PointsSource source, string description = null)
         {
-            Debug.Log($"[PointsService] AddPoints вызван. Amount: {amount}, Source: {source}, Description: '{description}'"); 
+            MyLogger.Log($"[PointsService] AddPoints вызван. Amount: {amount}, Source: {source}, Description: '{description}'", MyLogger.LogCategory.Default); 
             if (amount <= 0)
             {
-                Debug.LogWarning($"Попытка добавить отрицательное число очков: {amount}");
+                MyLogger.LogWarning($"Попытка добавить отрицательное число очков: {amount}", MyLogger.LogCategory.Default);
                 return;
             }
             
             if (_playerData == null) 
             {
-                 Debug.LogError("[PointsService] _playerData is null in AddPoints. Убедитесь, что InitializeAsync был вызван.");
+                 MyLogger.LogError("[PointsService] _playerData is null in AddPoints. Убедитесь, что InitializeAsync был вызван.", MyLogger.LogCategory.Default);
                  return;
             }
 
@@ -129,26 +130,26 @@ namespace App.Develop.CommonServices.GameSystem
             OnPointsChanged?.Invoke(CurrentPoints);
             OnPointsEarned?.Invoke(finalAmount, source);
             
-            Debug.Log($"Добавлено {finalAmount} очков из источника {source}. Текущее количество: {CurrentPoints}");
+            MyLogger.Log($"Добавлено {finalAmount} очков из источника {source}. Текущее количество: {CurrentPoints}", MyLogger.LogCategory.Default);
         }
 
         public async Task<bool> SpendPoints(int amount)
         {
             if (amount <= 0)
             {
-                Debug.LogWarning($"Попытка списать отрицательное число очков: {amount}");
+                MyLogger.LogWarning($"Попытка списать отрицательное число очков: {amount}", MyLogger.LogCategory.Default);
                 return false;
             }
 
             if (_playerData == null) 
             {
-                 Debug.LogError("[PointsService] _playerData is null in SpendPoints. Убедитесь, что InitializeAsync был вызван.");
+                 MyLogger.LogError("[PointsService] _playerData is null in SpendPoints. Убедитесь, что InitializeAsync был вызван.", MyLogger.LogCategory.Default);
                  return false;
             }
 
             if (CurrentPoints < amount)
             {
-                Debug.LogWarning($"Недостаточно очков для списания: {CurrentPoints}/{amount}");
+                MyLogger.LogWarning($"Недостаточно очков для списания: {CurrentPoints}/{amount}", MyLogger.LogCategory.Default);
                 return false;
             }
 
@@ -165,7 +166,7 @@ namespace App.Develop.CommonServices.GameSystem
             
             OnPointsChanged?.Invoke(CurrentPoints);
             
-            Debug.Log($"Списано {amount} очков. Текущее количество: {CurrentPoints}");
+            MyLogger.Log($"Списано {amount} очков. Текущее количество: {CurrentPoints}", MyLogger.LogCategory.Default);
             return true;
         }
 
@@ -196,7 +197,7 @@ namespace App.Develop.CommonServices.GameSystem
         {
             if (_playerData == null) 
             {
-                 Debug.LogError("[PointsService] _playerData is null in AddPointsForEmotion. Убедитесь, что InitializeAsync был вызван.");
+                 MyLogger.LogError("[PointsService] _playerData is null in AddPointsForEmotion. Убедитесь, что InitializeAsync был вызван.", MyLogger.LogCategory.Default);
                  return;
             }
             await AddPoints(c_BaseEmotionPoints, PointsSource.EmotionMarked, "Emotion Marked");
@@ -206,13 +207,13 @@ namespace App.Develop.CommonServices.GameSystem
         {
             if (_playerData == null) 
             {
-                 Debug.LogError("[PointsService] _playerData is null in AddDailyBonus. Убедитесь, что InitializeAsync был вызван.");
+                 MyLogger.LogError("[PointsService] _playerData is null in AddDailyBonus. Убедитесь, что InitializeAsync был вызван.", MyLogger.LogCategory.Default);
                  return;
             }
             var today = DateTime.Today;
             if (_playerData.LastDailyBonusDate.Date == today)
             {
-                Debug.Log("Ежедневный бонус уже был получен сегодня");
+                MyLogger.Log("Ежедневный бонус уже был получен сегодня", MyLogger.LogCategory.Default);
                 return;
             }
             

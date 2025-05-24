@@ -10,6 +10,7 @@ using Newtonsoft.Json;
 using UnityEngine;
 using App.Develop.CommonServices.Firebase.Common.SecureStorage;
 using App.Develop.CommonServices.Firebase.Common.Cache;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Firebase.Database.Services
 {
@@ -36,12 +37,12 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 _syncSettings = LoadSyncSettings();
                 _maxCacheSize = _syncSettings?.MaxCacheRecords ?? DEFAULT_MAX_CACHE_SIZE;
                 
-                Debug.Log($"EmotionHistoryCache инициализирован. В кэше {_cacheIndex.Count} записей.");
+                MyLogger.Log($"EmotionHistoryCache инициализирован. В кэше {_cacheIndex.Count} записей.", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
                 // В случае ошибки создаем пустые объекты с значениями по умолчанию
-                Debug.LogError($"Ошибка при инициализации EmotionHistoryCache: {ex.Message}");
+                MyLogger.LogError($"Ошибка при инициализации EmotionHistoryCache: {ex.Message}", MyLogger.LogCategory.Firebase);
                 _cacheIndex = new List<string>();
                 _syncSettings = CreateDefaultSyncSettings();
                 _maxCacheSize = DEFAULT_MAX_CACHE_SIZE;
@@ -62,12 +63,12 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 _syncSettings = LoadSyncSettings();
                 _maxCacheSize = _syncSettings?.MaxCacheRecords ?? DEFAULT_MAX_CACHE_SIZE;
                 
-                Debug.Log($"EmotionHistoryCache инициализирован с менеджером кэша. В кэше {_cacheIndex.Count} записей.");
+                MyLogger.Log($"EmotionHistoryCache инициализирован с менеджером кэша. В кэше {_cacheIndex.Count} записей.", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
                 // В случае ошибки создаем пустые объекты с значениями по умолчанию
-                Debug.LogError($"Ошибка при инициализации EmotionHistoryCache: {ex.Message}");
+                MyLogger.LogError($"Ошибка при инициализации EmotionHistoryCache: {ex.Message}", MyLogger.LogCategory.Firebase);
                 _cacheIndex = new List<string>();
                 _syncSettings = CreateDefaultSyncSettings();
                 _maxCacheSize = DEFAULT_MAX_CACHE_SIZE;
@@ -88,7 +89,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"Ошибка при проверке инициализации SecurePlayerPrefs: {ex.Message}");
+                MyLogger.LogWarning($"Ошибка при проверке инициализации SecurePlayerPrefs: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return false;
             }
         }
@@ -103,14 +104,14 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             
             if (string.IsNullOrEmpty(record.Id))
             {
-                Debug.LogError("Невозможно добавить/обновить запись с пустым ID");
+                MyLogger.LogError("Невозможно добавить/обновить запись с пустым ID", MyLogger.LogCategory.Firebase);
                 return;
             }
             
             // Проверяем инициализацию SecurePlayerPrefs
             if (!CheckSecurePrefsInitialized())
             {
-                Debug.LogWarning($"Невозможно добавить/обновить запись {record.Id} в кэш: SecurePlayerPrefs не инициализирован");
+                MyLogger.LogWarning($"Невозможно добавить/обновить запись {record.Id} в кэш: SecurePlayerPrefs не инициализирован", MyLogger.LogCategory.Firebase);
                 return;
             }
             
@@ -132,16 +133,16 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                         PruneCache();
                     }
                     
-                    Debug.Log($"Запись {record.Id} добавлена в кэш. Всего записей: {_cacheIndex.Count}");
+                    MyLogger.Log($"Запись {record.Id} добавлена в кэш. Всего записей: {_cacheIndex.Count}", MyLogger.LogCategory.Firebase);
                 }
                 else
                 {
-                    Debug.Log($"Запись {record.Id} обновлена в кэше.");
+                    MyLogger.Log($"Запись {record.Id} обновлена в кэше.", MyLogger.LogCategory.Firebase);
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при добавлении/обновлении записи в кэш: {ex.Message}");
+                MyLogger.LogError($"Ошибка при добавлении/обновлении записи в кэш: {ex.Message}", MyLogger.LogCategory.Firebase);
             }
         }
         
@@ -163,7 +164,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             // Проверяем инициализацию SecurePlayerPrefs
             if (!CheckSecurePrefsInitialized())
             {
-                Debug.LogWarning($"Невозможно получить запись {recordId} из кэша: SecurePlayerPrefs не инициализирован");
+                MyLogger.LogWarning($"Невозможно получить запись {recordId} из кэша: SecurePlayerPrefs не инициализирован", MyLogger.LogCategory.Firebase);
                 return null;
             }
             
@@ -178,7 +179,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при получении записи из кэша: {ex.Message}");
+                MyLogger.LogError($"Ошибка при получении записи из кэша: {ex.Message}", MyLogger.LogCategory.Firebase);
             }
             
             return null;
@@ -202,7 +203,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             // Проверяем инициализацию SecurePlayerPrefs
             if (!CheckSecurePrefsInitialized())
             {
-                Debug.LogWarning($"Невозможно удалить запись {recordId} из кэша: SecurePlayerPrefs не инициализирован");
+                MyLogger.LogWarning($"Невозможно удалить запись {recordId} из кэша: SecurePlayerPrefs не инициализирован", MyLogger.LogCategory.Firebase);
                 return;
             }
             
@@ -218,12 +219,12 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 {
                     _cacheIndex.Remove(recordId);
                     SaveCacheIndex();
-                    Debug.Log($"Запись {recordId} удалена из кэша. Осталось записей: {_cacheIndex.Count}");
+                    MyLogger.Log($"Запись {recordId} удалена из кэша. Осталось записей: {_cacheIndex.Count}", MyLogger.LogCategory.Firebase);
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при удалении записи из кэша: {ex.Message}");
+                MyLogger.LogError($"Ошибка при удалении записи из кэша: {ex.Message}", MyLogger.LogCategory.Firebase);
             }
         }
         
@@ -236,21 +237,21 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             
             try
             {
-                foreach (var recordId in _cacheIndex)
+                // Пытаемся получить записи из кэша
+                foreach (var index in _cacheIndex)
                 {
-                    var record = GetRecord(recordId);
+                    var record = GetRecord(index);
                     if (record != null)
                     {
                         records.Add(record);
                     }
                 }
                 
-                // Сортируем по времени
-                records = records.OrderByDescending(r => r.Timestamp).ToList();
+                MyLogger.Log($"Получено {records.Count} записей из кэша", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при получении всех записей из кэша: {ex.Message}");
+                MyLogger.LogError($"Ошибка при получении всех записей из кэша: {ex.Message}", MyLogger.LogCategory.Firebase);
             }
             
             return records;
@@ -291,7 +292,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при фильтрации записей кэша: {ex.Message}");
+                MyLogger.LogError($"Ошибка при фильтрации записей кэша: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return new List<EmotionHistoryRecord>();
             }
             
@@ -314,7 +315,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             // Проверяем инициализацию SecurePlayerPrefs
             if (!CheckSecurePrefsInitialized())
             {
-                Debug.LogWarning("Невозможно очистить кэш: SecurePlayerPrefs не инициализирован");
+                MyLogger.LogWarning("Невозможно очистить кэш: SecurePlayerPrefs не инициализирован", MyLogger.LogCategory.Firebase);
                 return;
             }
             
@@ -331,11 +332,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 
                 _cacheIndex.Clear();
                 SaveCacheIndex();
-                Debug.Log("Кэш истории эмоций очищен");
+                MyLogger.Log("Кэш истории эмоций очищен", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при очистке кэша: {ex.Message}");
+                MyLogger.LogError($"Ошибка при очистке кэша: {ex.Message}", MyLogger.LogCategory.Firebase);
             }
         }
         
@@ -349,7 +350,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             // Проверяем инициализацию SecurePlayerPrefs
             if (!CheckSecurePrefsInitialized())
             {
-                Debug.LogWarning("Невозможно сохранить настройки синхронизации: SecurePlayerPrefs не инициализирован");
+                MyLogger.LogWarning("Невозможно сохранить настройки синхронизации: SecurePlayerPrefs не инициализирован", MyLogger.LogCategory.Firebase);
                 return;
             }
             
@@ -360,11 +361,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 
                 string json = JsonConvert.SerializeObject(settings);
                 SecurePlayerPrefs.SetString(SYNC_SETTINGS_KEY, json);
-                Debug.Log("Настройки синхронизации сохранены в кэш");
+                MyLogger.Log("Настройки синхронизации сохранены в кэш", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при сохранении настроек синхронизации: {ex.Message}");
+                MyLogger.LogError($"Ошибка при сохранении настроек синхронизации: {ex.Message}", MyLogger.LogCategory.Firebase);
             }
         }
         
@@ -374,6 +375,145 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         public EmotionSyncSettings GetSyncSettings()
         {
             return _syncSettings;
+        }
+
+        /// <summary>
+        /// Принудительно обновляет кэш из Firebase (мягкое обновление - сохраняет локальные записи)
+        /// </summary>
+        public async Task<bool> RefreshFromFirebase(IDatabaseService databaseService)
+        {
+            if (databaseService == null || !databaseService.IsAuthenticated)
+            {
+                MyLogger.LogWarning("Невозможно обновить кэш: DatabaseService не доступен или пользователь не авторизован", MyLogger.LogCategory.Firebase);
+                return false;
+            }
+
+            try
+            {
+                MyLogger.Log("Обновление кэша истории эмоций из Firebase (мягкое обновление, MyLogger.LogCategory.Firebase)...");
+                
+                // Получаем историю из Firebase
+                var firebaseRecords = await databaseService.GetEmotionHistory(null, null, 1000);
+                
+                if (firebaseRecords != null && firebaseRecords.Count > 0)
+                {
+                    // Важно - НЕ очищаем текущий кэш перед обновлением, чтобы сохранить локальные записи
+                    // ClearCache();
+                    
+                    // Сохраняем текущий список ID, чтобы определить новые записи
+                    var previousIds = new HashSet<string>(_cacheIndex);
+                    int newRecordsCount = 0;
+                    int updatedRecordsCount = 0;
+                    
+                    // Добавляем записи из Firebase
+                    foreach (var record in firebaseRecords)
+                    {
+                        if (string.IsNullOrEmpty(record.Id))
+                        {
+                            MyLogger.LogWarning($"Пропускаем запись без ID из Firebase", MyLogger.LogCategory.Firebase);
+                            continue;
+                        }
+                        
+                        if (previousIds.Contains(record.Id))
+                        {
+                            // Существующая запись - обновляем
+                            UpdateRecord(record);
+                            updatedRecordsCount++;
+                        }
+                        else
+                        {
+                            // Новая запись - добавляем
+                            AddRecord(record);
+                            newRecordsCount++;
+                        }
+                    }
+                    
+                    MyLogger.Log($"Кэш обновлен (мягко, MyLogger.LogCategory.Firebase). Загружено {firebaseRecords.Count} записей из Firebase ({newRecordsCount} новых, {updatedRecordsCount} обновлено)");
+                    return true;
+                }
+                else
+                {
+                    MyLogger.LogWarning("Не найдено записей в Firebase", MyLogger.LogCategory.Firebase);
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                MyLogger.LogError($"Ошибка при обновлении кэша из Firebase: {ex.Message}", MyLogger.LogCategory.Firebase);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Принудительно заменяет весь кэш данными из Firebase (жесткое обновление)
+        /// </summary>
+        public async Task<bool> ReplaceFromFirebase(IDatabaseService databaseService)
+        {
+            if (databaseService == null || !databaseService.IsAuthenticated)
+            {
+                MyLogger.LogWarning("Невозможно заменить кэш: DatabaseService не доступен или пользователь не авторизован", MyLogger.LogCategory.Firebase);
+                return false;
+            }
+
+            try
+            {
+                MyLogger.Log("🔄 [ReplaceFromFirebase] Полная замена кэша истории эмоций данными из Firebase...", MyLogger.LogCategory.Firebase);
+                
+                // Получаем историю из Firebase
+                MyLogger.Log("📡 [ReplaceFromFirebase] Запрашиваем историю из Firebase...", MyLogger.LogCategory.Firebase);
+                var firebaseRecords = await databaseService.GetEmotionHistory(null, null, 1000);
+                
+                if (firebaseRecords != null)
+                {
+                    MyLogger.Log($"📥 [ReplaceFromFirebase] Получено {firebaseRecords.Count} записей из Firebase", MyLogger.LogCategory.Firebase);
+                    
+                    // Логируем первые несколько записей для диагностики
+                    for (int i = 0; i < Math.Min(3, firebaseRecords.Count); i++)
+                    {
+                        var record = firebaseRecords[i];
+                        MyLogger.Log($"📋 [ReplaceFromFirebase] Запись {i + 1}: Id={record.Id}, Type={record.Type}, Timestamp={record.RecordTime:O}", MyLogger.LogCategory.Firebase);
+                    }
+                    
+                    // ВАЖНО: Полностью очищаем локальный кэш перед загрузкой
+                    MyLogger.Log("🗑️ [ReplaceFromFirebase] Очищаем локальный кэш...", MyLogger.LogCategory.Firebase);
+                    ClearCache();
+                    
+                    int addedCount = 0;
+                    
+                    // Добавляем все записи из Firebase
+                    foreach (var record in firebaseRecords)
+                    {
+                        if (string.IsNullOrEmpty(record.Id))
+                        {
+                            MyLogger.LogWarning($"⚠️ [ReplaceFromFirebase] Пропускаем запись без ID из Firebase", MyLogger.LogCategory.Firebase);
+                            continue;
+                        }
+                        
+                        MyLogger.Log($"➕ [ReplaceFromFirebase] Добавляем запись в кэш: Id={record.Id}, Type={record.Type}", MyLogger.LogCategory.Firebase);
+                        AddRecord(record);
+                        addedCount++;
+                    }
+                    
+                    MyLogger.Log($"✅ [ReplaceFromFirebase] Кэш полностью заменен. Добавлено {addedCount} записей из Firebase", MyLogger.LogCategory.Firebase);
+                    
+                    // Проверяем, что записи действительно добавились
+                    var cacheRecordsAfter = GetAllRecords();
+                    MyLogger.Log($"🔍 [ReplaceFromFirebase] Проверка: в кэше теперь {cacheRecordsAfter.Count} записей", MyLogger.LogCategory.Firebase);
+                    
+                    return true;
+                }
+                else
+                {
+                    MyLogger.LogWarning("⚠️ [ReplaceFromFirebase] Firebase вернул NULL. Кэш очищен, но не заполнен.", MyLogger.LogCategory.Firebase);
+                    ClearCache(); // Все равно очищаем кэш, даже если в Firebase нет данных
+                    return true; // Возвращаем true, так как операция технически выполнена
+                }
+            }
+            catch (Exception ex)
+            {
+                MyLogger.LogError($"❌ Ошибка при замене кэша данными из Firebase: {ex.Message}", MyLogger.LogCategory.Firebase);
+                return false;
+            }
         }
 
         #endregion
@@ -403,11 +543,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             }
             catch (InvalidOperationException ex) when (ex.Message.Contains("SecurePlayerPrefs не инициализирован"))
             {
-                Debug.LogWarning("SecurePlayerPrefs не инициализирован при загрузке индекса кэша. Возвращается пустой список.");
+                MyLogger.LogWarning("SecurePlayerPrefs не инициализирован при загрузке индекса кэша. Возвращается пустой список.", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при загрузке индекса кэша: {ex.Message}");
+                MyLogger.LogError($"Ошибка при загрузке индекса кэша: {ex.Message}", MyLogger.LogCategory.Firebase);
             }
             
             return new List<string>();
@@ -421,7 +561,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             // Проверяем инициализацию SecurePlayerPrefs
             if (!CheckSecurePrefsInitialized())
             {
-                Debug.LogWarning("Невозможно сохранить индекс кэша: SecurePlayerPrefs не инициализирован");
+                MyLogger.LogWarning("Невозможно сохранить индекс кэша: SecurePlayerPrefs не инициализирован", MyLogger.LogCategory.Firebase);
                 return;
             }
             
@@ -432,7 +572,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при сохранении индекса кэша: {ex.Message}");
+                MyLogger.LogError($"Ошибка при сохранении индекса кэша: {ex.Message}", MyLogger.LogCategory.Firebase);
             }
         }
         
@@ -453,12 +593,12 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             }
             catch (InvalidOperationException ex) when (ex.Message.Contains("SecurePlayerPrefs не инициализирован"))
             {
-                Debug.LogWarning("SecurePlayerPrefs не инициализирован. Используются настройки по умолчанию.");
+                MyLogger.LogWarning("SecurePlayerPrefs не инициализирован. Используются настройки по умолчанию.", MyLogger.LogCategory.Firebase);
                 return CreateDefaultSyncSettings();
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при загрузке настроек синхронизации: {ex.Message}");
+                MyLogger.LogError($"Ошибка при загрузке настроек синхронизации: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return CreateDefaultSyncSettings();
             }
             
@@ -472,10 +612,10 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             return new EmotionSyncSettings 
             {
-                AutoSync = true,
-                SyncIntervalMinutes = 15,
+                AutoSync = false, // Отключаем автосинхронизацию, теперь синхронизация по требованию
+                SyncIntervalMinutes = 15, // Возвращаем разумный интервал
                 MaxCacheRecords = DEFAULT_MAX_CACHE_SIZE,
-                SyncOnWifiOnly = true
+                SyncOnWifiOnly = false
             };
         }
         
@@ -498,11 +638,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                     RemoveRecord(records[i].Id);
                 }
                 
-                Debug.Log($"Очищено {recordsToRemove} старых записей из кэша");
+                MyLogger.Log($"Очищено {recordsToRemove} старых записей из кэша", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при очистке кэша: {ex.Message}");
+                MyLogger.LogError($"Ошибка при очистке кэша: {ex.Message}", MyLogger.LogCategory.Firebase);
             }
         }
         

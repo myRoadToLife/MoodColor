@@ -3,6 +3,7 @@ using System.Collections;
 using System.Threading.Tasks;
 using App.Develop.CommonServices.CoroutinePerformer;
 using App.Develop.DI;
+using App.Develop.Utils.Logging;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -100,7 +101,7 @@ namespace App.Develop.CommonServices.Networking
                 if (previousState != _isConnected)
                 {
                     OnConnectivityChanged?.Invoke(_isConnected);
-                    Debug.Log($"Состояние соединения изменилось: {_isConnected}, WiFi: {_isWifiConnected}");
+                    MyLogger.Log($"Состояние соединения изменилось: {_isConnected}, WiFi: {_isWifiConnected}", MyLogger.LogCategory.Network);
                 }
             }));
         }
@@ -138,7 +139,7 @@ namespace App.Develop.CommonServices.Networking
                 _ => "Неизвестный тип подключения"
             };
             
-            Debug.Log($"Тип подключения: {connectionType}");
+            MyLogger.Log($"Тип подключения: {connectionType}", MyLogger.LogCategory.Network);
         }
         
         /// <summary>

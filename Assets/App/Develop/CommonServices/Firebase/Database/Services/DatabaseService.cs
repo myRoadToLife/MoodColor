@@ -18,7 +18,7 @@ using Newtonsoft.Json;
 using UserProfile = App.Develop.CommonServices.Firebase.Database.Models.UserProfile;
 using EmotionData = App.Develop.CommonServices.DataManagement.DataProviders.EmotionData;
 using EmotionEventType = App.Develop.CommonServices.Emotion.EmotionEventType;
-using App.Develop.CommonServices.DataManagement.DataProviders; // Убедимся, что GameData доступен
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Firebase.Database.Services
 {
@@ -84,15 +84,15 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             // Подписываемся на события завершения батча
             _batchManager.OnBatchCompleted += OnBatchCompleted;
             
-            Debug.Log("✅ DatabaseService инициализирован");
+            MyLogger.Log("✅ DatabaseService инициализирован", MyLogger.LogCategory.Firebase);
             
             if (_validationService == null)
             {
-                Debug.LogWarning("⚠️ Сервис валидации данных не предоставлен. Валидация будет отключена!");
+                MyLogger.LogWarning("⚠️ Сервис валидации данных не предоставлен. Валидация будет отключена!", MyLogger.LogCategory.Firebase);
             }
             else
             {
-                Debug.Log("✅ Валидация данных включена в DatabaseService");
+                MyLogger.Log("✅ Валидация данных включена в DatabaseService", MyLogger.LogCategory.Firebase);
             }
         }
         
@@ -100,11 +100,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (success)
             {
-                Debug.Log($"✅ Батч успешно выполнен: {message}");
+                MyLogger.Log($"✅ Батч успешно выполнен: {message}", MyLogger.LogCategory.Firebase);
             }
             else
             {
-                Debug.LogError($"❌ Ошибка выполнения батча: {message}");
+                MyLogger.LogError($"❌ Ошибка выполнения батча: {message}", MyLogger.LogCategory.Firebase);
             }
         }
         #endregion
@@ -113,7 +113,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         public void UpdateUserId(string userId)
         {
             _userId = userId;
-            Debug.Log($"ID пользователя в DatabaseService обновлен: {userId}");
+            MyLogger.Log($"ID пользователя в DatabaseService обновлен: {userId}", MyLogger.LogCategory.Firebase);
         }
 
         // Проверка, аутентифицирован ли пользователь (установлен ли _userId)
@@ -121,7 +121,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (string.IsNullOrEmpty(_userId))
             {
-                Debug.LogWarning("⚠️ Операция требует авторизации пользователя");
+                MyLogger.LogWarning("⚠️ Операция требует авторизации пользователя", MyLogger.LogCategory.Firebase);
                 return false;
             }
 
@@ -138,7 +138,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
 
                 if (userSnapshot.Exists)
                 {
-                    Debug.LogWarning($"👤 Пользователь {email} (ID: {userId}) уже существует");
+                    MyLogger.LogWarning($"👤 Пользователь {email} (ID: {userId}, MyLogger.LogCategory.Firebase) уже существует");
                     return;
                 }
 
@@ -186,11 +186,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 };
 
                 await userRef.UpdateChildrenAsync(userData);
-                Debug.Log($"✅ Профиль пользователя {email} (ID: {userId}) создан");
+                MyLogger.Log($"✅ Профиль пользователя {email} (ID: {userId}, MyLogger.LogCategory.Firebase) создан");
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка создания пользователя (ID: {userId}): {ex.Message}\n{ex.StackTrace}");
+                MyLogger.LogError($"❌ Ошибка создания пользователя (ID: {userId}, MyLogger.LogCategory.Firebase): {ex.Message}\n{ex.StackTrace}");
                 throw;
             }
         }
@@ -203,7 +203,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
 
             if (string.IsNullOrEmpty(targetUserId))
             {
-                Debug.LogWarning("⚠️ ID пользователя не указан для получения профиля");
+                MyLogger.LogWarning("⚠️ ID пользователя не указан для получения профиля", MyLogger.LogCategory.Firebase);
                 return null;
             }
 
@@ -218,12 +218,12 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                     return JsonConvert.DeserializeObject<UserProfile>(json);
                 }
 
-                Debug.LogWarning($"Профиль для пользователя {targetUserId} не найден.");
+                MyLogger.LogWarning($"Профиль для пользователя {targetUserId} не найден.", MyLogger.LogCategory.Firebase);
                 return null;
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка получения профиля (ID: {targetUserId}): {ex.Message}\n{ex.StackTrace}");
+                MyLogger.LogError($"❌ Ошибка получения профиля (ID: {targetUserId}, MyLogger.LogCategory.Firebase): {ex.Message}\n{ex.StackTrace}");
                 throw;
             }
         }
@@ -239,11 +239,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             try
             {
                 await _database.Child("users").Child(_userId).UpdateChildrenAsync(updates);
-                Debug.Log($"✅ Данные пользователя {_userId} обновлены.");
+                MyLogger.Log($"✅ Данные пользователя {_userId} обновлены.", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка обновления данных пользователя {_userId}: {ex.Message}\n{ex.StackTrace}");
+                MyLogger.LogError($"❌ Ошибка обновления данных пользователя {_userId}: {ex.Message}\n{ex.StackTrace}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -255,7 +255,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (_eventHandlers.ContainsKey(reference))
             {
-                Debug.LogWarning($"Попытка повторной подписки на {reference.Key}");
+                MyLogger.LogWarning($"Попытка повторной подписки на {reference.Key}", MyLogger.LogCategory.Firebase);
                 return; // Уже подписаны
             }
 
@@ -265,7 +265,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             {
                 if (args.DatabaseError != null)
                 {
-                    Debug.LogError($"Ошибка Firebase при прослушивании {reference.Key}: {args.DatabaseError.Message}");
+                    MyLogger.LogError($"Ошибка Firebase при прослушивании {reference.Key}: {args.DatabaseError.Message}", MyLogger.LogCategory.Firebase);
                     return;
                 }
 
@@ -280,13 +280,13 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                     }
                     catch (Exception ex)
                     {
-                        Debug.LogError($"❌ Ошибка обработки данных для {reference.Key}: {ex.Message}\n{ex.StackTrace}");
+                        MyLogger.LogError($"❌ Ошибка обработки данных для {reference.Key}: {ex.Message}\n{ex.StackTrace}", MyLogger.LogCategory.Firebase);
                         // Можно добавить логику уведомления пользователя или отписки при критической ошибке
                     }
                 }
                 else
                 {
-                    Debug.Log($"Данные для {reference.Key} не найдены или пусты.");
+                    MyLogger.Log($"Данные для {reference.Key} не найдены или пусты.", MyLogger.LogCategory.Firebase);
                     // Вызываем onUpdate с default(T), чтобы обработать случай отсутствия данных
                     onUpdate?.Invoke(default(T));
                 }
@@ -294,7 +294,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
 
             _eventHandlers[reference] = handler; // Сохраняем обработчик
             reference.ValueChanged += handler; // Подписываемся
-            Debug.Log($"Подписка на {reference.Key} установлена.");
+            MyLogger.Log($"Подписка на {reference.Key} установлена.", MyLogger.LogCategory.Firebase);
         }
 
         // Прослушивание эмоций в регионе
@@ -302,7 +302,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (string.IsNullOrEmpty(regionId))
             {
-                Debug.LogWarning("⚠️ ID региона не может быть пустым для ListenToRegionEmotions");
+                MyLogger.LogWarning("⚠️ ID региона не может быть пустым для ListenToRegionEmotions", MyLogger.LogCategory.Firebase);
                 return;
             }
 
@@ -361,16 +361,16 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 // Используем ID эмоции как ключ и сохраняем JSON-строку
                 await _database.Child("users").Child(_userId).Child("emotions").Child(emotion.Id).SetRawJsonValueAsync(jsonPayload);
 
-                Debug.Log($"✅ Эмоция {emotion.Type} (ID: {emotion.Id}) добавлена для пользователя {_userId}");
+                MyLogger.Log($"✅ Эмоция {emotion.Type} (ID: {emotion.Id}, MyLogger.LogCategory.Firebase) добавлена для пользователя {_userId}");
             }
             catch (JsonException jsonEx) // Ловим ошибки сериализации
             {
-                Debug.LogError($"❌ Ошибка сериализации EmotionData для пользователя {_userId}: {jsonEx.Message}\n{jsonEx.StackTrace}");
+                MyLogger.LogError($"❌ Ошибка сериализации EmotionData для пользователя {_userId}: {jsonEx.Message}\n{jsonEx.StackTrace}", MyLogger.LogCategory.Firebase);
                 throw;
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка добавления эмоции для пользователя {_userId}: {ex.Message}\n{ex.StackTrace}");
+                MyLogger.LogError($"❌ Ошибка добавления эмоции для пользователя {_userId}: {ex.Message}\n{ex.StackTrace}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -392,11 +392,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
 
                 // Обновляем узел currentEmotion целиком
                 await _database.Child("users").Child(_userId).Child("currentEmotion").UpdateChildrenAsync(updates);
-                Debug.Log($"✅ Текущая эмоция пользователя {_userId} обновлена на {type} ({intensity})");
+                MyLogger.Log($"✅ Текущая эмоция пользователя {_userId} обновлена на {type} ({intensity}, MyLogger.LogCategory.Firebase)");
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка обновления текущей эмоции для {_userId}: {ex.Message}\n{ex.StackTrace}");
+                MyLogger.LogError($"❌ Ошибка обновления текущей эмоции для {_userId}: {ex.Message}\n{ex.StackTrace}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -408,7 +408,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
 
             if (string.IsNullOrEmpty(emotionType))
             {
-                Debug.LogError("❌ Тип эмоции не может быть пустым для UpdateJarAmount");
+                MyLogger.LogError("❌ Тип эмоции не может быть пустым для UpdateJarAmount", MyLogger.LogCategory.Firebase);
                 return;
             }
 
@@ -422,7 +422,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 {
                     if (mutableData.Value == null)
                     {
-                        Debug.LogWarning($"⚠️ Узел баночки '{emotionType}' не найден. Прерываем транзакцию.");
+                        MyLogger.LogWarning($"⚠️ Узел баночки '{emotionType}' не найден. Прерываем транзакцию.", MyLogger.LogCategory.Firebase);
                         return TransactionResult.Abort();
                     }
 
@@ -433,7 +433,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
 
                         if (jar == null)
                         {
-                            Debug.LogError($"❌ Не удалось десериализовать баночку '{emotionType}'");
+                            MyLogger.LogError($"❌ Не удалось десериализовать баночку '{emotionType}'", MyLogger.LogCategory.Firebase);
                             return TransactionResult.Abort();
                         }
 
@@ -442,27 +442,27 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                         if (newAmount != jar.CurrentAmount)
                         {
                             mutableData.Child("currentAmount").Value = newAmount;
-                            Debug.Log($"🔄 {emotionType}: {jar.CurrentAmount} ➡ {newAmount}");
+                            MyLogger.Log($"🔄 {emotionType}: {jar.CurrentAmount} ➡ {newAmount}", MyLogger.LogCategory.Firebase);
                             return TransactionResult.Success(mutableData);
                         }
                         else
                         {
-                            Debug.Log($"ℹ️ {emotionType}: значение не изменилось ({jar.CurrentAmount})");
+                            MyLogger.Log($"ℹ️ {emotionType}: значение не изменилось ({jar.CurrentAmount}, MyLogger.LogCategory.Firebase)");
                             return TransactionResult.Abort();
                         }
                     }
                     catch (Exception ex)
                     {
-                        Debug.LogError($"❌ Ошибка в транзакции {emotionType}: {ex.Message}");
+                        MyLogger.LogError($"❌ Ошибка в транзакции {emotionType}: {ex.Message}", MyLogger.LogCategory.Firebase);
                         return TransactionResult.Abort();
                     }
                 });
 
-                Debug.Log($"✅ Транзакция для баночки '{emotionType}' завершена.");
+                MyLogger.Log($"✅ Транзакция для баночки '{emotionType}' завершена.", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка транзакции баночки '{emotionType}': {ex.Message}\n{ex.StackTrace}");
+                MyLogger.LogError($"❌ Ошибка транзакции баночки '{emotionType}': {ex.Message}\n{ex.StackTrace}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -475,7 +475,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
 
             if (pointsToAdd <= 0)
             {
-                Debug.LogWarning("⚠️ Попытка добавить 0 или отрицательное количество очков.");
+                MyLogger.LogWarning("⚠️ Попытка добавить 0 или отрицательное количество очков.", MyLogger.LogCategory.Firebase);
                 return;
             }
 
@@ -495,15 +495,15 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                     long newTotal = currentPoints + pointsToAdd;
                     mutableData.Value = newTotal;
 
-                    Debug.Log($"🔄 Очки: {currentPoints} ➡ {newTotal}");
+                    MyLogger.Log($"🔄 Очки: {currentPoints} ➡ {newTotal}", MyLogger.LogCategory.Firebase);
                     return TransactionResult.Success(mutableData);
                 });
 
-                Debug.Log($"✅ Пользователю {_userId} начислено {pointsToAdd} очков.");
+                MyLogger.Log($"✅ Пользователю {_userId} начислено {pointsToAdd} очков.", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка транзакции начисления очков: {ex.Message}\n{ex.StackTrace}");
+                MyLogger.LogError($"❌ Ошибка транзакции начисления очков: {ex.Message}\n{ex.StackTrace}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -516,7 +516,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 string userId = _userId;
                 if (string.IsNullOrEmpty(userId))
                 {
-                    Debug.LogError("Пользователь не авторизован");
+                    MyLogger.LogError("Пользователь не авторизован", MyLogger.LogCategory.Firebase);
                     return null;
                 }
 
@@ -524,7 +524,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
 
                 if (!snapshot.Exists)
                 {
-                    Debug.Log("Банки пользователя не найдены, создаём их");
+                    MyLogger.Log("Банки пользователя не найдены, создаём их", MyLogger.LogCategory.Firebase);
                     return await CreateDefaultJars();
                 }
 
@@ -543,7 +543,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при получении банок пользователя: {ex.Message}");
+                MyLogger.LogError($"Ошибка при получении банок пользователя: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -556,7 +556,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 string userId = _userId;
                 if (string.IsNullOrEmpty(userId))
                 {
-                    Debug.LogError("Пользователь не авторизован");
+                    MyLogger.LogError("Пользователь не авторизован", MyLogger.LogCategory.Firebase);
                     return null;
                 }
 
@@ -585,7 +585,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при создании банок по умолчанию: {ex.Message}");
+                MyLogger.LogError($"Ошибка при создании банок по умолчанию: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -595,7 +595,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             try
             {
-                Debug.Log($"Disposing DatabaseService. Отписка от {_eventHandlers.Count} слушателей...");
+                MyLogger.Log($"Disposing DatabaseService. Отписка от {_eventHandlers.Count} слушателей...", MyLogger.LogCategory.Firebase);
                 // Обходим копию ключей, чтобы избежать проблем при изменении словаря во время итерации (хотя здесь это маловероятно)
                 var referencesToUnsubscribe = new List<DatabaseReference>(_eventHandlers.Keys);
 
@@ -604,7 +604,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                     if (_eventHandlers.TryGetValue(reference, out var handler))
                     {
                         reference.ValueChanged -= handler; // Отписываемся
-                        Debug.Log($"Отписка от {reference.Key} выполнена.");
+                        MyLogger.Log($"Отписка от {reference.Key} выполнена.", MyLogger.LogCategory.Firebase);
                     }
                 }
 
@@ -620,7 +620,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                     int pendingCount = _batchManager.GetPendingOperationsCount();
                     if (pendingCount > 0)
                     {
-                        Debug.Log($"Завершение {pendingCount} незавершенных операций батчинга перед закрытием...");
+                        MyLogger.Log($"Завершение {pendingCount} незавершенных операций батчинга перед закрытием...", MyLogger.LogCategory.Firebase);
                         try
                         {
                             // Выполняем синхронно, чтобы не потерять данные
@@ -628,16 +628,16 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                         }
                         catch (Exception ex)
                         {
-                            Debug.LogError($"❌ Ошибка при выполнении незавершенных операций батчинга: {ex.Message}");
+                            MyLogger.LogError($"❌ Ошибка при выполнении незавершенных операций батчинга: {ex.Message}", MyLogger.LogCategory.Firebase);
                         }
                     }
                 }
                 
-                Debug.Log("✅ DatabaseService: все обработчики событий удалены и ресурсы освобождены.");
+                MyLogger.Log("✅ DatabaseService: все обработчики событий удалены и ресурсы освобождены.", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка при освобождении ресурсов DatabaseService: {ex.Message}\n{ex.StackTrace}");
+                MyLogger.LogError($"❌ Ошибка при освобождении ресурсов DatabaseService: {ex.Message}\n{ex.StackTrace}", MyLogger.LogCategory.Firebase);
             }
         }
 
@@ -648,14 +648,19 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         /// </summary>
         public async Task<List<EmotionHistoryRecord>> GetEmotionHistory(DateTime? startDate = null, DateTime? endDate = null, int limit = 100)
         {
+            MyLogger.Log($"📡 [GetEmotionHistory] Начало запроса истории эмоций. UserId={_userId}, limit={limit}", MyLogger.LogCategory.Firebase);
+            
             if (!CheckAuthentication())
             {
-                Debug.LogWarning("Пользователь не авторизован для получения истории эмоций");
+                MyLogger.LogWarning("❌ [GetEmotionHistory] Пользователь не авторизован для получения истории эмоций", MyLogger.LogCategory.Firebase);
                 return new List<EmotionHistoryRecord>();
             }
 
             try
             {
+                string path = $"users/{_userId}/emotionHistory";
+                MyLogger.Log($"🔍 [GetEmotionHistory] Запрашиваем данные по пути: {path}", MyLogger.LogCategory.Firebase);
+                
                 Query query = _database.Child("users").Child(_userId).Child("emotionHistory").OrderByKey();
                 
                 // Добавляем фильтр по дате начала
@@ -663,6 +668,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 {
                     var startTimestamp = startDate.Value.ToFileTimeUtc();
                     query = query.StartAt(null, startTimestamp.ToString());
+                    MyLogger.Log($"📅 [GetEmotionHistory] Фильтр по дате начала: {startDate.Value:O}", MyLogger.LogCategory.Firebase);
                 }
                 
                 // Добавляем фильтр по дате окончания
@@ -670,39 +676,61 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 {
                     var endTimestamp = endDate.Value.ToFileTimeUtc();
                     query = query.EndAt(null, endTimestamp.ToString());
+                    MyLogger.Log($"📅 [GetEmotionHistory] Фильтр по дате окончания: {endDate.Value:O}", MyLogger.LogCategory.Firebase);
                 }
                 
                 // Ограничиваем количество записей
                 query = query.LimitToLast(limit);
                 
+                MyLogger.Log($"⏳ [GetEmotionHistory] Выполняем запрос к Firebase...", MyLogger.LogCategory.Firebase);
                 var snapshot = await query.GetValueAsync();
+                
+                MyLogger.Log($"📊 [GetEmotionHistory] Ответ от Firebase: Exists={snapshot.Exists}, ChildrenCount={snapshot.ChildrenCount}", MyLogger.LogCategory.Firebase);
+                
                 var result = new List<EmotionHistoryRecord>();
                 
                 if (snapshot.Exists && snapshot.ChildrenCount > 0)
                 {
+                    MyLogger.Log($"📋 [GetEmotionHistory] Обрабатываем {snapshot.ChildrenCount} записей...", MyLogger.LogCategory.Firebase);
+                    
+                    int processedCount = 0;
                     foreach (var child in snapshot.Children)
                     {
                         try
                         {
-                            var record = JsonConvert.DeserializeObject<EmotionHistoryRecord>(child.GetRawJsonValue());
+                            string rawJson = child.GetRawJsonValue();
+                            MyLogger.Log($"📄 [GetEmotionHistory] Запись {processedCount + 1}: Key={child.Key}, JSON={rawJson}", MyLogger.LogCategory.Firebase);
+                            
+                            var record = JsonConvert.DeserializeObject<EmotionHistoryRecord>(rawJson);
                             if (record != null)
                             {
                                 result.Add(record);
+                                MyLogger.Log($"✅ [GetEmotionHistory] Запись {processedCount + 1} успешно десериализована: Id={record.Id}, Type={record.Type}", MyLogger.LogCategory.Firebase);
                             }
+                            else
+                            {
+                                MyLogger.LogWarning($"⚠️ [GetEmotionHistory] Запись {processedCount + 1} десериализована как NULL", MyLogger.LogCategory.Firebase);
+                            }
+                            processedCount++;
                         }
                         catch (Exception ex)
                         {
-                            Debug.LogError($"Ошибка при десериализации записи истории эмоций: {ex.Message}");
+                            MyLogger.LogError($"❌ [GetEmotionHistory] Ошибка при десериализации записи {processedCount + 1}: {ex.Message}", MyLogger.LogCategory.Firebase);
                         }
                     }
                 }
+                else
+                {
+                    MyLogger.LogWarning($"⚠️ [GetEmotionHistory] Firebase вернул пустой результат или snapshot не существует", MyLogger.LogCategory.Firebase);
+                }
                 
-                Debug.Log($"Получено {result.Count} записей истории эмоций");
+                MyLogger.Log($"🎯 [GetEmotionHistory] Итого получено {result.Count} записей истории эмоций", MyLogger.LogCategory.Firebase);
                 return result;
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка получения истории эмоций: {ex.Message}");
+                MyLogger.LogError($"❌ [GetEmotionHistory] Ошибка получения истории эмоций: {ex.Message}", MyLogger.LogCategory.Firebase);
+                MyLogger.LogError($"❌ [GetEmotionHistory] Stack trace: {ex.StackTrace}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -720,12 +748,12 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 // Фильтруем по типу
                 var filteredRecords = allRecords.Where(r => r.Type == emotionType).Take(limit).ToList();
                 
-                Debug.Log($"Получено {filteredRecords.Count} записей истории эмоций типа {emotionType}");
+                MyLogger.Log($"Получено {filteredRecords.Count} записей истории эмоций типа {emotionType}", MyLogger.LogCategory.Firebase);
                 return filteredRecords;
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка получения истории эмоций по типу: {ex.Message}");
+                MyLogger.LogError($"Ошибка получения истории эмоций по типу: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -737,7 +765,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (!CheckAuthentication())
             {
-                Debug.LogWarning("Пользователь не авторизован для добавления записи в историю эмоций");
+                MyLogger.LogWarning("Пользователь не авторизован для добавления записи в историю эмоций", MyLogger.LogCategory.Firebase);
                 return;
             }
 
@@ -763,11 +791,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 // Выполняем батч немедленно, так как это одиночная операция
                 await _batchManager.ExecuteBatchAsync();
                 
-                Debug.Log($"Запись добавлена в историю эмоций через механизм батчинга: {record.Id}, тип: {record.Type}");
+                MyLogger.Log($"Запись добавлена в историю эмоций через механизм батчинга: {record.Id}, тип: {record.Type}", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка добавления записи в историю эмоций: {ex.Message}");
+                MyLogger.LogError($"Ошибка добавления записи в историю эмоций: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -779,7 +807,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (!CheckAuthentication())
             {
-                Debug.LogWarning("Пользователь не авторизован для добавления записи в историю эмоций");
+                MyLogger.LogWarning("Пользователь не авторизован для добавления записи в историю эмоций", MyLogger.LogCategory.Firebase);
                 return;
             }
 
@@ -798,7 +826,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка добавления записи в историю эмоций: {ex.Message}");
+                MyLogger.LogError($"Ошибка добавления записи в историю эмоций: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -810,7 +838,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (!CheckAuthentication())
             {
-                Debug.LogWarning("Пользователь не авторизован для добавления записей в историю эмоций");
+                MyLogger.LogWarning("Пользователь не авторизован для добавления записей в историю эмоций", MyLogger.LogCategory.Firebase);
                 return;
             }
 
@@ -838,11 +866,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 // Принудительно выполняем батч
                 await _batchManager.ExecuteBatchAsync();
                 
-                Debug.Log($"Добавлено {records.Count} записей в историю эмоций через механизм батчинга");
+                MyLogger.Log($"Добавлено {records.Count} записей в историю эмоций через механизм батчинга", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка пакетного добавления записей в историю эмоций: {ex.Message}");
+                MyLogger.LogError($"Ошибка пакетного добавления записей в историю эмоций: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -854,7 +882,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (!CheckAuthentication())
             {
-                Debug.LogWarning("Пользователь не авторизован для получения несинхронизированных записей");
+                MyLogger.LogWarning("Пользователь не авторизован для получения несинхронизированных записей", MyLogger.LogCategory.Firebase);
                 return new List<EmotionHistoryRecord>();
             }
 
@@ -882,17 +910,17 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                         }
                         catch (Exception ex)
                         {
-                            Debug.LogError($"Ошибка при десериализации несинхронизированной записи: {ex.Message}");
+                            MyLogger.LogError($"Ошибка при десериализации несинхронизированной записи: {ex.Message}", MyLogger.LogCategory.Firebase);
                         }
                     }
                 }
                 
-                Debug.Log($"Получено {result.Count} несинхронизированных записей");
+                MyLogger.Log($"Получено {result.Count} несинхронизированных записей", MyLogger.LogCategory.Firebase);
                 return result;
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка получения несинхронизированных записей: {ex.Message}");
+                MyLogger.LogError($"Ошибка получения несинхронизированных записей: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -904,7 +932,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (!CheckAuthentication())
             {
-                Debug.LogWarning("Пользователь не авторизован для обновления статуса синхронизации");
+                MyLogger.LogWarning("Пользователь не авторизован для обновления статуса синхронизации", MyLogger.LogCategory.Firebase);
                 return;
             }
 
@@ -922,11 +950,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 // Выполняем батч немедленно, так как это одиночная операция
                 await _batchManager.ExecuteBatchAsync();
                 
-                Debug.Log($"Статус синхронизации записи {recordId} обновлен на {status} через механизм батчинга");
+                MyLogger.Log($"Статус синхронизации записи {recordId} обновлен на {status} через механизм батчинга", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка обновления статуса синхронизации: {ex.Message}");
+                MyLogger.LogError($"Ошибка обновления статуса синхронизации: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -938,7 +966,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (!CheckAuthentication())
             {
-                Debug.LogWarning("Пользователь не авторизован для удаления записи");
+                MyLogger.LogWarning("Пользователь не авторизован для удаления записи", MyLogger.LogCategory.Firebase);
                 return;
             }
 
@@ -956,11 +984,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 // Выполняем батч немедленно
                 await _batchManager.ExecuteBatchAsync();
                 
-                Debug.Log($"Запись {recordId} удалена из истории эмоций через механизм батчинга");
+                MyLogger.Log($"Запись {recordId} удалена из истории эмоций через механизм батчинга", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка удаления записи из истории эмоций: {ex.Message}");
+                MyLogger.LogError($"Ошибка удаления записи из истории эмоций: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -972,7 +1000,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (!CheckAuthentication())
             {
-                Debug.LogWarning("Пользователь не авторизован для получения статистики эмоций");
+                MyLogger.LogWarning("Пользователь не авторизован для получения статистики эмоций", MyLogger.LogCategory.Firebase);
                 return new Dictionary<string, int>();
             }
 
@@ -996,12 +1024,12 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                     }
                 }
                 
-                Debug.Log($"Получена статистика эмоций с {startDate} по {endDate}: {stats.Count} типов");
+                MyLogger.Log($"Получена статистика эмоций с {startDate} по {endDate}: {stats.Count} типов", MyLogger.LogCategory.Firebase);
                 return stats;
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка получения статистики эмоций: {ex.Message}");
+                MyLogger.LogError($"Ошибка получения статистики эмоций: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -1017,7 +1045,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (!CheckAuthentication())
             {
-                Debug.LogWarning("Пользователь не авторизован для получения настроек синхронизации");
+                MyLogger.LogWarning("Пользователь не авторизован для получения настроек синхронизации", MyLogger.LogCategory.Firebase);
                 return null;
             }
 
@@ -1028,7 +1056,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 if (snapshot.Exists)
                 {
                     var settings = JsonConvert.DeserializeObject<EmotionSyncSettings>(snapshot.GetRawJsonValue());
-                    Debug.Log("Настройки синхронизации получены с сервера");
+                    MyLogger.Log("Настройки синхронизации получены с сервера", MyLogger.LogCategory.Firebase);
                     return settings;
                 }
                 
@@ -1036,12 +1064,12 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 var defaultSettings = new EmotionSyncSettings();
                 await UpdateSyncSettings(defaultSettings);
                 
-                Debug.Log("Созданы и сохранены дефолтные настройки синхронизации");
+                MyLogger.Log("Созданы и сохранены дефолтные настройки синхронизации", MyLogger.LogCategory.Firebase);
                 return defaultSettings;
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка получения настроек синхронизации: {ex.Message}");
+                MyLogger.LogError($"Ошибка получения настроек синхронизации: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -1053,7 +1081,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (!CheckAuthentication())
             {
-                Debug.LogWarning("Пользователь не авторизован для обновления настроек синхронизации");
+                MyLogger.LogWarning("Пользователь не авторизован для обновления настроек синхронизации", MyLogger.LogCategory.Firebase);
                 return;
             }
 
@@ -1071,11 +1099,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 // Сохраняем настройки в Firebase
                 await _database.Child("users").Child(_userId).Child("syncSettings").UpdateChildrenAsync(dictionary);
                 
-                Debug.Log("Настройки синхронизации обновлены");
+                MyLogger.Log("Настройки синхронизации обновлены", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка обновления настроек синхронизации: {ex.Message}");
+                MyLogger.LogError($"Ошибка обновления настроек синхронизации: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -1091,7 +1119,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (!CheckAuthentication())
             {
-                Debug.LogWarning("Пользователь не авторизован для создания резервной копии");
+                MyLogger.LogWarning("Пользователь не авторизован для создания резервной копии", MyLogger.LogCategory.Firebase);
                 return null;
             }
 
@@ -1111,12 +1139,12 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 // Сохраняем резервную копию
                 await _database.Child("backups").Child(_userId).Child(backupId).SetRawJsonValueAsync(snapshot.GetRawJsonValue());
                 
-                Debug.Log($"Резервная копия создана: {backupId}");
+                MyLogger.Log($"Резервная копия создана: {backupId}", MyLogger.LogCategory.Firebase);
                 return backupId;
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка создания резервной копии: {ex.Message}");
+                MyLogger.LogError($"Ошибка создания резервной копии: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -1128,7 +1156,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (!CheckAuthentication())
             {
-                Debug.LogWarning("Пользователь не авторизован для восстановления из резервной копии");
+                MyLogger.LogWarning("Пользователь не авторизован для восстановления из резервной копии", MyLogger.LogCategory.Firebase);
                 return false;
             }
 
@@ -1159,12 +1187,12 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 // Восстанавливаем остальные данные
                 await _database.Child("users").Child(_userId).UpdateChildrenAsync(backupData);
                 
-                Debug.Log($"Данные восстановлены из резервной копии {backupId}");
+                MyLogger.Log($"Данные восстановлены из резервной копии {backupId}", MyLogger.LogCategory.Firebase);
                 return true;
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка восстановления из резервной копии: {ex.Message}");
+                MyLogger.LogError($"Ошибка восстановления из резервной копии: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return false;
             }
         }
@@ -1176,7 +1204,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (!CheckAuthentication())
             {
-                Debug.LogWarning("Пользователь не авторизован для получения списка резервных копий");
+                MyLogger.LogWarning("Пользователь не авторизован для получения списка резервных копий", MyLogger.LogCategory.Firebase);
                 return Array.Empty<string>();
             }
 
@@ -1186,7 +1214,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 
                 if (!snapshot.Exists)
                 {
-                    Debug.Log("Резервные копии не найдены");
+                    MyLogger.Log("Резервные копии не найдены", MyLogger.LogCategory.Firebase);
                     return Array.Empty<string>();
                 }
                 
@@ -1197,12 +1225,12 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                     backupIds.Add(child.Key);
                 }
                 
-                Debug.Log($"Найдено {backupIds.Count} резервных копий");
+                MyLogger.Log($"Найдено {backupIds.Count} резервных копий", MyLogger.LogCategory.Firebase);
                 return backupIds.OrderByDescending(id => id).ToArray(); // Сортируем по убыванию даты
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка получения списка резервных копий: {ex.Message}");
+                MyLogger.LogError($"Ошибка получения списка резервных копий: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return Array.Empty<string>();
             }
         }
@@ -1220,12 +1248,12 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 
                 bool isConnected = snapshot.Exists && snapshot.Value != null && (bool)snapshot.Value;
                 
-                Debug.Log($"Статус подключения к Firebase: {(isConnected ? "Подключено" : "Не подключено")}");
+                MyLogger.Log($"Статус подключения к Firebase: {(isConnected ? "Подключено" : "Не подключено", MyLogger.LogCategory.Firebase)}");
                 return isConnected;
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка проверки подключения: {ex.Message}");
+                MyLogger.LogError($"Ошибка проверки подключения: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return false;
             }
         }
@@ -1241,7 +1269,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (!CheckAuthentication())
             {
-                Debug.LogWarning("Пользователь не авторизован для получения эмоций");
+                MyLogger.LogWarning("Пользователь не авторизован для получения эмоций", MyLogger.LogCategory.Firebase);
                 return new Dictionary<string, EmotionData>();
             }
 
@@ -1251,7 +1279,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 
                 if (!snapshot.Exists)
                 {
-                    Debug.Log("Эмоции пользователя не найдены");
+                    MyLogger.Log("Эмоции пользователя не найдены", MyLogger.LogCategory.Firebase);
                     return new Dictionary<string, EmotionData>();
                 }
                 
@@ -1269,16 +1297,16 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                     }
                     catch (Exception ex)
                     {
-                        Debug.LogError($"Ошибка десериализации эмоции: {ex.Message}");
+                        MyLogger.LogError($"Ошибка десериализации эмоции: {ex.Message}", MyLogger.LogCategory.Firebase);
                     }
                 }
                 
-                Debug.Log($"Получено {emotionsDict.Count} эмоций");
+                MyLogger.Log($"Получено {emotionsDict.Count} эмоций", MyLogger.LogCategory.Firebase);
                 return emotionsDict;
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка получения эмоций: {ex.Message}");
+                MyLogger.LogError($"Ошибка получения эмоций: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return new Dictionary<string, EmotionData>();
             }
         }
@@ -1290,7 +1318,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (!CheckAuthentication())
             {
-                Debug.LogWarning("Пользователь не авторизован для обновления эмоций");
+                MyLogger.LogWarning("Пользователь не авторизован для обновления эмоций", MyLogger.LogCategory.Firebase);
                 return;
             }
 
@@ -1298,7 +1326,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             {
                 if (emotions == null || emotions.Count == 0)
                 {
-                    Debug.LogWarning("Пустой словарь эмоций");
+                    MyLogger.LogWarning("Пустой словарь эмоций", MyLogger.LogCategory.Firebase);
                     return;
                 }
                 
@@ -1314,11 +1342,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 // Принудительно выполняем батч
                 await _batchManager.ExecuteBatchAsync();
                 
-                Debug.Log($"Обновлено {emotions.Count} эмоций через механизм батчинга");
+                MyLogger.Log($"Обновлено {emotions.Count} эмоций через механизм батчинга", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка обновления эмоций: {ex.Message}");
+                MyLogger.LogError($"Ошибка обновления эмоций: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -1330,7 +1358,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (!CheckAuthentication())
             {
-                Debug.LogWarning("Пользователь не авторизован для обновления эмоции");
+                MyLogger.LogWarning("Пользователь не авторизован для обновления эмоции", MyLogger.LogCategory.Firebase);
                 return;
             }
 
@@ -1356,11 +1384,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 // Выполняем батч немедленно, так как это одиночная операция
                 await _batchManager.ExecuteBatchAsync();
                 
-                Debug.Log($"Эмоция {emotion.Type} обновлена через механизм батчинга");
+                MyLogger.Log($"Эмоция {emotion.Type} обновлена через механизм батчинга", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка обновления эмоции: {ex.Message}");
+                MyLogger.LogError($"Ошибка обновления эмоции: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -1396,7 +1424,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
 
             if (string.IsNullOrEmpty(targetUserId))
             {
-                Debug.LogWarning("ID пользователя не указан для создания профиля");
+                MyLogger.LogWarning("ID пользователя не указан для создания профиля", MyLogger.LogCategory.Firebase);
                 return;
             }
 
@@ -1407,11 +1435,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 await _database.Child("users").Child(targetUserId).Child("profile")
                     .SetRawJsonValueAsync(json);
                 
-                Debug.Log($"Профиль пользователя {targetUserId} создан");
+                MyLogger.Log($"Профиль пользователя {targetUserId} создан", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка создания профиля: {ex.Message}");
+                MyLogger.LogError($"Ошибка создания профиля: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -1425,7 +1453,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
 
             if (string.IsNullOrEmpty(targetUserId))
             {
-                Debug.LogWarning("ID пользователя не указан для обновления профиля");
+                MyLogger.LogWarning("ID пользователя не указан для обновления профиля", MyLogger.LogCategory.Firebase);
                 return;
             }
 
@@ -1437,11 +1465,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 await _database.Child("users").Child(targetUserId).Child("profile")
                     .UpdateChildrenAsync(updates);
                 
-                Debug.Log($"Профиль пользователя {targetUserId} обновлен");
+                MyLogger.Log($"Профиль пользователя {targetUserId} обновлен", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка обновления профиля: {ex.Message}");
+                MyLogger.LogError($"Ошибка обновления профиля: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -1455,7 +1483,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
 
             if (string.IsNullOrEmpty(targetUserId))
             {
-                Debug.LogWarning("ID пользователя не указан для обновления поля профиля");
+                MyLogger.LogWarning("ID пользователя не указан для обновления поля профиля", MyLogger.LogCategory.Firebase);
                 return;
             }
 
@@ -1469,11 +1497,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 await _database.Child("users").Child(targetUserId).Child("profile").Child(field)
                     .SetValueAsync(value);
                 
-                Debug.Log($"Поле {field} профиля пользователя {targetUserId} обновлено");
+                MyLogger.Log($"Поле {field} профиля пользователя {targetUserId} обновлено", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка обновления поля профиля: {ex.Message}");
+                MyLogger.LogError($"Ошибка обновления поля профиля: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -1487,7 +1515,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
 
             if (string.IsNullOrEmpty(targetUserId))
             {
-                Debug.LogWarning("ID пользователя не указан для проверки существования профиля");
+                MyLogger.LogWarning("ID пользователя не указан для проверки существования профиля", MyLogger.LogCategory.Firebase);
                 return false;
             }
 
@@ -1498,7 +1526,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка проверки существования профиля: {ex.Message}");
+                MyLogger.LogError($"Ошибка проверки существования профиля: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return false;
             }
         }
@@ -1522,7 +1550,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка проверки существования никнейма: {ex.Message}");
+                MyLogger.LogError($"Ошибка проверки существования никнейма: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return false;
             }
         }
@@ -1562,7 +1590,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка проверки доступности никнейма: {ex.Message}");
+                MyLogger.LogError($"Ошибка проверки доступности никнейма: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return (false, "Произошла ошибка при проверке никнейма");
             }
         }
@@ -1576,7 +1604,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (!CheckAuthentication())
             {
-                Debug.LogWarning("Пользователь не авторизован для обновления статусов синхронизации");
+                MyLogger.LogWarning("Пользователь не авторизован для обновления статусов синхронизации", MyLogger.LogCategory.Firebase);
                 return;
             }
 
@@ -1584,7 +1612,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             {
                 if (recordStatusPairs == null || recordStatusPairs.Count == 0)
                 {
-                    Debug.LogWarning("Пустой словарь записей для обновления статусов");
+                    MyLogger.LogWarning("Пустой словарь записей для обновления статусов", MyLogger.LogCategory.Firebase);
                     return;
                 }
                 
@@ -1593,7 +1621,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 {
                     if (string.IsNullOrEmpty(kvp.Key))
                     {
-                        Debug.LogWarning("Пропуск записи с пустым ID");
+                        MyLogger.LogWarning("Пропуск записи с пустым ID", MyLogger.LogCategory.Firebase);
                         continue;
                     }
                     
@@ -1604,11 +1632,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 // Выполняем батч для всех операций
                 await _batchManager.ExecuteBatchAsync();
                 
-                Debug.Log($"Обновлены статусы синхронизации для {recordStatusPairs.Count} записей через механизм батчинга");
+                MyLogger.Log($"Обновлены статусы синхронизации для {recordStatusPairs.Count} записей через механизм батчинга", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка пакетного обновления статусов синхронизации: {ex.Message}");
+                MyLogger.LogError($"Ошибка пакетного обновления статусов синхронизации: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -1620,7 +1648,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (!CheckAuthentication())
             {
-                Debug.LogWarning("Пользователь не авторизован для удаления записей");
+                MyLogger.LogWarning("Пользователь не авторизован для удаления записей", MyLogger.LogCategory.Firebase);
                 return;
             }
 
@@ -1628,7 +1656,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             {
                 if (recordIds == null || recordIds.Count == 0)
                 {
-                    Debug.LogWarning("Пустой список записей для удаления");
+                    MyLogger.LogWarning("Пустой список записей для удаления", MyLogger.LogCategory.Firebase);
                     return;
                 }
                 
@@ -1637,7 +1665,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 {
                     if (string.IsNullOrEmpty(recordId))
                     {
-                        Debug.LogWarning("Пропуск записи с пустым ID");
+                        MyLogger.LogWarning("Пропуск записи с пустым ID", MyLogger.LogCategory.Firebase);
                         continue;
                     }
                     
@@ -1648,11 +1676,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 // Выполняем батч для всех операций
                 await _batchManager.ExecuteBatchAsync();
                 
-                Debug.Log($"Удалено {recordIds.Count} записей из истории эмоций через механизм батчинга");
+                MyLogger.Log($"Удалено {recordIds.Count} записей из истории эмоций через механизм батчинга", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка пакетного удаления записей из истории эмоций: {ex.Message}");
+                MyLogger.LogError($"Ошибка пакетного удаления записей из истории эмоций: {ex.Message}", MyLogger.LogCategory.Firebase);
                 throw;
             }
         }
@@ -1669,7 +1697,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
 
             if (record == null)
             {
-                Debug.LogError("❌ Запись истории эмоций не может быть пустой");
+                MyLogger.LogError("❌ Запись истории эмоций не может быть пустой", MyLogger.LogCategory.Firebase);
                 return false;
             }
             
@@ -1680,7 +1708,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 if (!validationResult.IsValid)
                 {
                     validationResult.CheckAndLogErrors("EmotionHistoryRecord");
-                    Debug.LogError("❌ Валидация записи истории эмоций не пройдена. Запись не будет сохранена.");
+                    MyLogger.LogError("❌ Валидация записи истории эмоций не пройдена. Запись не будет сохранена.", MyLogger.LogCategory.Firebase);
                     return false;
                 }
             }
@@ -1693,12 +1721,12 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 // Кэширование записи
                 _emotionHistoryCache.AddOrUpdateRecord(record);
                 
-                Debug.Log($"✅ Запись истории эмоций сохранена: {record.Id}, тип: {record.Type}");
+                MyLogger.Log($"✅ Запись истории эмоций сохранена: {record.Id}, тип: {record.Type}", MyLogger.LogCategory.Firebase);
                 return true;
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка сохранения записи истории эмоций: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка сохранения записи истории эмоций: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return false;
             }
         }
@@ -1709,12 +1737,12 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (!IsAuthenticated)
             {
-                Debug.LogError("[DatabaseService] Невозможно сохранить GameData: пользователь не аутентифицирован.");
+                MyLogger.LogError("[DatabaseService] Невозможно сохранить GameData: пользователь не аутентифицирован.", MyLogger.LogCategory.Firebase);
                 return;
             }
             if (gameData == null)
             {
-                Debug.LogError("[DatabaseService] Невозможно сохранить GameData: передан null объект.");
+                MyLogger.LogError("[DatabaseService] Невозможно сохранить GameData: передан null объект.", MyLogger.LogCategory.Firebase);
                 return;
             }
 
@@ -1723,11 +1751,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 string jsonData = JsonConvert.SerializeObject(gameData, Formatting.Indented); // Formatting.Indented для читаемости в Firebase
                 DatabaseReference gameDataRef = _database.Child("users").Child(_userId).Child("gameData");
                 await gameDataRef.SetRawJsonValueAsync(jsonData);
-                Debug.Log($"[DatabaseService] GameData для пользователя {_userId} успешно сохранено в Firebase.");
+                MyLogger.Log($"[DatabaseService] GameData для пользователя {_userId} успешно сохранено в Firebase.", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[DatabaseService] Ошибка при сохранении GameData в Firebase: {ex.Message}\n{ex.StackTrace}");
+                MyLogger.LogError($"[DatabaseService] Ошибка при сохранении GameData в Firebase: {ex.Message}\n{ex.StackTrace}", MyLogger.LogCategory.Firebase);
                 // Можно добавить обработку исключений, например, повторную попытку или уведомление пользователя
             }
         }
@@ -1736,7 +1764,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (!IsAuthenticated)
             {
-                Debug.LogWarning("[DatabaseService] Невозможно загрузить GameData: пользователь не аутентифицирован.");
+                MyLogger.LogWarning("[DatabaseService] Невозможно загрузить GameData: пользователь не аутентифицирован.", MyLogger.LogCategory.Firebase);
                 return null;
             }
 
@@ -1751,24 +1779,24 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                     if (!string.IsNullOrEmpty(jsonData))
                     {
                         GameData gameData = JsonConvert.DeserializeObject<GameData>(jsonData);
-                        Debug.Log($"[DatabaseService] GameData для пользователя {_userId} успешно загружено из Firebase.");
+                        MyLogger.Log($"[DatabaseService] GameData для пользователя {_userId} успешно загружено из Firebase.", MyLogger.LogCategory.Firebase);
                         return gameData;
                     }
                     else
                     {
-                        Debug.LogWarning($"[DatabaseService] GameData для пользователя {_userId} существует в Firebase, но содержит пустые данные.");
+                        MyLogger.LogWarning($"[DatabaseService] GameData для пользователя {_userId} существует в Firebase, но содержит пустые данные.", MyLogger.LogCategory.Firebase);
                         return new GameData(); // Возвращаем новый экземпляр, чтобы избежать null
                     }
                 }
                 else
                 {
-                    Debug.Log($"[DatabaseService] GameData для пользователя {_userId} не найдено в Firebase. Будут использованы данные по умолчанию.");
+                    MyLogger.Log($"[DatabaseService] GameData для пользователя {_userId} не найдено в Firebase. Будут использованы данные по умолчанию.", MyLogger.LogCategory.Firebase);
                     return new GameData(); // Возвращаем новый экземпляр, если данных нет
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[DatabaseService] Ошибка при загрузке GameData из Firebase: {ex.Message}\n{ex.StackTrace}");
+                MyLogger.LogError($"[DatabaseService] Ошибка при загрузке GameData из Firebase: {ex.Message}\n{ex.StackTrace}", MyLogger.LogCategory.Firebase);
                 return new GameData(); // В случае ошибки возвращаем новый экземпляр
             }
         }

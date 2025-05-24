@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Firebase.Database;
 using UnityEngine;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Firebase.Database.Services
 {
@@ -113,14 +114,14 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                     await _rootReference.UpdateChildrenAsync(updates);
                 }
                 
-                Debug.Log($"✅ Успешно выполнен батч из {_pendingOperations.Count} операций");
+                MyLogger.Log($"✅ Успешно выполнен батч из {_pendingOperations.Count} операций", MyLogger.LogCategory.Firebase);
                 _pendingOperations.Clear();
                 success = true;
                 message = $"Батч выполнен успешно ({_pendingOperations.Count} операций)";
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка выполнения батча: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка выполнения батча: {ex.Message}", MyLogger.LogCategory.Firebase);
                 message = $"Ошибка выполнения батча: {ex.Message}";
             }
             finally
@@ -151,7 +152,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             if (!_isBatchInProgress)
             {
                 _pendingOperations.Clear();
-                Debug.Log("❌ Все ожидающие операции отменены");
+                MyLogger.Log("❌ Все ожидающие операции отменены", MyLogger.LogCategory.Firebase);
             }
         }
         

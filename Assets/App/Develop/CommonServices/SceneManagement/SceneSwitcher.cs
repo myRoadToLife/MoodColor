@@ -8,6 +8,7 @@ using App.Develop.Scenes.PersonalAreaScene.Infrastructure;
 using UnityEngine;
 using Object = UnityEngine.Object;
 using App.Develop.CommonServices.AssetManagement;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.SceneManagement
 {
@@ -70,17 +71,17 @@ namespace App.Develop.CommonServices.SceneManagement
 
         private IEnumerator ProcessSwitchFromAuthScene(OutputAuthSceneArgs authSceneArgs)
         {
-            Debug.Log("🛣 [SceneSwitcher] Переход из AuthScene...");
+            MyLogger.Log("🛣 [SceneSwitcher] Переход из AuthScene...", MyLogger.LogCategory.Default);
 
             switch (authSceneArgs.NextSceneInputArgs)
             {
                 case PersonalAreaInputArgs personalAreaInputArgs:
-                    Debug.Log("➡️ [SceneSwitcher] Переключаем сцену на PersonalArea из AuthScene");
+                    MyLogger.Log("➡️ [SceneSwitcher] Переключаем сцену на PersonalArea из AuthScene", MyLogger.LogCategory.Default);
                     yield return ProcessSwitchToPersonalAreaScene(personalAreaInputArgs);
                     break;
 
                 default:
-                    Debug.LogError("❌ [SceneSwitcher] Неизвестный маршрут из AuthScene");
+                    MyLogger.LogError("❌ [SceneSwitcher] Неизвестный маршрут из AuthScene", MyLogger.LogCategory.Default);
                     throw new ArgumentException("Данный переход невозможен из Auth сцены!");
             }
         }
@@ -115,7 +116,7 @@ namespace App.Develop.CommonServices.SceneManagement
 
         private IEnumerator ProcessSwitchToAuthScene(AuthSceneInputArgs inputArgs)
         {
-            Debug.Log("🧭 [SceneSwitcher] Загружаем сцену Auth по ключу Addressable");
+            MyLogger.Log("🧭 [SceneSwitcher] Загружаем сцену Auth по ключу Addressable", MyLogger.LogCategory.Default);
 
             _loadingScreen.Show();
             _sceneContainer?.Dispose();
@@ -127,7 +128,7 @@ namespace App.Develop.CommonServices.SceneManagement
 
             if (bootstrap == null)
             {
-                Debug.LogError("❌ [SceneSwitcher] AuthSceneBootstrap не найден!");
+                MyLogger.LogError("❌ [SceneSwitcher] AuthSceneBootstrap не найден!", MyLogger.LogCategory.Default);
                 _loadingScreen.Hide();
                 yield break;
             }
@@ -141,7 +142,7 @@ namespace App.Develop.CommonServices.SceneManagement
 
         private IEnumerator ProcessSwitchToPersonalAreaScene(PersonalAreaInputArgs personalAreaInputArgs)
         {
-            Debug.Log("🧭 [SceneSwitcher] Загружаем сцену PersonalArea по ключу Addressable");
+            MyLogger.Log("🧭 [SceneSwitcher] Загружаем сцену PersonalArea по ключу Addressable", MyLogger.LogCategory.Default);
             _loadingScreen.Show();
 
             _sceneContainer?.Dispose();
@@ -153,7 +154,7 @@ namespace App.Develop.CommonServices.SceneManagement
 
             if (personalAreaBootstrap == null)
             {
-                Debug.LogError("❌ [SceneSwitcher] PersonalAreaBootstrap не найден!");
+                MyLogger.LogError("❌ [SceneSwitcher] PersonalAreaBootstrap не найден!", MyLogger.LogCategory.Default);
                 _loadingScreen.Hide();
                 throw new NullReferenceException(nameof(personalAreaBootstrap) + " не найден на сцене после загрузки Addressable.");
             }

@@ -1,9 +1,11 @@
 using System;
+using App.Develop.Utils.Logging;
 using UnityEngine;
 #if UNITY_ANDROID
 #endif
 #if UNITY_IOS
 using Unity.Notifications.iOS;
+using App.Develop.Utils.Logging;
 #endif
 
 namespace App.Develop.CommonServices.Notifications
@@ -61,7 +63,7 @@ namespace App.Develop.CommonServices.Notifications
         {
             if (_isInitialized) return;
             
-            Debug.Log("Initializing NotificationManager");
+            MyLogger.Log("Initializing NotificationManager", MyLogger.LogCategory.Default);
             
             // Создаем и инициализируем компоненты
             _pushService = gameObject.AddComponent<PushNotificationService>();
@@ -85,7 +87,7 @@ namespace App.Develop.CommonServices.Notifications
             _triggerSystem.OnNotificationTriggered += HandleNotificationTriggered;
             
             _isInitialized = true;
-            Debug.Log("NotificationManager initialized successfully");
+            MyLogger.Log("NotificationManager initialized successfully", MyLogger.LogCategory.Default);
         }
 
         private void OnDestroy()
@@ -107,7 +109,7 @@ namespace App.Develop.CommonServices.Notifications
             // Проверка пользовательских настроек
             if (!_preferencesManager.IsNotificationEnabled(notification.Category))
             {
-                Debug.Log($"Notification of category {notification.Category} is disabled by user preferences");
+                MyLogger.Log($"Notification of category {notification.Category} is disabled by user preferences", MyLogger.LogCategory.Default);
                 return;
             }
             
@@ -116,7 +118,7 @@ namespace App.Develop.CommonServices.Notifications
             {
                 // Добавляем в очередь для отправки позже
                 _notificationQueue.EnqueueNotification(notification);
-                Debug.Log($"Notification added to queue due to time window restrictions");
+                MyLogger.Log($"Notification added to queue due to time window restrictions", MyLogger.LogCategory.Default);
                 return;
             }
             
@@ -145,7 +147,7 @@ namespace App.Develop.CommonServices.Notifications
             
             if (string.IsNullOrEmpty(userEmail))
             {
-                Debug.LogWarning("Cannot send email notification: user email is not set");
+                MyLogger.LogWarning("Cannot send email notification: user email is not set", MyLogger.LogCategory.Default);
                 return;
             }
             

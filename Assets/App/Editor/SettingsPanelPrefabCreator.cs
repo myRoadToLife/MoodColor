@@ -3,6 +3,13 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using App.Develop.Scenes.PersonalAreaScene.Settings;
+using App.Develop.Utils.Logging;
+
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+using App.Develop.Scenes.PersonalAreaScene.Settings;
 
 public class SettingsPanelPrefabCreator
 {
@@ -482,7 +489,7 @@ public class SettingsPanelPrefabCreator
         }
         else
         {
-            Debug.LogError($"Field {fieldName} not found in SettingsPanelController");
+            MyLogger.EditorLogError($"Field {fieldName} not found in SettingsPanelController");
         }
     }
 
@@ -498,11 +505,11 @@ public class SettingsPanelPrefabCreator
         PrefabUtility.SaveAsPrefabAsset(root, path, out success);
         if (success)
         {
-            Debug.Log($"Settings Panel prefab created at: {path}");
+            MyLogger.EditorLog($"Settings Panel prefab created at: {path}");
         }
         else
         {
-            Debug.LogError($"Failed to create prefab at: {path}");
+            MyLogger.EditorLogError($"Failed to create prefab at: {path}");
         }
 
         GameObject.DestroyImmediate(root);

@@ -10,6 +10,7 @@ using App.Develop.DI;
 using Firebase.Database;
 using UnityEngine;
 using UnityEngine.UI;
+using App.Develop.Utils.Logging;
 
 // Используем UnityEngine.UI
 
@@ -78,7 +79,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             }
             else
             {
-                Debug.LogError("Панель выбора интенсивности не настроена!");
+                MyLogger.LogError("Панель выбора интенсивности не настроена!", MyLogger.LogCategory.Firebase);
             }
         }
 
@@ -127,7 +128,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 // 5. Начисляем очки пользователю
                 await _databaseService.AddPointsToProfile(POINTS_PER_EMOTION);
 
-                Debug.Log($"✅ Эмоция {_selectedEmotionType} с интенсивностью {intensity} сохранена.");
+                MyLogger.Log($"✅ Эмоция {_selectedEmotionType} с интенсивностью {intensity} сохранена.", MyLogger.LogCategory.Firebase);
 
                 // Скрываем панель выбора
                 if (_intensitySelectionPanel != null)
@@ -137,7 +138,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             }
             catch (Exception ex)
             {
-                Debug.LogError($"❌ Ошибка при подтверждении эмоции: {ex.Message}");
+                MyLogger.LogError($"❌ Ошибка при подтверждении эмоции: {ex.Message}", MyLogger.LogCategory.Firebase);
                 // TODO: Показать пользователю сообщение об ошибке
             }
             finally

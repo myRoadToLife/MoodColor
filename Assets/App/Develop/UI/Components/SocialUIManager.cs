@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using App.Develop.CommonServices.Social;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.UI.Components
 {
@@ -48,7 +49,7 @@ namespace App.Develop.UI.Components
             {
                 if (_friendsPanelFactory == null)
                 {
-                    Debug.LogError("FriendsPanelFactory не назначен!");
+                    MyLogger.LogError("FriendsPanelFactory не назначен!", MyLogger.LogCategory.UI);
                     return;
                 }
                 

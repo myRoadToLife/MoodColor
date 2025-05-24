@@ -3,7 +3,7 @@ using App.Develop.Utils.Logging;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using Logger = App.Develop.Utils.Logging.Logger;
+using System;
 
 // Убедись, что это пространство имен доступно и содержит EmotionHistoryEntry и EmotionData
 
@@ -20,13 +20,13 @@ namespace App.Develop.Scenes.PersonalAreaScene.Panels.HistoryPanel
         {
             if (entry == null)
             {
-                Logger.LogError("[HistoryItemView] Received entry is NULL!");
+                MyLogger.LogError("[HistoryItemView] Received entry is NULL!");
                 gameObject.SetActive(false);
                 return;
             }
             if (entry.EmotionData == null)
             {
-                Logger.LogError($"[HistoryItemView] Received entry.EmotionData is NULL! Timestamp from entry: {entry.Timestamp}");
+                MyLogger.LogError($"[HistoryItemView] Received entry.EmotionData is NULL! Timestamp from entry: {entry.Timestamp}");
                 if (_dateText != null) _dateText.text = entry.Timestamp.ToString("dd.MM.yyyy");
                 if (_timeText != null) _timeText.text = entry.Timestamp.ToString("HH:mm");
                 if (_emotionNameText != null) _emotionNameText.text = "Ошибка данных";
@@ -35,15 +35,30 @@ namespace App.Develop.Scenes.PersonalAreaScene.Panels.HistoryPanel
                 return;
             }
 
-            Logger.Log($"[HistoryItemView Setup] Displaying: Timestamp='{entry.Timestamp}', EmotionType='{entry.EmotionData.Type}', Color='{entry.EmotionData.Color}', Value='{entry.EmotionData.Value}'");
+            MyLogger.Log($"[HistoryItemView Setup] Displaying: Timestamp='{entry.Timestamp}', EmotionType='{entry.EmotionData.Type}', Color='{entry.EmotionData.Color}', Value='{entry.EmotionData.Value}'");
 
             gameObject.SetActive(true);
 
+            // Пробуем разные подходы к форматированию даты для гарантирования правильного отображения
+            DateTime displayTime;
+            try 
+            {
+                // Сначала пробуем преобразовать в локальное время, если метка времени в UTC
+                displayTime = entry.Timestamp.Kind == DateTimeKind.Utc ? 
+                    entry.Timestamp.ToLocalTime() : entry.Timestamp;
+            }
+            catch (Exception ex)
+            {
+                // В случае любой ошибки используем исходную метку времени
+                MyLogger.LogWarning($"[HistoryItemView] Ошибка при конвертации времени: {ex.Message}. Используем исходную метку.");
+                displayTime = entry.Timestamp;
+            }
+
             if (_dateText != null)
-                _dateText.text = entry.Timestamp.ToLocalTime().ToString("dd.MM.yyyy");
+                _dateText.text = displayTime.ToString("dd.MM.yyyy");
         
             if (_timeText != null)
-                _timeText.text = entry.Timestamp.ToLocalTime().ToString("HH:mm");
+                _timeText.text = displayTime.ToString("HH:mm");
 
             if (_emotionIndicator != null)
             {

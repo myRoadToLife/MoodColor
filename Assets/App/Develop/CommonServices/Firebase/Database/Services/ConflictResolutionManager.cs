@@ -7,6 +7,7 @@ using App.Develop.CommonServices.DataManagement.DataProviders;
 using Newtonsoft.Json;
 using UnityEngine;
 using Firebase.Database;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Firebase.Database.Services
 {
@@ -119,7 +120,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при разрешении конфликта: {ex.Message}");
+                MyLogger.LogError($"Ошибка при разрешении конфликта: {ex.Message}", MyLogger.LogCategory.Firebase);
                 
                 // В случае ошибки возвращаем серверные данные как более надежные
                 return new ConflictResolutionResult
@@ -145,7 +146,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             // Для эмоций используем специализированное решение
             if (clientEmotion.Type != serverEmotion.Type)
             {
-                Debug.LogWarning($"Несоответствие типов эмоций: клиент {clientEmotion.Type}, сервер {serverEmotion.Type}");
+                MyLogger.LogWarning($"Несоответствие типов эмоций: клиент {clientEmotion.Type}, сервер {serverEmotion.Type}", MyLogger.LogCategory.Firebase);
                 // Если типы не совпадают, что-то не так. Берем серверные данные.
                 return new ConflictResolutionResult
                 {
@@ -194,7 +195,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при слиянии данных: {ex.Message}");
+                MyLogger.LogError($"Ошибка при слиянии данных: {ex.Message}", MyLogger.LogCategory.Firebase);
                 
                 return new ConflictResolutionResult
                 {
@@ -277,7 +278,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
 
                         // В асинхронной среде здесь нужно было бы вернуть Task/Promise
                         // Поскольку это синхронный метод, мы просто логируем, что требуется ручное разрешение
-                        Debug.Log("Требуется ручное разрешение конфликта. Используем временную стратегию MostRecent.");
+                        MyLogger.Log("Требуется ручное разрешение конфликта. Используем временную стратегию MostRecent.", MyLogger.LogCategory.Firebase);
                         
                         // Временно используем стратегию "Самые последние данные"
                         resolvedData = _localData.Timestamp >= _serverData.Timestamp 
@@ -287,7 +288,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                     else
                     {
                         // Если нет слушателей для ручного разрешения, используем MostRecent
-                        Debug.LogWarning("Стратегия Manual выбрана, но нет слушателей для OnManualResolutionRequired. Используем MostRecent.");
+                        MyLogger.LogWarning("Стратегия Manual выбрана, но нет слушателей для OnManualResolutionRequired. Используем MostRecent.", MyLogger.LogCategory.Firebase);
                         resolvedData = _localData.Timestamp >= _serverData.Timestamp 
                             ? _localData.Clone() as EmotionData 
                             : _serverData.Clone() as EmotionData;
@@ -295,7 +296,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                     break;
 
                 default:
-                    Debug.LogError($"Неизвестная стратегия разрешения конфликтов: {_strategy}");
+                    MyLogger.LogError($"Неизвестная стратегия разрешения конфликтов: {_strategy}", MyLogger.LogCategory.Firebase);
                     resolvedData = _localData.Clone() as EmotionData;
                     break;
             }
@@ -465,13 +466,13 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 string clientJson = JsonConvert.SerializeObject(conflict.ClientData);
                 string serverJson = JsonConvert.SerializeObject(conflict.ServerData);
                 
-                Debug.Log($"[Конфликт] Тип: {conflict.DataType}, Стратегия: {strategy}\n" +
+                MyLogger.Log($"[Конфликт] Тип: {conflict.DataType}, Стратегия: {strategy}\n" +
                           $"Клиент: {clientJson}\n" +
-                          $"Сервер: {serverJson}");
+                          $"Сервер: {serverJson}", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Ошибка при логировании конфликта: {ex.Message}");
+                MyLogger.LogError($"Ошибка при логировании конфликта: {ex.Message}", MyLogger.LogCategory.Firebase);
             }
         }
         

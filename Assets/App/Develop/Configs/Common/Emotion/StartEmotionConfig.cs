@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using App.Develop.CommonServices.Emotion;
 using UnityEngine;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.Configs.Common.Emotion
 {
@@ -53,7 +54,7 @@ namespace App.Develop.Configs.Common.Emotion
                 return (startValue.Value, startValue.Color);
             }
 
-            Debug.LogWarning($"Start value not found for emotion type {type}. Using default values.");
+            MyLogger.LogWarning($"Start value not found for emotion type {type}. Using default values.", MyLogger.LogCategory.Emotion);
             return (0f, BaseEmotionConfigs.Colors.Neutral);
         }
 

@@ -2,6 +2,7 @@ using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
 using App.Develop.CommonServices.Firebase.Database.Models;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.UI.Components
 {
@@ -77,7 +78,7 @@ namespace App.Develop.UI.Components
             if (success)
             {
                 // Можно добавить уведомление о том, что запрос отправлен
-                Debug.Log($"Запрос в друзья отправлен пользователю {userId}");
+                MyLogger.Log($"Запрос в друзья отправлен пользователю {userId}", MyLogger.LogCategory.UI);
             }
             _friendsPanel.ShowLoading(false);
         }

@@ -6,7 +6,6 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using App.Develop.Utils.Logging;
-using Logger = App.Develop.Utils.Logging.Logger;
 
 namespace App.Develop.CommonServices.UI
 {
@@ -42,7 +41,7 @@ namespace App.Develop.CommonServices.UI
         {
             if (config == null)
             {
-                Logger.LogError("Попытка показать уведомление с null конфигурацией");
+                MyLogger.LogError("Попытка показать уведомление с null конфигурацией");
                 return;
             }
             
@@ -71,7 +70,7 @@ namespace App.Develop.CommonServices.UI
                 _activeNotifications[0].Hide();
             }
             
-            Logger.Log($"Показано уведомление: {config.Title}");
+            MyLogger.Log($"Показано уведомление: {config.Title}");
         }
         #endregion
         
@@ -83,7 +82,7 @@ namespace App.Develop.CommonServices.UI
         {
             if (_notificationPrefab == null || _notificationsContainer == null)
             {
-                Logger.LogError("Не настроен префаб уведомления или контейнер");
+                MyLogger.LogError("Не настроен префаб уведомления или контейнер");
                 return;
             }
             
