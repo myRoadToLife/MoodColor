@@ -1,6 +1,8 @@
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using App.Develop.CommonServices.GameSystem;
+using UnityEngine;
 
 namespace App.Develop.CommonServices.DataManagement.DataProviders
 {
@@ -8,12 +10,13 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
     /// Данные игровой системы
     /// </summary>
     [Serializable]
-    public class GameData
+    public class GameData : ISaveData
     {
         /// <summary>
         /// Текущее количество очков
         /// </summary>
-        public int Points;
+        [JsonProperty("points")]
+        public int Points { get; set; }
         
         /// <summary>
         /// Общее количество заработанных очков за всё время
@@ -56,6 +59,16 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
         /// </summary>
         public DateTime LastXpUpdateDate;
         
+        [JsonProperty("lastUpdated")]
+        public long LastUpdatedTimestamp { get; set; }
+        
+        [JsonIgnore]
+        public DateTime LastUpdated 
+        {
+            get => LastUpdatedTimestamp > 0 ? DateTime.FromFileTimeUtc(LastUpdatedTimestamp) : DateTime.MinValue;
+            set => LastUpdatedTimestamp = value.ToFileTimeUtc();
+        }
+        
         public GameData()
         {
             Points = 0;
@@ -67,6 +80,25 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
             Level = 1; // Стартовый уровень - 1
             XP = 0;
             LastXpUpdateDate = DateTime.MinValue;
+            LastUpdated = DateTime.UtcNow;
+        }
+
+        // Метод для клонирования объекта
+        public GameData Clone()
+        {
+            return new GameData
+            {
+                Points = this.Points,
+                TotalEarnedPoints = this.TotalEarnedPoints,
+                PointsTransactions = new List<PointsTransaction>(this.PointsTransactions),
+                LastDailyBonusDate = this.LastDailyBonusDate,
+                Achievements = new List<Achievement>(this.Achievements),
+                AchievementsMap = new Dictionary<string, Achievement>(this.AchievementsMap),
+                Level = this.Level,
+                XP = this.XP,
+                LastXpUpdateDate = this.LastXpUpdateDate,
+                LastUpdatedTimestamp = this.LastUpdatedTimestamp
+            };
         }
     }
 } 

@@ -73,10 +73,10 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
             }
             else
             {
-                MyLogger.Log($"🔄 Состояние аутентификации изменилось: пользователь {user.Email} авторизован", MyLogger.LogCategory.Firebase);
+                MyLogger.Log($"🔄 Состояние аутентификации изменилось: пользователь {user.Email} (ID: {user.UserId}) авторизован", MyLogger.LogCategory.Firebase);
             }
             
-            // Уведомляем подписчиков о смене состояния
+            MyLogger.Log($"📢 [AuthStateService] Вызов события AuthStateChanged. UserID: {(user != null ? user.UserId : "null")}", MyLogger.LogCategory.Firebase);
             AuthStateChanged?.Invoke(user);
         }
         

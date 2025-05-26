@@ -8,7 +8,7 @@ namespace App.Develop.Utils.Logging
     public static class MyLogger
     {
         // Приватные поля для свойств
-        private static bool _isDebugLoggingEnabled = false;
+        private static bool _isDebugLoggingEnabled = true;
         private static bool _isWarningLoggingEnabled = true;
         private static bool _isErrorLoggingEnabled = true;
 
@@ -23,20 +23,22 @@ namespace App.Develop.Utils.Logging
             Gameplay,
             Bootstrap,
             Emotion,
+            ClearHistory, // Специальная категория для отладки очистки истории
             // ... добавляй свои
         }
 
         private static System.Collections.Generic.Dictionary<LogCategory, bool> _categoryEnabled = new System.Collections.Generic.Dictionary<LogCategory, bool>
         {
-            { LogCategory.Default, false },     // Отключено по умолчанию
-            { LogCategory.Sync, true },         // Включено - важно для отладки
-            { LogCategory.UI, false },          // Отключено по умолчанию
-            { LogCategory.Network, true },      // Включено - важно для отладки
-            { LogCategory.Firebase, true },     // Включено - важно для отладки
-            { LogCategory.Editor, false },      // Отключено по умолчанию
-            { LogCategory.Gameplay, false },    // Отключено по умолчанию
-            { LogCategory.Bootstrap, true },    // Включено - важно для отладки
-            { LogCategory.Emotion, true },      // Включено - важно для отладки
+            { LogCategory.Default, false },     // Отключено
+            { LogCategory.Sync, false },        // Отключено - убираем шум
+            { LogCategory.UI, false },          // Отключено
+            { LogCategory.Network, false },     // Отключено
+            { LogCategory.Firebase, false },    // Отключено - убираем шум, оставляем только Debug.Log
+            { LogCategory.Editor, false },      // Отключено
+            { LogCategory.Gameplay, false },    // Отключено
+            { LogCategory.Bootstrap, false },   // Отключено
+            { LogCategory.Emotion, false },     // Отключено
+            { LogCategory.ClearHistory, false }, // Отключено - убираем шум, оставляем только Debug.Log
         };
 
         public static void SetCategoryEnabled(LogCategory category, bool enabled)
@@ -160,6 +162,51 @@ namespace App.Develop.Utils.Logging
         {
             get => _isErrorLoggingEnabled;
             set => _isErrorLoggingEnabled = value;
+        }
+
+        /// <summary>
+        /// Быстрое переключение в режим отладки Firebase/синхронизации
+        /// </summary>
+        public static void EnableFirebaseDebugMode()
+        {
+            SetCategoryEnabled(LogCategory.Firebase, true);
+            SetCategoryEnabled(LogCategory.Sync, true);
+            SetCategoryEnabled(LogCategory.ClearHistory, true);
+            SetCategoryEnabled(LogCategory.UI, false);
+            SetCategoryEnabled(LogCategory.Emotion, false);
+            SetCategoryEnabled(LogCategory.Default, false);
+            SetCategoryEnabled(LogCategory.Network, false);
+            SetCategoryEnabled(LogCategory.Editor, false);
+            SetCategoryEnabled(LogCategory.Gameplay, false);
+            SetCategoryEnabled(LogCategory.Bootstrap, false);
+        }
+
+        /// <summary>
+        /// Быстрое переключение в режим отладки UI
+        /// </summary>
+        public static void EnableUIDebugMode()
+        {
+            SetCategoryEnabled(LogCategory.UI, true);
+            SetCategoryEnabled(LogCategory.Firebase, false);
+            SetCategoryEnabled(LogCategory.Sync, false);
+            SetCategoryEnabled(LogCategory.ClearHistory, false);
+            SetCategoryEnabled(LogCategory.Emotion, false);
+            SetCategoryEnabled(LogCategory.Default, false);
+            SetCategoryEnabled(LogCategory.Network, false);
+            SetCategoryEnabled(LogCategory.Editor, false);
+            SetCategoryEnabled(LogCategory.Gameplay, false);
+            SetCategoryEnabled(LogCategory.Bootstrap, false);
+        }
+
+        /// <summary>
+        /// Отключить все логи кроме ошибок
+        /// </summary>
+        public static void DisableAllDebugLogs()
+        {
+            foreach (LogCategory category in System.Enum.GetValues(typeof(LogCategory)))
+            {
+                SetCategoryEnabled(category, false);
+            }
         }
     }
 } 

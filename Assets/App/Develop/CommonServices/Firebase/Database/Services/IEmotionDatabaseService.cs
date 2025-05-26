@@ -86,5 +86,10 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         /// Обновляет настройки синхронизации пользователя
         /// </summary>
         Task UpdateSyncSettings(EmotionSyncSettings settings);
+        
+        /// <summary>
+        /// Очищает всю историю эмоций в облаке
+        /// </summary>
+        Task ClearEmotionHistory();
     }
 } 

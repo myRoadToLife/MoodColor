@@ -609,27 +609,41 @@ namespace App.Develop.CommonServices.Emotion
         {
             if (_cache == null) 
             {
-                MyLogger.LogWarning("[EmotionHistory] Попытка загрузить из кэша, но _cache = null");
+                MyLogger.LogWarning("[EmotionHistory] Попытка загрузить из кэша, но _cache = null", MyLogger.LogCategory.Firebase);
                 return;
             }
             
-            MyLogger.Log("[EmotionHistory] Загрузка записей из кэша...");
+            MyLogger.Log("🔄 [EmotionHistory.LoadFromCache] Начинаем загрузку записей из кэша...", MyLogger.LogCategory.Firebase);
+            
+            // Очищаем текущую историю перед загрузкой из кэша
+            int oldCount = _historyQueue.Count;
+            _historyQueue.Clear();
+            _historyByType.Clear();
+            MyLogger.Log($"🗑️ [EmotionHistory.LoadFromCache] Очистили старую историю ({oldCount} записей)", MyLogger.LogCategory.Firebase);
             
             try
             {
                 var records = _cache.GetAllRecords();
-                MyLogger.Log($"[EmotionHistory] Получено {records.Count} записей из кэша");
+                MyLogger.Log($"📥 [EmotionHistory.LoadFromCache] Получено {records?.Count ?? 0} записей из кэша", MyLogger.LogCategory.Firebase);
                 
-                foreach (var record in records)
+                if (records != null && records.Count > 0)
                 {
-                    AddEntry(record);
+                    foreach (var record in records)
+                    {
+                        MyLogger.Log($"➕ [EmotionHistory.LoadFromCache] Добавляем запись: Id={record.Id}, Type={record.Type}, Timestamp={record.RecordTime:yyyy-MM-dd HH:mm:ss}", MyLogger.LogCategory.Firebase);
+                        AddEntry(record);
+                    }
+                }
+                else
+                {
+                    MyLogger.Log("📭 [EmotionHistory.LoadFromCache] Кэш пуст - записей для загрузки нет", MyLogger.LogCategory.Firebase);
                 }
                 
-                MyLogger.Log($"[EmotionHistory] Загрузка из кэша завершена. В _historyQueue теперь {_historyQueue.Count} записей");
+                MyLogger.Log($"✅ [EmotionHistory.LoadFromCache] Загрузка из кэша завершена. В _historyQueue теперь {_historyQueue.Count} записей", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"[EmotionHistory] Ошибка при загрузке из кэша: {ex.Message}");
+                MyLogger.LogError($"❌ [EmotionHistory.LoadFromCache] Ошибка при загрузке из кэша: {ex.Message}", MyLogger.LogCategory.Firebase);
             }
 
             RemoveDuplicates();
@@ -703,5 +717,66 @@ namespace App.Develop.CommonServices.Emotion
         }
         
         #endregion
+
+        /// <summary>
+        /// Добавляет готовую запись в историю эмоций без создания нового SyncId
+        /// </summary>
+        public void AddEntryDirect(EmotionHistoryEntry entry)
+        {
+            if (entry == null)
+            {
+                MyLogger.LogWarning("❌ Попытка добавить null запись в историю эмоций", MyLogger.LogCategory.Emotion);
+                return;
+            }
+
+            MyLogger.Log($"[EmotionHistory.AddEntryDirect] Adding direct entry: SyncId='{entry.SyncId}', Type='{entry.EmotionData?.Type}', EventType='{entry.EventType}', Timestamp='{entry.Timestamp:O}'", MyLogger.LogCategory.Emotion);
+
+            // Проверяем, не существует ли уже запись с таким SyncId (для избежания дубликатов)
+            if (!string.IsNullOrEmpty(entry.SyncId))
+            {
+                var existingEntry = _historyQueue.FirstOrDefault(e => e.SyncId == entry.SyncId);
+                if (existingEntry != null)
+                {
+                    MyLogger.Log($"[EmotionHistory.AddEntryDirect] Запись с SyncId={entry.SyncId} уже существует, пропускаем добавление");
+                    return;
+                }
+            }
+
+            // Добавляем в очередь
+            _historyQueue.Enqueue(entry);
+            
+            // Добавляем в словарь по типу
+            if (entry.EmotionData != null && Enum.TryParse<EmotionTypes>(entry.EmotionData.Type, out var emotionType))
+            {
+                if (!_historyByType.ContainsKey(emotionType))
+                {
+                    _historyByType[emotionType] = new List<EmotionHistoryEntry>();
+                }
+                
+                _historyByType[emotionType].Add(entry);
+            }
+            
+            // Ограничиваем размер истории
+            if (_historyQueue.Count > MAX_HISTORY_ENTRIES)
+            {
+                var oldestEntry = _historyQueue.Dequeue();
+                
+                // Также удаляем из словаря по типу
+                if (oldestEntry?.EmotionData != null && Enum.TryParse<EmotionTypes>(oldestEntry.EmotionData.Type, out var oldEmotionType) && 
+                    _historyByType.TryGetValue(oldEmotionType, out var entries))
+                {
+                    entries.Remove(oldestEntry);
+                }
+            }
+            
+            // Если используется кэш, добавляем запись в кэш
+            if (_useCache)
+            {
+                SaveEntryToCache(entry);
+            }
+            
+            // Вызываем событие
+            OnHistoryEntryAdded?.Invoke(entry);
+        }
     }
 } 

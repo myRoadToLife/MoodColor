@@ -135,10 +135,10 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                     
                     MyLogger.Log($"Запись {record.Id} добавлена в кэш. Всего записей: {_cacheIndex.Count}", MyLogger.LogCategory.Firebase);
                 }
-                else
-                {
-                    MyLogger.Log($"Запись {record.Id} обновлена в кэше.", MyLogger.LogCategory.Firebase);
-                }
+                // else
+                // {
+                //     MyLogger.Log($"Запись {record.Id} обновлена в кэше.", MyLogger.LogCategory.Firebase);
+                // }
             }
             catch (Exception ex)
             {

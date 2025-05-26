@@ -50,39 +50,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
                 var factory = new MonoFactory(_container);
 
                 // РЕГИСТРАЦИЯ СЕРВИСОВ ПЕРЕД ИНСТАНЦИИРОВАНИЕМ UI
-                MyLogger.Log("🔄 [PersonalAreaBootstrap] Попытка регистрации EmotionService...", MyLogger.LogCategory.Bootstrap);
-                bool emotionServiceRegistered = false;
-                try
-                {
-                    // Получаем обязательные зависимости для EmotionService
-                    var playerDataProvider = _container.Resolve<PlayerDataProvider>();
-                    var configsProvider = _container.Resolve<IConfigsProvider>();
-                    var emotionConfigService = _container.Resolve<EmotionConfigService>();
-
-                    // Получаем опциональные зависимости для EmotionService
-                    IPointsService pointsService = null;
-                    try { pointsService = _container.Resolve<IPointsService>(); }
-                    catch (InvalidOperationException) { MyLogger.LogWarning("[PersonalAreaBootstrap] IPointsService не зарегистрирован, EmotionService будет работать без него.", MyLogger.LogCategory.Bootstrap); }
-
-                    ILevelSystem levelSystem = null;
-                    try { levelSystem = _container.Resolve<ILevelSystem>(); }
-                    catch (InvalidOperationException) { MyLogger.LogWarning("[PersonalAreaBootstrap] ILevelSystem не зарегистрирован, EmotionService будет работать без него.", MyLogger.LogCategory.Bootstrap); }
-
-                    // Регистрируем EmotionService как синглтон с фабричным методом
-                    _container.RegisterAsSingle<IEmotionService>(c => 
-                        new EmotionService(playerDataProvider, configsProvider, emotionConfigService, pointsService, levelSystem)
-                    );
-                    MyLogger.Log("✅ [PersonalAreaBootstrap] EmotionService успешно зарегистрирован через RegisterAsSingle.", MyLogger.LogCategory.Bootstrap);
-                    emotionServiceRegistered = true;
-                }
-                catch (InvalidOperationException ioe) // Ловим ошибки резолва ОБЯЗАТЕЛЬНЫХ зависимостей
-                {
-                    MyLogger.LogError($"❌ [PersonalAreaBootstrap] Не удалось разрешить ОБЯЗАТЕЛЬНУЮ зависимость для EmotionService: {ioe.Message}\n{ioe.StackTrace}", MyLogger.LogCategory.Bootstrap);
-                }
-                catch (Exception e) // Ловим другие возможные ошибки при регистрации
-                {
-                    MyLogger.LogError($"❌ [PersonalAreaBootstrap] Ошибка при создании или регистрации EmotionService: {e.Message}\n{e.StackTrace}", MyLogger.LogCategory.Bootstrap);
-                }
+                MyLogger.Log("🔄 [PersonalAreaBootstrap] EmotionService должен быть уже зарегистрирован в родительском контейнере (_projectContainer).", MyLogger.LogCategory.Bootstrap);
 
                 MyLogger.Log($"🔄 [PersonalAreaBootstrap] Загрузка префаба PersonalAreaCanvas из {AssetAddresses.PersonalAreaCanvas}...", MyLogger.LogCategory.Bootstrap);
                 GameObject personalAreaPrefab = null;

@@ -24,7 +24,7 @@ namespace App.Develop.Utils.Logging
 
         [Header("Global Log Levels")]
         [Tooltip("Enable/Disable Debug.Log calls via MyLogger.Log")]
-        [SerializeField] private bool _enableDebugLogging = true;
+        [SerializeField] private bool _enableDebugLogging = true; // Включаем для отладки
         [Tooltip("Enable/Disable Debug.LogWarning calls via MyLogger.LogWarning")]
         [SerializeField] private bool _enableWarningLogging = true;
         [Tooltip("Enable/Disable Debug.LogError calls via MyLogger.LogError")]
@@ -32,7 +32,15 @@ namespace App.Develop.Utils.Logging
 
         [Header("Category Log Levels")]
         [Tooltip("Configure which log categories are enabled. Categories not listed here will retain their default state defined in MyLogger.")]
-        [SerializeField] private List<CategorySettingEntry> _categorySettings = new List<CategorySettingEntry>();
+        [SerializeField] private List<CategorySettingEntry> _categorySettings = new List<CategorySettingEntry>
+        {
+            new CategorySettingEntry { category = MyLogger.LogCategory.Firebase, enabled = false },
+            new CategorySettingEntry { category = MyLogger.LogCategory.Sync, enabled = false },
+            new CategorySettingEntry { category = MyLogger.LogCategory.ClearHistory, enabled = false },
+            new CategorySettingEntry { category = MyLogger.LogCategory.UI, enabled = false },
+            new CategorySettingEntry { category = MyLogger.LogCategory.Emotion, enabled = false },
+            new CategorySettingEntry { category = MyLogger.LogCategory.Default, enabled = false }
+        };
 
         void Awake()
         {
@@ -70,21 +78,48 @@ namespace App.Develop.Utils.Logging
             MyLogger.IsWarningLoggingEnabled = _enableWarningLogging;
             MyLogger.IsErrorLoggingEnabled = _enableErrorLogging;
 
-            Debug.Log($"[MyLoggerConfigurator] Применены глобальные настройки: Debug={_enableDebugLogging}, Warning={_enableWarningLogging}, Error={_enableErrorLogging}");
-
             foreach (var setting in _categorySettings)
             {
                 MyLogger.SetCategoryEnabled(setting.category, setting.enabled);
-                Debug.Log($"[MyLoggerConfigurator] Применены настройки категории: {setting.category} = {(setting.enabled ? "Включено" : "Выключено")}");
             }
             
-            // Тестовые логи для проверки
-            if (_enableDebugLogging)
-                MyLogger.Log("Тестовый лог MyLogger", MyLogger.LogCategory.Default);
-            if (_enableWarningLogging)
-                MyLogger.LogWarning("Тестовое предупреждение MyLogger", MyLogger.LogCategory.Default);
-            if (_enableErrorLogging)
-                MyLogger.LogError("Тестовая ошибка MyLogger", MyLogger.LogCategory.Default);
+            // Логируем только факт применения настроек без спама
+            Debug.Log($"[MyLoggerConfigurator] Настройки логгера применены: Debug={_enableDebugLogging}, Warning={_enableWarningLogging}, Error={_enableErrorLogging}");
+        }
+
+        [ContextMenu("Enable Firebase Debug Mode")]
+        public void EnableFirebaseDebugMode()
+        {
+            MyLogger.EnableFirebaseDebugMode();
+            UpdateCategorySettingsFromMyLogger();
+            Debug.Log("[MyLoggerConfigurator] Включен режим отладки Firebase/синхронизации");
+        }
+
+        [ContextMenu("Enable UI Debug Mode")]
+        public void EnableUIDebugMode()
+        {
+            MyLogger.EnableUIDebugMode();
+            UpdateCategorySettingsFromMyLogger();
+            Debug.Log("[MyLoggerConfigurator] Включен режим отладки UI");
+        }
+
+        [ContextMenu("Disable All Debug Logs")]
+        public void DisableAllDebugLogs()
+        {
+            MyLogger.DisableAllDebugLogs();
+            UpdateCategorySettingsFromMyLogger();
+            Debug.Log("[MyLoggerConfigurator] Все отладочные логи отключены");
+        }
+
+        /// <summary>
+        /// Обновляет настройки категорий в инспекторе на основе текущего состояния MyLogger
+        /// </summary>
+        private void UpdateCategorySettingsFromMyLogger()
+        {
+            foreach (var setting in _categorySettings)
+            {
+                setting.enabled = MyLogger.IsCategoryEnabled(setting.category);
+            }
         }
     }
 } 

@@ -54,7 +54,7 @@ namespace App.Develop.EntryPoint
 
         private void Awake()
         {
-            MyLogger.Log("🚀 EntryPoint.Awake(, MyLogger.LogCategory.Bootstrap) вызван");
+            // MyLogger.Log("🚀 EntryPoint.Awake(, MyLogger.LogCategory.Bootstrap) вызван");
             // DontDestroyOnLoad(gameObject); // ВРЕМЕННО ЗАКОММЕНТИРОВАТЬ
             InitializeApplication();
         }
@@ -66,29 +66,37 @@ namespace App.Develop.EntryPoint
         {
             try
             {
-                MyLogger.Log("📦 Инициализация Addressables...", MyLogger.LogCategory.Bootstrap);
+                // MyLogger.Log("📦 Инициализация Addressables...", MyLogger.LogCategory.Bootstrap);
                 await Addressables.InitializeAsync().Task;
                 
-                MyLogger.Log("⚙️ Настройка приложения...", MyLogger.LogCategory.Bootstrap);
+                // MyLogger.Log("⚙️ Настройка приложения...", MyLogger.LogCategory.Bootstrap);
                 SetupAppSettings();
                 _projectContainer = new DIContainer();
                 InitializeSecureStorage(_projectContainer);
                 
-                MyLogger.Log("🔧 Регистрация основных сервисов...", MyLogger.LogCategory.Bootstrap);
+                // MyLogger.Log("🔧 Регистрация основных сервисов...", MyLogger.LogCategory.Bootstrap);
                 await RegisterCoreServices(_projectContainer);
                 ShowInitialLoadingScreen();
 
-                MyLogger.Log("🔥 Инициализация Firebase...", MyLogger.LogCategory.Bootstrap);
+                // MyLogger.Log("🔥 Инициализация Firebase...", MyLogger.LogCategory.Bootstrap);
                 if (!await InitFirebaseAsync())
                 {
                     MyLogger.LogError("❌ Не удалось инициализировать Firebase", MyLogger.LogCategory.Bootstrap);
                     return;
                 }
 
-                MyLogger.Log("🔥 Регистрация Firebase сервисов...", MyLogger.LogCategory.Bootstrap);
+                // MyLogger.Log("🔥 Регистрация Firebase сервисов...", MyLogger.LogCategory.Bootstrap);
                 RegisterFirebaseServices();
 
-                MyLogger.Log("👤 Регистрация PlayerDataProvider...", MyLogger.LogCategory.Bootstrap);
+                // MyLogger.Log("🔄 Регистрация сервиса синхронизации с облаком...", MyLogger.LogCategory.Bootstrap);
+                _projectContainer.RegisterAsSingle<ICloudSyncService>(c =>
+                    new CloudSyncService(
+                        c.Resolve<ISaveLoadService>(),
+                        c.Resolve<IDatabaseService>()
+                    )
+                ).NonLazy();
+
+                // MyLogger.Log("👤 Регистрация PlayerDataProvider...", MyLogger.LogCategory.Bootstrap);
                 _projectContainer.RegisterAsSingle(c =>
                     new PlayerDataProvider(
                         c.Resolve<ISaveLoadService>(),
@@ -97,16 +105,16 @@ namespace App.Develop.EntryPoint
                     )
                 );
 
-                MyLogger.Log("🎮 Регистрация игровой системы...", MyLogger.LogCategory.Bootstrap);
+                // MyLogger.Log("🎮 Регистрация игровой системы...", MyLogger.LogCategory.Bootstrap);
                 RegisterGameSystem(_projectContainer);
                 
-                MyLogger.Log("📊 Инициализация контейнера и загрузка данных...", MyLogger.LogCategory.Bootstrap);
+                // MyLogger.Log("📊 Инициализация контейнера и загрузка данных...", MyLogger.LogCategory.Bootstrap);
                 await InitializeContainerAndLoadData();
                 
-                MyLogger.Log("🚀 Запуск Bootstrap...", MyLogger.LogCategory.Bootstrap);
+                // MyLogger.Log("🚀 Запуск Bootstrap...", MyLogger.LogCategory.Bootstrap);
                 StartBootstrapProcess();
                 
-                MyLogger.Log("✅ Приложение инициализировано успешно", MyLogger.LogCategory.Bootstrap);
+                // MyLogger.Log("✅ Приложение инициализировано успешно", MyLogger.LogCategory.Bootstrap);
             }
             catch (Exception ex)
             {
@@ -211,6 +219,32 @@ namespace App.Develop.EntryPoint
 
                 return socialService;
             }).NonLazy();
+
+            // Подписываемся на изменение состояния аутентификации для обновления UserId в DatabaseService
+            var authStateService = _projectContainer.Resolve<IAuthStateService>();
+            var databaseService = _projectContainer.Resolve<IDatabaseService>();
+
+            if (authStateService != null && databaseService != null)
+            {
+                authStateService.AuthStateChanged += (user) =>
+                {
+                    if (user != null)
+                    {
+                        MyLogger.Log($"🔑 [AUTH-STATE] 👤 UserID = {user.UserId}. Обновляем DatabaseService.", MyLogger.LogCategory.Firebase);
+                        databaseService.UpdateUserId(user.UserId);
+                    }
+                    else
+                    {
+                        MyLogger.Log("🔑 [AUTH-STATE] ❌ User is null. Очищаем UserId в DatabaseService.", MyLogger.LogCategory.Firebase);
+                        databaseService.UpdateUserId(null); // Очищаем UserId при выходе пользователя
+                    }
+                };
+                MyLogger.Log("🔑 [AUTH-STATE] ✅ Успешно подписались на AuthStateChanged для обновления UserId в DatabaseService.", MyLogger.LogCategory.Firebase);
+            }
+            else
+            {
+                MyLogger.LogError("🔑 [AUTH-STATE] ⛔ Не удалось подписаться на AuthStateChanged: authStateService или databaseService is null.", MyLogger.LogCategory.Firebase);
+            }
         }
 
         /// <summary>
@@ -242,20 +276,26 @@ namespace App.Develop.EntryPoint
             }
 
             // Затем загружаем PlayerDataProvider ПЕРЕД созданием EmotionService
-            await _projectContainer.Resolve<PlayerDataProvider>().Load();
+            var playerDataProviderInstance = _projectContainer.Resolve<PlayerDataProvider>();
+            await playerDataProviderInstance.Load(); // Явный вызов Load
 
             // ТЕПЕРЬ регистрируем EmotionService после загрузки PlayerDataProvider
-            _projectContainer.RegisterAsSingle<EmotionService>(c =>
+            _projectContainer.RegisterAsSingle<IEmotionService>(c =>
                 new EmotionService(
+                    // Используем уже созданный и загруженный экземпляр
                     c.Resolve<PlayerDataProvider>(),
                     c.Resolve<IConfigsProvider>(),
                     c.Resolve<EmotionConfigService>(),
+                    c.Resolve<EmotionHistoryCache>(),
                     c.Resolve<IPointsService>(),
                     c.Resolve<ILevelSystem>()
                 )
             ).NonLazy();
+            _projectContainer.RegisterAsSingle<EmotionService>(c => 
+                (EmotionService)c.Resolve<IEmotionService>() // Получаем уже созданный IEmotionService
+            ).NonLazy();
 
-            MyLogger.Log("✅ EmotionService зарегистрирован (в InitializeContainerAndLoadData, MyLogger.LogCategory.Bootstrap).");
+                            // MyLogger.Log("✅ EmotionService зарегистрирован (в InitializeContainerAndLoadData).", MyLogger.LogCategory.Bootstrap);
             
             // Загружаем PointsService ПОСЛЕ EmotionService
             var pointsService = _projectContainer.Resolve<IPointsService>();
@@ -273,28 +313,57 @@ namespace App.Develop.EntryPoint
             await RegisterPersonalAreaServices(_projectContainer);
 
             // Инициализируем Firebase синхронизацию для EmotionService ПОСЛЕ регистрации всех сервисов
+            MyLogger.Log("🔗 [EntryPoint] Начинаем инициализацию Firebase синхронизации для EmotionService...", MyLogger.LogCategory.ClearHistory);
+            
             var emotionService = _projectContainer.Resolve<EmotionService>();
             var databaseService = _projectContainer.Resolve<IDatabaseService>();
             var syncService = _projectContainer.Resolve<EmotionSyncService>();
+            var connectivityManager = _projectContainer.Resolve<ConnectivityManager>();
             
-            if (emotionService != null && databaseService != null && syncService != null)
+            MyLogger.Log($"🔍 [EntryPoint] Проверка сервисов: emotionService!=null={emotionService != null}, databaseService!=null={databaseService != null}, syncService!=null={syncService != null}, connectivityManager!=null={connectivityManager != null}", MyLogger.LogCategory.ClearHistory);
+            
+            if (emotionService != null && databaseService != null && syncService != null && connectivityManager != null)
             {
-                emotionService.InitializeFirebaseSync(databaseService, syncService);
+                MyLogger.Log("🔗 [EntryPoint] Все сервисы найдены, вызываем InitializeFirebaseSync...", MyLogger.LogCategory.ClearHistory);
+                emotionService.InitializeFirebaseSync(databaseService, syncService, connectivityManager);
                 
                 // Запускаем синхронизацию ТОЛЬКО если пользователь аутентифицирован
+                MyLogger.Log($"🔍 [EntryPoint] Проверка аутентификации: databaseService.IsAuthenticated={databaseService.IsAuthenticated}", MyLogger.LogCategory.ClearHistory);
                 if (databaseService.IsAuthenticated)
                 {
+                    MyLogger.Log("🔗 [EntryPoint] Пользователь аутентифицирован, запускаем синхронизацию...", MyLogger.LogCategory.ClearHistory);
+                    
+                    // Сначала загружаем историю из Firebase
+                    MyLogger.Log("📥 [EntryPoint] Загружаем историю из Firebase...", MyLogger.LogCategory.ClearHistory);
+                    try
+                    {
+                        bool syncSuccess = await emotionService.ForceSyncWithFirebase();
+                        if (syncSuccess)
+                        {
+                            MyLogger.Log("✅ [EntryPoint] История успешно загружена из Firebase", MyLogger.LogCategory.ClearHistory);
+                        }
+                        else
+                        {
+                            MyLogger.LogWarning("⚠️ [EntryPoint] Не удалось загрузить историю из Firebase", MyLogger.LogCategory.ClearHistory);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MyLogger.LogError($"❌ [EntryPoint] Ошибка при загрузке истории из Firebase: {ex.Message}", MyLogger.LogCategory.ClearHistory);
+                    }
+                    
+                    // Затем запускаем обычную синхронизацию для отправки локальных изменений
                     emotionService.StartSync();
-                    MyLogger.Log("✅ Firebase синхронизация для EmotionService инициализирована и запущена", MyLogger.LogCategory.Bootstrap);
+                    MyLogger.Log("✅ [EntryPoint] Firebase синхронизация для EmotionService инициализирована и запущена", MyLogger.LogCategory.ClearHistory);
                 }
                 else
                 {
-                    MyLogger.LogWarning("⚠️ Firebase синхронизация инициализирована, но не запущена: пользователь не аутентифицирован", MyLogger.LogCategory.Bootstrap);
+                    MyLogger.LogWarning("⚠️ [EntryPoint] Firebase синхронизация инициализирована, но не запущена: пользователь не аутентифицирован", MyLogger.LogCategory.ClearHistory);
                 }
             }
             else
             {
-                MyLogger.LogError("❌ Не удалось инициализировать Firebase синхронизацию для EmotionService", MyLogger.LogCategory.Bootstrap);
+                MyLogger.LogError("❌ [EntryPoint] Не удалось инициализировать Firebase синхронизацию для EmotionService", MyLogger.LogCategory.ClearHistory);
             }
         }
 
@@ -399,11 +468,11 @@ namespace App.Develop.EntryPoint
 
                 // Получаем тип по имени через рефлексию, так как не все файлы могли быть полностью скомпилированы
                 Type notificationManagerType =
-                    Type.GetType("App.Develop.CommonServices.Notifications.NotificationManager, App.Develop.CommonServices.Notifications");
+                    Type.GetType("App.Develop.CommonServices.Notifications.NotificationManager, Assembly-CSharp");
 
                 if (notificationManagerType == null)
                 {
-                    MyLogger.LogError("Не удалось найти тип NotificationManager. Убедитесь, что сборка App.Develop.CommonServices.Notifications скомпилирована.", MyLogger.LogCategory.Bootstrap);
+                    MyLogger.LogError("Не удалось найти тип NotificationManager. Убедитесь, что класс скомпилирован в основной сборке Assembly-CSharp.", MyLogger.LogCategory.Bootstrap);
                     return;
                 }
 
@@ -416,7 +485,7 @@ namespace App.Develop.EntryPoint
                 // Регистрируем через лямбду, чтобы избежать проблем с типами
                 container.RegisterAsSingle(c => manager).NonLazy();
 
-                MyLogger.Log("✅ Система уведомлений зарегистрирована", MyLogger.LogCategory.Bootstrap);
+                // MyLogger.Log("✅ Система уведомлений зарегистрирована", MyLogger.LogCategory.Bootstrap);
             }
             catch (Exception ex)
             {

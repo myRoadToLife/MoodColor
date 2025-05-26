@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using App.Develop.CommonServices.Firebase.Database.Models;
 using App.Develop.CommonServices.Firebase.Database.Services;
 using App.Develop.CommonServices.DataManagement;
@@ -13,13 +14,15 @@ using App.Develop.CommonServices.Firebase.Common.SecureStorage;
 using App.Develop.CommonServices.GameSystem;
 using App.Develop.DI;
 using App.Develop.Utils.Logging;
+using Firebase.Auth;
+using App.Develop.CommonServices.Firebase.Common.Cache;
 
 // Используем IDatabaseService только из пространства имен Services
 using IDatabaseService = App.Develop.CommonServices.Firebase.Database.Services.IDatabaseService;
 
 namespace App.Develop.CommonServices.Emotion
 {
-    public class EmotionService : IDataReader<PlayerData>, IDataWriter<PlayerData>, IEmotionService, IInitializable
+    public class EmotionService : IDataReader<PlayerData>, IDataWriter<PlayerData>, IEmotionService, IInitializable, IDisposable
     {
         #region Private Fields
         private readonly Dictionary<EmotionTypes, EmotionData> _emotions;
@@ -62,6 +65,7 @@ namespace App.Develop.CommonServices.Emotion
             PlayerDataProvider playerDataProvider,
             IConfigsProvider configsProvider,
             EmotionConfigService emotionConfigService,
+            EmotionHistoryCache emotionHistoryCache = null,
             IPointsService pointsService = null,
             ILevelSystem levelSystem = null)
         {
@@ -76,9 +80,11 @@ namespace App.Develop.CommonServices.Emotion
             
             try
             {
-                // Создаем кэш для истории эмоций с обработкой возможных ошибок
-                _emotionHistoryCache = new EmotionHistoryCache();
+                // Используем переданный кэш или создаем новый
+                _emotionHistoryCache = emotionHistoryCache ?? new EmotionHistoryCache();
                 _emotionHistory = new EmotionHistory(_emotionHistoryCache);
+                
+                MyLogger.Log($"🔧 [EmotionService] Инициализирован с кэшем: {(_emotionHistoryCache != null ? "ДА" : "НЕТ")}", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
@@ -115,27 +121,17 @@ namespace App.Develop.CommonServices.Emotion
         /// <summary>
         /// Инициализирует компоненты для синхронизации с Firebase
         /// </summary>
-        public void InitializeFirebaseSync(
-            IDatabaseService databaseService, 
-            EmotionSyncService syncService)
+        public void InitializeFirebaseSync(IDatabaseService databaseService, EmotionSyncService syncService, ConnectivityManager connectivityManager)
         {
-            if (!_isInitialized)
-            {
-                MyLogger.LogError("EmotionService не инициализирован", MyLogger.LogCategory.Bootstrap);
-                return;
-            }
-            
-            if (databaseService == null || syncService == null)
-            {
-                MyLogger.LogWarning("Невозможно инициализировать синхронизацию: отсутствуют необходимые зависимости", MyLogger.LogCategory.Firebase);
-                return;
-            }
+            MyLogger.Log("🔗 [InitializeFirebaseSync] Начинаем инициализацию Firebase синхронизации...", MyLogger.LogCategory.ClearHistory);
             
             _databaseService = databaseService;
             _syncService = syncService;
+            _connectivityManager = connectivityManager;
             
-            // Инициализируем сервис синхронизации, если есть все необходимые компоненты
-            if (_syncService != null && _emotionHistoryCache != null)
+            MyLogger.Log($"🔍 [InitializeFirebaseSync] Проверка зависимостей: _syncService!=null={_syncService != null}, _emotionHistoryCache!=null={_emotionHistoryCache != null}, _connectivityManager!=null={_connectivityManager != null}, _databaseService!=null={_databaseService != null}", MyLogger.LogCategory.ClearHistory);
+            
+            if (_syncService != null && _emotionHistoryCache != null && _connectivityManager != null && _databaseService != null)
             {
                 _syncService.Initialize(_databaseService, _emotionHistoryCache, _connectivityManager);
                 
@@ -146,179 +142,281 @@ namespace App.Develop.CommonServices.Emotion
                 _syncService.OnSyncConflict += HandleSyncConflict;
                 
                 _isFirebaseInitialized = true;
-                MyLogger.Log("Синхронизация с Firebase инициализирована", MyLogger.LogCategory.Firebase);
+                MyLogger.Log("🔗 [InitializeFirebaseSync] ✅ Firebase Sync Services успешно инициализированы. _isFirebaseInitialized = true.", MyLogger.LogCategory.ClearHistory);
             }
             else
             {
-                MyLogger.LogWarning("Невозможно инициализировать сервис синхронизации: отсутствуют необходимые компоненты", MyLogger.LogCategory.Firebase);
+                MyLogger.LogWarning("🔗 [InitializeFirebaseSync] ❌ Не удалось инициализировать Firebase Sync. Одна или несколько зависимостей равны null: " +
+                                   $"_syncService is null: {_syncService == null}, " +
+                                   $"_emotionHistoryCache is null: {_emotionHistoryCache == null}, " +
+                                   $"_connectivityManager is null: {_connectivityManager == null}, " +
+                                   $"_databaseService is null: {_databaseService == null}", 
+                                   MyLogger.LogCategory.ClearHistory);
+                _isFirebaseInitialized = false; // Явно указываем, что инициализация не удалась
             }
         }
         
         /// <summary>
-        /// Запускает синхронизацию эмоций с Firebase
+        /// Запускает синхронизацию с Firebase, если она инициализирована и пользователь аутентифицирован
         /// </summary>
         public void StartSync()
         {
-            if (!_isFirebaseInitialized || _syncService == null)
+            if (_databaseService == null || !_databaseService.IsAuthenticated)
             {
-                MyLogger.LogWarning("Синхронизация недоступна: Firebase не инициализирован", MyLogger.LogCategory.Firebase);
+                MyLogger.LogWarning("🔥 [SYNC] ⚠️ Невозможно запустить синхронизацию: DatabaseService не настроен или пользователь не аутентифицирован.", MyLogger.LogCategory.Firebase);
                 return;
             }
             
-            _syncService.StartSync();
+            if (!_isFirebaseInitialized)
+            {
+                MyLogger.LogWarning("🔥 [SYNC] ⚠️ Невозможно запустить синхронизацию: Firebase не инициализирован должным образом в EmotionService (InitializeFirebaseSync не был успешен или не вызывался).", MyLogger.LogCategory.Firebase);
+                return;
+            }
+            
+            if (_syncService == null)
+            {
+                MyLogger.LogWarning("🔥 [SYNC] ⚠️ Невозможно запустить синхронизацию: _syncService is null.", MyLogger.LogCategory.Firebase);
+                return;
+            }
+            
+            var unsyncedCount = _emotionHistoryCache?.GetUnsyncedRecords().Count ?? 0;
+            MyLogger.Log($"🔥 [SYNC] 📊 Найдено {unsyncedCount} несинхронизированных записей перед запуском синхронизации", MyLogger.LogCategory.Firebase);
+            
+            _syncService.StartSync(); // Используем правильный метод StartSync()
+            MyLogger.Log("🔥 [SYNC] ✅ Синхронизация запущена через _syncService.StartSync().", MyLogger.LogCategory.Firebase);
+        }
+        
+        /// <summary>
+        /// Принудительно синхронизирует все локальные записи с облаком
+        /// </summary>
+        public async Task<bool> ForceSyncLocalToCloud()
+        {
+            MyLogger.Log("🔄 [FORCE-SYNC] 🚀 Начинаем принудительную синхронизацию локальных данных с облаком...", MyLogger.LogCategory.Firebase);
+            
+            if (!_isFirebaseInitialized || _databaseService == null || !_databaseService.IsAuthenticated)
+            {
+                MyLogger.LogWarning("🔄 [FORCE-SYNC] ⚠️ Невозможно выполнить принудительную синхронизацию: Firebase не инициализирован или пользователь не аутентифицирован", MyLogger.LogCategory.Firebase);
+                return false;
+            }
+            
+            if (_emotionHistoryCache == null)
+            {
+                MyLogger.LogWarning("🔄 [FORCE-SYNC] ⚠️ Невозможно выполнить принудительную синхронизацию: кэш истории эмоций не инициализирован", MyLogger.LogCategory.Firebase);
+                return false;
+            }
+            
+            try
+            {
+                // Получаем все локальные записи (не только несинхронизированные)
+                var allLocalRecords = _emotionHistoryCache.GetAllRecords();
+                
+                if (allLocalRecords == null || !allLocalRecords.Any())
+                {
+                    MyLogger.LogWarning("🔄 [FORCE-SYNC] ⚠️ Локальных записей не найдено для синхронизации", MyLogger.LogCategory.Firebase);
+                    return false;
+                }
+                
+                MyLogger.Log($"🔄 [FORCE-SYNC] 📊 Всего локальных записей: {allLocalRecords.Count}", MyLogger.LogCategory.Firebase);
+                
+                // Устанавливаем всем записям статус "Не синхронизировано" для принудительной отправки
+                foreach (var record in allLocalRecords)
+                {
+                    record.SyncStatus = SyncStatus.NotSynced;
+                    _emotionHistoryCache.UpdateRecord(record);
+                }
+                
+                MyLogger.Log($"🔄 [FORCE-SYNC] 📝 Все {allLocalRecords.Count} записи помечены как несинхронизированные", MyLogger.LogCategory.Firebase);
+                
+                // Запускаем синхронизацию
+                StartSync();
+                
+                // Ждем 2 секунды для начала процесса синхронизации
+                await Task.Delay(2000);
+                
+                // Проверяем, запустился ли процесс синхронизации
+                var stillUnsyncedCount = _emotionHistoryCache.GetUnsyncedRecords().Count;
+                
+                if (stillUnsyncedCount > 0)
+                {
+                    MyLogger.Log($"🔄 [FORCE-SYNC] ⏳ Синхронизация запущена, но еще не завершена. Осталось синхронизировать: {stillUnsyncedCount} записей", MyLogger.LogCategory.Firebase);
+                }
+                else
+                {
+                    MyLogger.Log("🔄 [FORCE-SYNC] ✅ Все записи успешно отправлены на синхронизацию!", MyLogger.LogCategory.Firebase);
+                }
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MyLogger.LogError($"🔄 [FORCE-SYNC] ❌ Ошибка при принудительной синхронизации: {ex.Message}", MyLogger.LogCategory.Firebase);
+                return false;
+            }
         }
         
         /// <summary>
         /// Принудительно обновляет историю из Firebase (мягкое обновление - сохраняет локальные записи)
         /// </summary>
-        public async System.Threading.Tasks.Task RefreshHistoryFromFirebase()
+        public async Task<bool> RefreshHistoryFromFirebase()
         {
-            if (!_isFirebaseInitialized)
+            MyLogger.Log($"🔄 [RefreshHistoryFromFirebase] Попытка обновления. _isFirebaseInitialized: {_isFirebaseInitialized}, _databaseService null?: {_databaseService == null}, _databaseService.IsAuthenticated: {(_databaseService?.IsAuthenticated ?? false)}", MyLogger.LogCategory.Firebase);
+            if (!_isFirebaseInitialized || _databaseService == null || !_databaseService.IsAuthenticated)
             {
-                MyLogger.LogWarning("Обновление истории недоступно: Firebase не инициализирован", MyLogger.LogCategory.Firebase);
-                return;
+                MyLogger.LogWarning("🔄 Невозможно обновить историю из Firebase: сервис не инициализирован или пользователь не аутентифицирован", MyLogger.LogCategory.Firebase);
+                return false;
             }
-            
-            if (_databaseService == null)
-            {
-                MyLogger.LogWarning("Обновление истории недоступно: DatabaseService не инициализирован", MyLogger.LogCategory.Firebase);
-                return;
-            }
-            
-            if (_emotionHistoryCache == null)
-            {
-                MyLogger.LogWarning("Обновление истории недоступно: EmotionHistoryCache не инициализирован", MyLogger.LogCategory.Firebase);
-                return;
-            }
-            
-            if (!_databaseService.IsAuthenticated)
-            {
-                MyLogger.LogWarning("Обновление истории недоступно: пользователь не аутентифицирован", MyLogger.LogCategory.Firebase);
-                return;
-            }
-            
+
             try
             {
-                MyLogger.Log("Принудительное обновление истории эмоций из Firebase (мягкое)...", MyLogger.LogCategory.Firebase);
+                MyLogger.Log("🔄 Начинаем обновление истории из Firebase...", MyLogger.LogCategory.Firebase);
                 
-                // Проверяем сколько записей в кэше до обновления
-                int beforeCount = _emotionHistoryCache.GetAllRecords().Count;
-                MyLogger.Log($"Перед обновлением в кэше {beforeCount} записей", MyLogger.LogCategory.Firebase);
+                // Сохраняем локальные несинхронизированные записи
+                var unsyncedRecords = _emotionHistoryCache?.GetUnsyncedRecords();
+                int unsyncedCount = unsyncedRecords?.Count ?? 0;
+                MyLogger.Log($"📝 Найдено {unsyncedCount} несинхронизированных локальных записей", MyLogger.LogCategory.Firebase);
+
+                // Получаем данные из Firebase
+                var firebaseRecords = await _databaseService.GetEmotionHistory();
                 
-                // Обновляем кэш из Firebase (мягкое обновление)
-                bool success = await _emotionHistoryCache.RefreshFromFirebase(_databaseService);
-                
-                if (success)
+                if (firebaseRecords == null || !firebaseRecords.Any())
                 {
-                    // Проверяем сколько записей в кэше после обновления
-                    int afterCount = _emotionHistoryCache.GetAllRecords().Count;
-                    MyLogger.Log($"После обновления в кэше {afterCount} записей (изменение: {afterCount - beforeCount})", MyLogger.LogCategory.Firebase);
-                    
-                    // Сохраняем количество записей в истории до обновления
-                    int historyCountBefore = 0;
-                    if (_emotionHistory != null)
+                    MyLogger.Log("☁️ В Firebase нет записей истории. Используем локальные данные.", MyLogger.LogCategory.Firebase);
+                    if (unsyncedCount > 0)
                     {
-                        historyCountBefore = _emotionHistory.GetHistory().Count();
-                        MyLogger.Log($"Перед обновлением в истории {historyCountBefore} записей", MyLogger.LogCategory.Firebase);
+                        MyLogger.Log("📤 Отправляем локальные записи в Firebase...", MyLogger.LogCategory.Firebase);
+                        StartSync(); // Запускаем синхронизацию локальных данных
+                    }
+                    return true;
                     }
                     
+                MyLogger.Log($"📥 Получено {firebaseRecords.Count} записей из Firebase", MyLogger.LogCategory.Firebase);
+
+                // Обновляем кэш, сохраняя несинхронизированные записи
+                if (_emotionHistoryCache != null)
+                {
+                    // Очищаем кэш, но сохраняем несинхронизированные записи
+                    var allRecords = _emotionHistoryCache.GetAllRecords();
+                    _emotionHistoryCache.ClearCache();
+                    
+                    // Добавляем записи из Firebase
+                    foreach (var record in firebaseRecords)
+                    {
+                        record.SyncStatus = SyncStatus.Synced;
+                        _emotionHistoryCache.AddRecord(record);
+                    }
+
+                    // Возвращаем несинхронизированные записи обратно в кэш
+                    if (unsyncedRecords != null)
+                    {
+                        foreach (var record in unsyncedRecords)
+                        {
+                            _emotionHistoryCache.AddRecord(record);
+                        }
+                    }
+
                     // Перезагружаем историю из обновленного кэша
                     _emotionHistory.SetCache(_emotionHistoryCache);
                     
-                    // Проверяем количество записей в истории после обновления
-                    if (_emotionHistory != null)
-                    {
-                        int historyCountAfter = _emotionHistory.GetHistory().Count();
-                        MyLogger.Log($"После обновления в истории {historyCountAfter} записей (изменение: {historyCountAfter - historyCountBefore})", MyLogger.LogCategory.Firebase);
-                    }
-                    
-                    MyLogger.Log("История эмоций успешно обновлена из Firebase", MyLogger.LogCategory.Firebase);
+                    MyLogger.Log("✅ История успешно обновлена из Firebase с сохранением локальных изменений", MyLogger.LogCategory.Firebase);
+                    return true;
                 }
-                else
-                {
-                    MyLogger.LogWarning("Не удалось обновить историю из Firebase: RefreshFromFirebase вернул false", MyLogger.LogCategory.Firebase);
-                }
+
+                return false;
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"Ошибка при обновлении истории из Firebase: {ex.Message}", MyLogger.LogCategory.Firebase);
+                MyLogger.LogError($"❌ Ошибка при обновлении истории из Firebase: {ex.Message}", MyLogger.LogCategory.Firebase);
+                throw;
             }
         }
 
         /// <summary>
-        /// Полностью заменяет локальную историю данными из Firebase (жесткое обновление)
+        /// Принудительно синхронизирует локальную историю с Firebase (заменяет локальные данные данными из Firebase)
+        /// Используется после очистки истории для обеспечения полной синхронизации
         /// </summary>
-        public async System.Threading.Tasks.Task ReplaceHistoryFromFirebase()
+        public async Task<bool> ForceSyncWithFirebase()
         {
-            if (!_isFirebaseInitialized)
-            {
-                MyLogger.LogWarning("Замена истории недоступна: Firebase не инициализирован", MyLogger.LogCategory.Firebase);
-                return;
-            }
+            MyLogger.Log($"🔄 [ForceSyncWithFirebase] Принудительная синхронизация с Firebase. _isFirebaseInitialized: {_isFirebaseInitialized}, _databaseService null?: {_databaseService == null}, _databaseService.IsAuthenticated: {(_databaseService?.IsAuthenticated ?? false)}", MyLogger.LogCategory.ClearHistory);
             
-            if (_databaseService == null)
+            if (!_isFirebaseInitialized || _databaseService == null || !_databaseService.IsAuthenticated)
             {
-                MyLogger.LogWarning("Замена истории недоступна: DatabaseService не инициализирован", MyLogger.LogCategory.Firebase);
-                return;
+                MyLogger.LogWarning("🔄 [ForceSyncWithFirebase] Невозможно синхронизироваться с Firebase: сервис не инициализирован или пользователь не аутентифицирован", MyLogger.LogCategory.ClearHistory);
+                return false;
             }
-            
-            if (_emotionHistoryCache == null)
-            {
-                MyLogger.LogWarning("Замена истории недоступна: EmotionHistoryCache не инициализирован", MyLogger.LogCategory.Firebase);
-                return;
-            }
-            
-            if (!_databaseService.IsAuthenticated)
-            {
-                MyLogger.LogWarning("Замена истории недоступна: пользователь не аутентифицирован", MyLogger.LogCategory.Firebase);
-                return;
-            }
-            
+
             try
             {
-                MyLogger.Log("�� Полная замена локальной истории данными из Firebase...", MyLogger.LogCategory.Firebase);
+                MyLogger.Log("🔄 [ForceSyncWithFirebase] Начинаем принудительную синхронизацию с Firebase...", MyLogger.LogCategory.ClearHistory);
                 
-                // Проверяем сколько записей в кэше до замены
-                int beforeCount = _emotionHistoryCache.GetAllRecords().Count;
-                MyLogger.Log($"Перед заменой в кэше {beforeCount} записей", MyLogger.LogCategory.Firebase);
-                
-                // Полностью заменяем кэш данными из Firebase
-                bool success = await _emotionHistoryCache.ReplaceFromFirebase(_databaseService);
-                
-                if (success)
+                // Проверяем подключение
+                bool isConnected = await _databaseService.CheckConnection();
+                if (!isConnected)
                 {
-                    // Проверяем сколько записей в кэше после замены
-                    int afterCount = _emotionHistoryCache.GetAllRecords().Count;
-                    MyLogger.Log($"После замены в кэше {afterCount} записей", MyLogger.LogCategory.Firebase);
+                    MyLogger.LogWarning("🔄 [ForceSyncWithFirebase] Нет соединения с Firebase", MyLogger.LogCategory.ClearHistory);
+                    return false;
+                }
+                
+                MyLogger.Log($"🔍 [ForceSyncWithFirebase] Вызываем _databaseService.GetEmotionHistory() для UserId: {_databaseService.UserId}", MyLogger.LogCategory.ClearHistory);
+                
+                // Получаем данные из Firebase
+                var firebaseRecords = await _databaseService.GetEmotionHistory();
+                
+                MyLogger.Log($"📥 [ForceSyncWithFirebase] Получено {firebaseRecords?.Count ?? 0} записей из Firebase", MyLogger.LogCategory.ClearHistory);
+                
+                if (firebaseRecords == null)
+                {
+                    MyLogger.LogWarning("⚠️ [ForceSyncWithFirebase] GetEmotionHistory вернул NULL", MyLogger.LogCategory.ClearHistory);
+                }
+
+                // Полностью заменяем локальный кэш данными из Firebase
+                if (_emotionHistoryCache != null)
+                {
+                    MyLogger.Log("🗑️ [ForceSyncWithFirebase] Полностью очищаем локальный кэш...", MyLogger.LogCategory.ClearHistory);
+                    _emotionHistoryCache.ClearCache();
                     
-                    // Сохраняем количество записей в истории до обновления
-                    int historyCountBefore = 0;
-                    if (_emotionHistory != null)
+                    // Добавляем записи из Firebase (если они есть)
+                    if (firebaseRecords != null && firebaseRecords.Any())
                     {
-                        historyCountBefore = _emotionHistory.GetHistory().Count();
-                        MyLogger.Log($"Перед обновлением в истории {historyCountBefore} записей", MyLogger.LogCategory.Firebase);
+                        int addedCount = 0;
+                        foreach (var record in firebaseRecords)
+                        {
+                            try
+                            {
+                                // Гарантируем, что запись имеет правильный статус
+                                record.SyncStatus = SyncStatus.Synced;
+                                _emotionHistoryCache.AddRecord(record);
+                                addedCount++;
+                            }
+                            catch (Exception recordEx)
+                            {
+                                MyLogger.LogError($"❌ [ForceSyncWithFirebase] Ошибка при добавлении записи в кэш: {recordEx.Message}", MyLogger.LogCategory.ClearHistory);
+                                // Продолжаем с другими записями
+                            }
+                        }
+                        MyLogger.Log($"➕ [ForceSyncWithFirebase] Успешно добавлено {addedCount} из {firebaseRecords.Count} записей из Firebase в локальный кэш", MyLogger.LogCategory.ClearHistory);
                     }
-                    
+                    else
+                    {
+                        MyLogger.Log("📭 [ForceSyncWithFirebase] Firebase пуст - локальный кэш остается пустым", MyLogger.LogCategory.ClearHistory);
+                    }
+
                     // Перезагружаем историю из обновленного кэша
                     _emotionHistory.SetCache(_emotionHistoryCache);
                     
-                    // Проверяем количество записей в истории после обновления
-                    if (_emotionHistory != null)
-                    {
-                        int historyCountAfter = _emotionHistory.GetHistory().Count();
-                        MyLogger.Log($"После обновления в истории {historyCountAfter} записей", MyLogger.LogCategory.Firebase);
-                    }
+                    // Добавляем дополнительную задержку для гарантии завершения операций
+                    await Task.Delay(500);
                     
-                    MyLogger.Log("✅ Локальная история полностью заменена данными из Firebase", MyLogger.LogCategory.Firebase);
+                    MyLogger.Log("✅ [ForceSyncWithFirebase] Принудительная синхронизация завершена успешно", MyLogger.LogCategory.ClearHistory);
+                    return true;
                 }
-                else
-                {
-                    MyLogger.LogWarning("❌ Не удалось заменить историю данными из Firebase: ReplaceFromFirebase вернул false", MyLogger.LogCategory.Firebase);
-                }
+
+                MyLogger.LogError("❌ [ForceSyncWithFirebase] EmotionHistoryCache не инициализирован", MyLogger.LogCategory.ClearHistory);
+                return false;
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"❌ Ошибка при замене истории данными из Firebase: {ex.Message}", MyLogger.LogCategory.Firebase);
+                MyLogger.LogError($"❌ [ForceSyncWithFirebase] Ошибка при принудительной синхронизации с Firebase: {ex.Message}", MyLogger.LogCategory.ClearHistory);
+                return false;
             }
         }
         
@@ -831,7 +929,35 @@ namespace App.Develop.CommonServices.Emotion
 
         public IEnumerable<EmotionHistoryEntry> GetEmotionHistory(DateTime? from = null, DateTime? to = null)
         {
-            return _emotionHistory.GetHistory(from, to);
+            MyLogger.Log($"🔍 [EmotionService.GetEmotionHistory] Запрос истории эмоций. _emotionHistory!=null={_emotionHistory != null}, _emotionHistoryCache!=null={_emotionHistoryCache != null}", MyLogger.LogCategory.Firebase);
+            
+            var history = _emotionHistory.GetHistory(from, to);
+            var historyList = history?.ToList();
+            
+            MyLogger.Log($"📊 [EmotionService.GetEmotionHistory] Получено {historyList?.Count ?? 0} записей из _emotionHistory", MyLogger.LogCategory.Firebase);
+            
+            if (_emotionHistoryCache != null)
+            {
+                var cacheRecords = _emotionHistoryCache.GetAllRecords();
+                MyLogger.Log($"📊 [EmotionService.GetEmotionHistory] В кэше находится {cacheRecords?.Count ?? 0} записей", MyLogger.LogCategory.Firebase);
+            }
+            
+            // Детальная информация о первых записях
+            if (historyList != null && historyList.Count > 0)
+            {
+                MyLogger.Log($"🔍 [EmotionService.GetEmotionHistory] Первые записи:", MyLogger.LogCategory.Firebase);
+                for (int i = 0; i < Math.Min(3, historyList.Count); i++)
+                {
+                    var entry = historyList[i];
+                    MyLogger.Log($"  [{i}] Type={entry.EmotionData?.Type}, Value={entry.EmotionData?.Value}, Timestamp={entry.Timestamp:yyyy-MM-dd HH:mm:ss}, SyncId={entry.SyncId}", MyLogger.LogCategory.Firebase);
+                }
+            }
+            else
+            {
+                MyLogger.Log($"📭 [EmotionService.GetEmotionHistory] История пуста - возвращаем пустой список", MyLogger.LogCategory.Firebase);
+            }
+            
+            return historyList ?? new List<EmotionHistoryEntry>();
         }
 
         public IEnumerable<EmotionHistoryEntry> GetEmotionHistoryByType(EmotionTypes type, DateTime? from = null, DateTime? to = null)
@@ -1028,54 +1154,116 @@ namespace App.Develop.CommonServices.Emotion
         /// </summary>
         private async void SyncEmotionWithFirebase(EmotionData emotion, EmotionEventType eventType)
         {
-            MyLogger.Log($"🔄 [SyncEmotionWithFirebase] Начало синхронизации: Type={emotion.Type}, EventType={eventType}", MyLogger.LogCategory.Firebase);
+            MyLogger.Log($"📱➡️☁️ [SYNC-EMOTION] Начало синхронизации: Type={emotion.Type}, EventType={eventType}", MyLogger.LogCategory.Firebase);
             
             if (!_isFirebaseInitialized)
             {
-                MyLogger.LogWarning($"❌ [SyncEmotionWithFirebase] Firebase не инициализирован для {emotion.Type}", MyLogger.LogCategory.Firebase);
+                MyLogger.LogWarning($"❌ [SYNC-EMOTION] Firebase не инициализирован для {emotion.Type}", MyLogger.LogCategory.Firebase);
                 return;
             }
             
             if (_databaseService == null)
             {
-                MyLogger.LogWarning($"❌ [SyncEmotionWithFirebase] DatabaseService не доступен для {emotion.Type}", MyLogger.LogCategory.Firebase);
+                MyLogger.LogWarning($"❌ [SYNC-EMOTION] DatabaseService не доступен для {emotion.Type}", MyLogger.LogCategory.Firebase);
                 return;
             }
             
             if (!_databaseService.IsAuthenticated)
             {
-                MyLogger.LogWarning($"❌ [SyncEmotionWithFirebase] Пользователь не аутентифицирован для {emotion.Type}", MyLogger.LogCategory.Firebase);
+                MyLogger.LogWarning($"❌ [SYNC-EMOTION] Пользователь не аутентифицирован для {emotion.Type}. UserID: {(_databaseService?.UserId ?? "NULL")}", MyLogger.LogCategory.Firebase);
                 return;
             }
             
             try
             {
-                MyLogger.Log($"📝 [SyncEmotionWithFirebase] Создаем запись для Firebase: Type={emotion.Type}, Value={emotion.Value}, Timestamp={emotion.LastUpdate:O}", MyLogger.LogCategory.Firebase);
+                MyLogger.Log($"📝 [SYNC-EMOTION] Создаем запись для Firebase: Type={emotion.Type}, Value={emotion.Value}, Timestamp={emotion.LastUpdate:O}", MyLogger.LogCategory.Firebase);
                 
                 // Создаем запись для истории эмоций в Firebase
                 var record = new EmotionHistoryRecord(emotion, eventType);
                 
-                MyLogger.Log($"💾 [SyncEmotionWithFirebase] Отправляем запись в Firebase: Id={record.Id}, Type={record.Type}", MyLogger.LogCategory.Firebase);
+                MyLogger.Log($"💾 [SYNC-EMOTION] Отправляем запись в Firebase: Id={record.Id}, Type={record.Type}, UserId={_databaseService.UserId}", MyLogger.LogCategory.Firebase);
                 
                 // Отправляем на сервер
                 await _databaseService.AddEmotionHistoryRecord(record);
                 
-                MyLogger.Log($"✅ [SyncEmotionWithFirebase] Запись успешно добавлена в Firebase: Id={record.Id}", MyLogger.LogCategory.Firebase);
+                MyLogger.Log($"✅ [SYNC-EMOTION] Запись успешно добавлена в Firebase: Id={record.Id}", MyLogger.LogCategory.Firebase);
                 
                 // Обновляем текущую эмоцию в Firebase
                 if (eventType == EmotionEventType.ValueChanged || eventType == EmotionEventType.IntensityChanged)
                 {
-                    MyLogger.Log($"🔄 [SyncEmotionWithFirebase] Обновляем текущую эмоцию в Firebase: Type={emotion.Type}, Intensity={emotion.Intensity}", MyLogger.LogCategory.Firebase);
+                    MyLogger.Log($"🔄 [SYNC-EMOTION] Обновляем текущую эмоцию в Firebase: Type={emotion.Type}, Intensity={emotion.Intensity}", MyLogger.LogCategory.Firebase);
                     await _databaseService.UpdateCurrentEmotion(emotion.Type, emotion.Intensity);
-                    MyLogger.Log($"✅ [SyncEmotionWithFirebase] Текущая эмоция обновлена в Firebase: Type={emotion.Type}", MyLogger.LogCategory.Firebase);
+                    MyLogger.Log($"✅ [SYNC-EMOTION] Текущая эмоция обновлена в Firebase: Type={emotion.Type}", MyLogger.LogCategory.Firebase);
                 }
                 
-                MyLogger.Log($"🎉 [SyncEmotionWithFirebase] Эмоция {emotion.Type} полностью синхронизирована с Firebase", MyLogger.LogCategory.Firebase);
+                MyLogger.Log($"🎉 [SYNC-EMOTION] Эмоция {emotion.Type} полностью синхронизирована с Firebase", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"❌ [SyncEmotionWithFirebase] Ошибка синхронизации эмоции {emotion.Type} с Firebase: {ex.Message}", MyLogger.LogCategory.Firebase);
-                MyLogger.LogError($"❌ [SyncEmotionWithFirebase] Stack trace: {ex.StackTrace}", MyLogger.LogCategory.Firebase);
+                MyLogger.LogError($"❌ [SYNC-EMOTION] Ошибка синхронизации эмоции {emotion.Type} с Firebase: {ex.Message}", MyLogger.LogCategory.Firebase);
+                MyLogger.LogError($"❌ [SYNC-EMOTION] Stack trace: {ex.StackTrace}", MyLogger.LogCategory.Firebase);
+            }
+        }
+
+        /// <summary>
+        /// Синхронизирует эмоцию с Firebase используя предустановленный ID
+        /// </summary>
+        private async void SyncEmotionWithFirebaseById(EmotionData emotion, EmotionEventType eventType, string recordId)
+        {
+            MyLogger.Log($"📱➡️☁️ [SYNC-EMOTION-BY-ID] Начало синхронизации с ID: Type={emotion.Type}, EventType={eventType}, RecordId={recordId}", MyLogger.LogCategory.Firebase);
+            
+            if (!_isFirebaseInitialized)
+            {
+                MyLogger.LogWarning($"❌ [SYNC-EMOTION-BY-ID] Firebase не инициализирован для {emotion.Type}", MyLogger.LogCategory.Firebase);
+                return;
+            }
+            
+            if (_databaseService == null)
+            {
+                MyLogger.LogWarning($"❌ [SYNC-EMOTION-BY-ID] DatabaseService не доступен для {emotion.Type}", MyLogger.LogCategory.Firebase);
+                return;
+            }
+            
+            if (!_databaseService.IsAuthenticated)
+            {
+                MyLogger.LogWarning($"❌ [SYNC-EMOTION-BY-ID] Пользователь не аутентифицирован для {emotion.Type}. UserID: {(_databaseService?.UserId ?? "NULL")}", MyLogger.LogCategory.Firebase);
+                return;
+            }
+            
+            try
+            {
+                MyLogger.Log($"📝 [SYNC-EMOTION-BY-ID] Создаем запись для Firebase: Type={emotion.Type}, Value={emotion.Value}, Timestamp={emotion.LastUpdate:O}, RecordId={recordId}", MyLogger.LogCategory.Firebase);
+                
+                // Создаем запись для истории эмоций в Firebase с предустановленным ID
+                var record = new EmotionHistoryRecord(emotion, eventType)
+                {
+                    Id = recordId // Используем переданный ID вместо генерации нового
+                };
+                
+                MyLogger.Log($"💾 [SYNC-EMOTION-BY-ID] Отправляем запись в Firebase: Id={record.Id}, Type={record.Type}, UserId={_databaseService.UserId}", MyLogger.LogCategory.Firebase);
+                
+                // Отправляем на сервер
+                await _databaseService.AddEmotionHistoryRecord(record);
+                
+                MyLogger.Log($"✅ [SYNC-EMOTION-BY-ID] Запись успешно добавлена в Firebase: Id={record.Id}", MyLogger.LogCategory.Firebase);
+                
+                // Обновляем статус синхронизации в локальной истории
+                _emotionHistory.UpdateSyncStatus(recordId, true);
+                
+                // Обновляем текущую эмоцию в Firebase
+                if (eventType == EmotionEventType.ValueChanged || eventType == EmotionEventType.IntensityChanged)
+                {
+                    MyLogger.Log($"🔄 [SYNC-EMOTION-BY-ID] Обновляем текущую эмоцию в Firebase: Type={emotion.Type}, Intensity={emotion.Intensity}", MyLogger.LogCategory.Firebase);
+                    await _databaseService.UpdateCurrentEmotion(emotion.Type, emotion.Intensity);
+                    MyLogger.Log($"✅ [SYNC-EMOTION-BY-ID] Текущая эмоция обновлена в Firebase: Type={emotion.Type}", MyLogger.LogCategory.Firebase);
+                }
+                
+                MyLogger.Log($"🎉 [SYNC-EMOTION-BY-ID] Эмоция {emotion.Type} полностью синхронизирована с Firebase с ID {recordId}", MyLogger.LogCategory.Firebase);
+            }
+            catch (Exception ex)
+            {
+                MyLogger.LogError($"❌ [SYNC-EMOTION-BY-ID] Ошибка синхронизации эмоции {emotion.Type} с Firebase: {ex.Message}", MyLogger.LogCategory.Firebase);
+                MyLogger.LogError($"❌ [SYNC-EMOTION-BY-ID] Stack trace: {ex.StackTrace}", MyLogger.LogCategory.Firebase);
             }
         }
         #endregion
@@ -1102,16 +1290,30 @@ namespace App.Develop.CommonServices.Emotion
             
             MyLogger.Log($"[EmotionService.LogEmotionEvent] Добавляем запись: Type='{type}', EventType='{eventType}', Timestamp='{now:O}'", MyLogger.LogCategory.Emotion);
             
-            // Убедимся в правильном порядке: emotion, eventType, DateTime.Now, note
-            _emotionHistory.AddEntry(emotion, eventType, now, note); 
+            // ИСПРАВЛЕНИЕ: Создаем одну запись с уникальным ID для локальной истории и Firebase
+            string uniqueId = Guid.NewGuid().ToString();
             
-            MyLogger.Log($"[EmotionService.LogEmotionEvent] Logged event: Type='{type}', EventType='{eventType}', Timestamp='{now:O}'{(string.IsNullOrEmpty(note) ? "" : $", Note='{note}'")}", MyLogger.LogCategory.Emotion);
+            // Создаем EmotionHistoryEntry с предустановленным SyncId
+            var entry = new EmotionHistoryEntry
+            {
+                EmotionData = emotion.Clone(),
+                Timestamp = now,
+                EventType = eventType,
+                Note = note,
+                SyncId = uniqueId, // Используем один ID для локальной записи и Firebase
+                IsSynced = false
+            };
             
-            // Синхронизируем с Firebase, если возможно
+            // Добавляем в локальную историю (без создания нового SyncId)
+            _emotionHistory.AddEntryDirect(entry);
+            
+            MyLogger.Log($"[EmotionService.LogEmotionEvent] Logged event: Type='{type}', EventType='{eventType}', Timestamp='{now:O}', SyncId='{uniqueId}'{(string.IsNullOrEmpty(note) ? "" : $", Note='{note}'")}", MyLogger.LogCategory.Emotion);
+            
+            // Синхронизируем с Firebase, если возможно (используя тот же ID)
             if (_isFirebaseInitialized && _databaseService != null && _databaseService.IsAuthenticated)
             {
-                MyLogger.Log($"[EmotionService.LogEmotionEvent] Синхронизируем с Firebase запись: Type='{type}'", MyLogger.LogCategory.Firebase);
-                SyncEmotionWithFirebase(emotion, eventType);
+                MyLogger.Log($"[EmotionService.LogEmotionEvent] Синхронизируем с Firebase запись: Type='{type}', SyncId='{uniqueId}'", MyLogger.LogCategory.Firebase);
+                SyncEmotionWithFirebaseById(emotion, eventType, uniqueId);
             }
         }
 
@@ -1129,13 +1331,131 @@ namespace App.Develop.CommonServices.Emotion
         }
         
         /// <summary>
+        /// Очищает историю эмоций локально и в облаке
+        /// </summary>
+        /// <returns>True, если очистка выполнена успешно, иначе False</returns>
+        public async Task<bool> ClearHistoryWithCloud()
+        {
+            try
+            {
+                MyLogger.Log("🗑️ [ClearHistoryWithCloud] Начинаем очистку истории локально и в облаке", MyLogger.LogCategory.ClearHistory);
+                
+                // Проверяем состояние Firebase сервисов
+                MyLogger.Log($"🔍 [ClearHistoryWithCloud] Проверка состояния: _isFirebaseInitialized={_isFirebaseInitialized}, _databaseService!=null={_databaseService != null}, IsAuthenticated={_databaseService?.IsAuthenticated}, _syncService!=null={_syncService != null}", MyLogger.LogCategory.ClearHistory);
+                
+                // Очищаем локальную историю
+                _emotionHistory.Clear();
+                MyLogger.Log("✅ [ClearHistoryWithCloud] Локальная история очищена", MyLogger.LogCategory.ClearHistory);
+                
+                // Очищаем кэш истории
+                if (_emotionHistoryCache != null)
+                {
+                    _emotionHistoryCache.ClearCache();
+                    MyLogger.Log("✅ [ClearHistoryWithCloud] Кэш истории эмоций успешно очищен", MyLogger.LogCategory.ClearHistory);
+                }
+                
+                // Проверяем возможность очистки в облаке
+                if (!_isFirebaseInitialized)
+                {
+                    MyLogger.LogWarning("⚠️ [ClearHistoryWithCloud] Firebase не инициализирован - невозможно очистить облачные данные", MyLogger.LogCategory.ClearHistory);
+                    return false;
+                }
+                
+                if (_databaseService == null)
+                {
+                    MyLogger.LogWarning("⚠️ [ClearHistoryWithCloud] DatabaseService не инициализирован - невозможно очистить облачные данные", MyLogger.LogCategory.ClearHistory);
+                    return false;
+                }
+                
+                if (!_databaseService.IsAuthenticated)
+                {
+                    MyLogger.LogWarning("⚠️ [ClearHistoryWithCloud] Пользователь не аутентифицирован - невозможно очистить облачные данные", MyLogger.LogCategory.ClearHistory);
+                    return false;
+                }
+                
+                if (_syncService == null)
+                {
+                    MyLogger.LogWarning("⚠️ [ClearHistoryWithCloud] SyncService не инициализирован - невозможно очистить облачные данные", MyLogger.LogCategory.ClearHistory);
+                    return false;
+                }
+                
+                // Очищаем данные в облаке
+                MyLogger.Log("🔄 [ClearHistoryWithCloud] Все проверки пройдены, начинаем очистку данных в облаке...", MyLogger.LogCategory.ClearHistory);
+                bool cloudClearResult = await _syncService.ClearCloudData();
+                
+                if (cloudClearResult)
+                {
+                    MyLogger.Log("✅ [ClearHistoryWithCloud] Облачные данные успешно очищены", MyLogger.LogCategory.ClearHistory);
+                    
+                    // Принудительно синхронизируемся с Firebase, чтобы убедиться, что локальные данные соответствуют облачным
+                    MyLogger.Log("🔄 [ClearHistoryWithCloud] Принудительная синхронизация с Firebase после очистки...", MyLogger.LogCategory.ClearHistory);
+                    bool syncSuccess = await ForceSyncWithFirebase();
+                    
+                    if (syncSuccess)
+                    {
+                        MyLogger.Log("✅ [ClearHistoryWithCloud] Принудительная синхронизация завершена успешно", MyLogger.LogCategory.ClearHistory);
+                    }
+                    else
+                    {
+                        MyLogger.LogWarning("⚠️ [ClearHistoryWithCloud] Принудительная синхронизация не удалась, но облачные данные очищены", MyLogger.LogCategory.ClearHistory);
+                    }
+                    
+                    return true;
+                }
+                else
+                {
+                    MyLogger.LogError("❌ [ClearHistoryWithCloud] Локальная история очищена, но не удалось очистить облачные данные", MyLogger.LogCategory.ClearHistory);
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                MyLogger.LogError($"❌ [ClearHistoryWithCloud] Ошибка при очистке истории: {ex.Message}\nStackTrace: {ex.StackTrace}", MyLogger.LogCategory.ClearHistory);
+                return false;
+            }
+        }
+        
+        /// <summary>
         /// Проверяет, инициализирован ли Firebase
         /// </summary>
-        public bool IsFirebaseInitialized => _isFirebaseInitialized;
+        public bool IsFirebaseInitialized 
+        { 
+            get 
+            {
+                MyLogger.Log($"🔍 [EmotionService.IsFirebaseInitialized] Возвращаем: {_isFirebaseInitialized}", MyLogger.LogCategory.ClearHistory);
+                return _isFirebaseInitialized;
+            }
+        }
         
         /// <summary>
         /// Проверяет, аутентифицирован ли пользователь в Firebase
         /// </summary>
-        public bool IsAuthenticated => _isFirebaseInitialized && _databaseService != null && _databaseService.IsAuthenticated;
+        public bool IsAuthenticated 
+        { 
+            get 
+            {
+                bool firebaseInit = _isFirebaseInitialized;
+                bool dbServiceNotNull = _databaseService != null;
+                bool dbAuthenticated = _databaseService?.IsAuthenticated ?? false;
+                bool result = firebaseInit && dbServiceNotNull && dbAuthenticated;
+                
+                MyLogger.Log($"🔍 [EmotionService.IsAuthenticated] _isFirebaseInitialized={firebaseInit}, _databaseService!=null={dbServiceNotNull}, _databaseService.IsAuthenticated={dbAuthenticated}, result={result}", MyLogger.LogCategory.ClearHistory);
+                return result;
+            }
+        }
+
+        public void Dispose()
+        {
+            // Пока что оставим пустым, если нечего освобождать.
+            // В будущем здесь можно будет отписаться от событий, например:
+            // if (_syncService != null)
+            // {
+            //     _syncService.OnSyncComplete -= HandleSyncComplete;
+            //     _syncService.OnSyncProgress -= HandleSyncProgress;
+            //     _syncService.OnRecordSynced -= HandleRecordSynced;
+            //     _syncService.OnSyncConflict -= HandleSyncConflict;
+            // }
+            // MyLogger.Log("[EmotionService] Disposed.", MyLogger.LogCategory.Default);
+        }
     }
 }

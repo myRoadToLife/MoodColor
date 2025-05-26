@@ -16,7 +16,7 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
             _saveLoadService = saveLoadService;
         }
 
-        private TData Data { get; set; }
+        protected TData Data { get; set; }
 
         public void RegisterWriter(IDataWriter<TData> writer)
         {

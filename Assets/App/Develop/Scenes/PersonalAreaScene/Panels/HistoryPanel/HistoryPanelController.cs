@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using App.Develop.Scenes.PersonalAreaScene.Panels.HistoryPanel;
 using System;
+using System.Threading.Tasks;
 using Firebase.Auth;
 
 namespace App.Develop.Scenes.PersonalAreaScene.UI
@@ -23,22 +24,31 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
 
         [Header("Кнопки")]
         [SerializeField] private Button _closeButton;
+        [SerializeField] private Button _clearHistoryButton; // Кнопка для очистки истории
+        [SerializeField] private Button _syncButton; // Кнопка для принудительной синхронизации с облаком
         
         [Header("Сообщения")]
         [SerializeField] private GameObject _popupPanel;
         [SerializeField] private TMP_Text _popupText;
+        
+        [Header("Диалоги подтверждения")]
+        [SerializeField] private GameObject _confirmationDialog;
+        [SerializeField] private Button _confirmDialogYesButton;
+        [SerializeField] private Button _confirmDialogNoButton;
+        [SerializeField] private TMP_Text _confirmDialogText;
         #endregion
 
         #region Private Fields
         private PanelManager _panelManager;
         private EmotionService _emotionService;
         private bool _isInitialized = false;
+        private System.Action _pendingConfirmAction;
         #endregion
 
         #region Unity Lifecycle
         private void OnEnable()
         {
-            MyLogger.Log("[HistoryPanelController] OnEnable вызван - начинаем синхронизацию истории", MyLogger.LogCategory.Sync);
+            MyLogger.Log("[HistoryPanelController] OnEnable вызван - отображаем историю", MyLogger.LogCategory.UI);
             
             if (_isInitialized)
             {
@@ -46,19 +56,15 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             }
             else
             {
-                MyLogger.LogWarning("[HistoryPanelController] OnEnable: панель не инициализирована");
+                MyLogger.LogWarning("[HistoryPanelController] OnEnable: панель не инициализирована", MyLogger.LogCategory.UI);
             }
         }
         
         private void OnDisable()
         {
-            MyLogger.Log("[HistoryPanelController] OnDisable вызван - сохраняем локальные изменения в облако", MyLogger.LogCategory.Sync);
+            MyLogger.Log("[HistoryPanelController] OnDisable вызван - панель закрывается", MyLogger.LogCategory.UI);
             
-            if (_isInitialized && _emotionService != null)
-            {
-                // Синхронизируем локальные изменения с облаком при закрытии панели
-                SyncLocalChangesToCloud();
-            }
+            // Синхронизация теперь происходит автоматически в фоне, не нужно делать ничего при закрытии панели
         }
         
         private void OnDestroy()
@@ -78,6 +84,12 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
                 MyLogger.LogError("[HistoryPanelController] EmotionService не удалось получить из DI контейнера!");
             }
 
+            // Если кнопка синхронизации не назначена в инспекторе, создаем её программно
+            if (_syncButton == null && _clearHistoryButton != null)
+            {
+                CreateSyncButton();
+            }
+
             SubscribeEvents();
             
             _isInitialized = true;
@@ -92,114 +104,95 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         {
             if (_closeButton != null)
                 _closeButton.onClick.AddListener(ClosePanel);
+                
+            if (_syncButton != null)
+                _syncButton.onClick.AddListener(SyncWithCloud);
+                
+            if (_clearHistoryButton != null)
+                _clearHistoryButton.onClick.AddListener(ShowClearHistoryConfirmation);
+                
+            if (_confirmDialogYesButton != null)
+                _confirmDialogYesButton.onClick.AddListener(OnConfirmDialogYes);
+                
+            if (_confirmDialogNoButton != null)
+                _confirmDialogNoButton.onClick.AddListener(OnConfirmDialogNo);
         }
 
         private void UnsubscribeEvents()
         {
             if (_closeButton != null)
                 _closeButton.onClick.RemoveListener(ClosePanel);
+                
+            if (_syncButton != null)
+                _syncButton.onClick.RemoveListener(SyncWithCloud);
+                
+            if (_clearHistoryButton != null)
+                _clearHistoryButton.onClick.RemoveListener(ShowClearHistoryConfirmation);
+                
+            if (_confirmDialogYesButton != null)
+                _confirmDialogYesButton.onClick.RemoveListener(OnConfirmDialogYes);
+                
+            if (_confirmDialogNoButton != null)
+                _confirmDialogNoButton.onClick.RemoveListener(OnConfirmDialogNo);
+        }
+
+        /// <summary>
+        /// Создает кнопку синхронизации программно, если она не назначена в инспекторе
+        /// </summary>
+        private void CreateSyncButton()
+        {
+            try
+            {
+                // Находим родительский элемент кнопки очистки истории
+                Transform buttonParent = _clearHistoryButton.transform.parent;
+                
+                // Создаем копию кнопки очистки истории
+                GameObject syncButtonGO = Instantiate(_clearHistoryButton.gameObject, buttonParent);
+                syncButtonGO.name = "SyncButton";
+                
+                // Устанавливаем позицию относительно кнопки очистки
+                RectTransform syncRect = syncButtonGO.GetComponent<RectTransform>();
+                RectTransform clearRect = _clearHistoryButton.GetComponent<RectTransform>();
+                
+                if (syncRect != null && clearRect != null)
+                {
+                    // Размещаем кнопку синхронизации левее кнопки очистки
+                    Vector2 position = clearRect.anchoredPosition;
+                    position.x -= clearRect.sizeDelta.x + 20f; // Сдвигаем влево на ширину кнопки + отступ
+                    syncRect.anchoredPosition = position;
+                }
+                
+                // Меняем текст на кнопке
+                TextMeshProUGUI buttonText = syncButtonGO.GetComponentInChildren<TextMeshProUGUI>();
+                if (buttonText != null)
+                {
+                    buttonText.text = "Синхронизировать";
+                }
+                
+                // Получаем компонент кнопки и назначаем его
+                _syncButton = syncButtonGO.GetComponent<Button>();
+                
+                MyLogger.Log("[HistoryPanelController] Кнопка синхронизации создана программно", MyLogger.LogCategory.UI);
+            }
+            catch (Exception ex)
+            {
+                MyLogger.LogError($"[HistoryPanelController] Ошибка при создании кнопки синхронизации: {ex.Message}", MyLogger.LogCategory.UI);
+            }
         }
         #endregion
 
         #region UI Event Handlers
         private void LoadHistoryData()
         {
-            if (!_isInitialized)
-            {
-                MyLogger.LogWarning("[HistoryPanelController] Попытка загрузить данные до инициализации.");
-                return;
-            }
-
             if (_emotionService == null)
             {
-                MyLogger.LogError("[HistoryPanelController] EmotionService не доступен. Не могу загрузить историю.");
+                MyLogger.LogError("[HistoryPanelController] EmotionService не доступен для отображения истории", MyLogger.LogCategory.UI);
                 return;
             }
 
-            MyLogger.Log("[HistoryPanelController] Загрузка истории эмоций...", MyLogger.LogCategory.UI);
-            
-            // Запускаем синхронизацию перед загрузкой истории
-            StartCoroutine(LoadHistoryWithSync());
-        }
+            MyLogger.Log("[HistoryPanelController] Отображение уже загруженной истории эмоций...", MyLogger.LogCategory.UI);
 
-        private System.Collections.IEnumerator LoadHistoryWithSync()
-        {
-            // Показываем индикатор загрузки
-            if (_popupPanel != null)
-            {
-                _popupPanel.SetActive(true);
-                if (_popupText != null)
-                    _popupText.text = "Загрузка истории...";
-            }
-            
-            MyLogger.Log("[HistoryPanelController] 🔄 Начало загрузки истории с синхронизацией", MyLogger.LogCategory.Sync);
-            
-            // Проверяем наличие записей в истории ДО синхронизации
-            int recordsBeforeSync = 0;
-            if (_emotionService != null)
-            {
-                var historyBeforeSync = _emotionService.GetEmotionHistory().ToList();
-                recordsBeforeSync = historyBeforeSync.Count;
-                MyLogger.Log($"[HistoryPanelController] 📊 Записей в локальной истории ДО синхронизации: {recordsBeforeSync}", MyLogger.LogCategory.Sync);
-            }
-            
-            // Проверяем Firebase состояние
-            bool canSync = _emotionService != null && _emotionService.IsFirebaseInitialized && _emotionService.IsAuthenticated;
-            MyLogger.Log($"[HistoryPanelController] 🔗 Состояние Firebase: инициализирован={_emotionService?.IsFirebaseInitialized}, аутентифицирован={_emotionService?.IsAuthenticated}", MyLogger.LogCategory.Firebase);
-            
-            if (canSync)
-            {
-                // Обновляем текст индикатора
-                if (_popupText != null)
-                    _popupText.text = "Получение актуальной истории...";
-                
-                MyLogger.Log("[HistoryPanelController] ☁️ Начинаем полную синхронизацию с Firebase (замещение локальных данных)...", MyLogger.LogCategory.Sync);
-                
-                // Полностью заменяем локальную историю данными из Firebase
-                var refreshTask = _emotionService.ReplaceHistoryFromFirebase();
-                
-                // Ждем завершения задачи
-                while (!refreshTask.IsCompleted)
-                {
-                    yield return null;
-                }
-                
-                // Проверяем на ошибки
-                if (refreshTask.IsFaulted)
-                {
-                    MyLogger.LogError($"[HistoryPanelController] ❌ Ошибка при синхронизации с Firebase: {refreshTask.Exception?.GetBaseException()?.Message}", MyLogger.LogCategory.Sync);
-                    if (_popupText != null)
-                        _popupText.text = "Ошибка синхронизации";
-                    yield return new WaitForSeconds(2f);
-                }
-                else
-                {
-                    MyLogger.Log("[HistoryPanelController] ✅ Синхронизация с Firebase завершена успешно", MyLogger.LogCategory.Sync);
-                }
-            }
-            else
-            {
-                MyLogger.LogWarning("[HistoryPanelController] ⚠️ Синхронизация недоступна. Используем локальные данные.", MyLogger.LogCategory.Sync);
-                if (_popupText != null)
-                    _popupText.text = "Загрузка локальных данных...";
-                yield return new WaitForSeconds(0.5f);
-            }
-            
-            // Проверяем наличие записей в истории ПОСЛЕ синхронизации
-            int recordsAfterSync = 0;
-            if (_emotionService != null)
-            {
-                var historyAfterSync = _emotionService.GetEmotionHistory().ToList();
-                recordsAfterSync = historyAfterSync.Count;
-                MyLogger.Log($"[HistoryPanelController] 📊 Записей в истории ПОСЛЕ синхронизации: {recordsAfterSync} (изменение: {recordsAfterSync - recordsBeforeSync})", MyLogger.LogCategory.Sync);
-            }
-            
-            // Скрываем индикатор
-            if (_popupPanel != null)
-                _popupPanel.SetActive(false);
-
-            // Теперь загружаем и отображаем историю
-            MyLogger.Log("[HistoryPanelController] 🎨 Отображаем историю в UI...", MyLogger.LogCategory.UI);
+            // Просто отображаем уже загруженные данные без дополнительной синхронизации
             DisplayHistory();
         }
 
@@ -228,6 +221,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
                 }
             }
 
+            // Получаем СВЕЖИЕ данные из EmotionService
             IEnumerable<EmotionHistoryEntry> historyEntries = _emotionService.GetEmotionHistory();
             
             // Проверяем что возвращается из GetEmotionHistory
@@ -252,7 +246,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
                 return;
             }
             
-            // СОЗДАЕМ СПИСОК КЛОНИРОВАННЫХ ЗАПИСЕЙ
+            // СОЗДАЕМ СПИСОК КЛОНИРОВАННЫХ ЗАПИСЕЙ - важно, чтобы избежать проблем при обновлении данных
             List<EmotionHistoryEntry> clonedEntriesList = new List<EmotionHistoryEntry>();
             foreach (var originalEntry in entriesList)
             {
@@ -274,7 +268,15 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             // Проверяем количество записей после сортировки
             MyLogger.Log($"[HistoryPanelController] Количество отсортированных записей: {sortedEntries.Count}", MyLogger.LogCategory.UI);
 
-            // НЕ очищаем снова контейнер - мы уже сделали это выше
+            // Снова проверяем состояние контейнера для гарантии чистоты
+            if (_historyItemsContainer.childCount > 0)
+            {
+                MyLogger.Log($"[HistoryPanelController] Повторная очистка контейнера перед созданием новых элементов, количество детей: {_historyItemsContainer.childCount}", MyLogger.LogCategory.UI);
+                foreach (Transform child in _historyItemsContainer)
+                {
+                    Destroy(child.gameObject);
+                }
+            }
 
             // Используем sortedEntries для отображения
             foreach (var entry in sortedEntries) 
@@ -315,34 +317,171 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         }
         
         /// <summary>
-        /// Синхронизирует локальные изменения с облаком при закрытии панели
+        /// Показывает диалог подтверждения очистки истории
         /// </summary>
-        private void SyncLocalChangesToCloud()
+        private void ShowClearHistoryConfirmation()
+        {
+            if (_confirmationDialog == null || _confirmDialogText == null)
+            {
+                // Если диалог не настроен, сразу очищаем историю
+                ClearHistory();
+                return;
+            }
+            
+            _confirmDialogText.text = "Вы уверены, что хотите очистить всю историю эмоций?\nЭто действие нельзя отменить.";
+            _pendingConfirmAction = ClearHistory;
+            _confirmationDialog.SetActive(true);
+        }
+        
+        /// <summary>
+        /// Обрабатывает нажатие на кнопку "Да" в диалоге подтверждения
+        /// </summary>
+        private void OnConfirmDialogYes()
+        {
+            if (_confirmationDialog != null)
+                _confirmationDialog.SetActive(false);
+                
+            _pendingConfirmAction?.Invoke();
+            _pendingConfirmAction = null;
+        }
+        
+        /// <summary>
+        /// Обрабатывает нажатие на кнопку "Нет" в диалоге подтверждения
+        /// </summary>
+        private void OnConfirmDialogNo()
+        {
+            if (_confirmationDialog != null)
+                _confirmationDialog.SetActive(false);
+                
+            _pendingConfirmAction = null;
+        }
+        
+        /// <summary>
+        /// Очищает историю эмоций
+        /// </summary>
+        private async void ClearHistory()
         {
             if (_emotionService == null)
             {
-                MyLogger.LogWarning("[HistoryPanelController] EmotionService недоступен для синхронизации");
+                MyLogger.LogError("[HistoryPanelController] EmotionService не доступен для очистки истории", MyLogger.LogCategory.ClearHistory);
                 return;
             }
             
-            if (!_emotionService.IsFirebaseInitialized || !_emotionService.IsAuthenticated)
-            {
-                MyLogger.Log("[HistoryPanelController] Firebase не инициализирован или пользователь не аутентифицирован. Пропускаем синхронизацию.", MyLogger.LogCategory.Sync);
-                return;
-            }
+            // Показываем индикатор загрузки
+            ShowPopup("Очистка истории...");
+            
+            MyLogger.Log("[HistoryPanelController] 🗑️ Начинаем очистку истории эмоций...", MyLogger.LogCategory.ClearHistory);
+            
+            // Проверяем, можно ли очистить также и облачные данные
+            MyLogger.Log($"🔍 [HistoryPanelController] Проверка состояния Firebase: IsFirebaseInitialized={_emotionService.IsFirebaseInitialized}, IsAuthenticated={_emotionService.IsAuthenticated}", MyLogger.LogCategory.ClearHistory);
+            bool canClearCloud = _emotionService.IsFirebaseInitialized && _emotionService.IsAuthenticated;
+            MyLogger.Log($"🔍 [HistoryPanelController] Результат проверки canClearCloud: {canClearCloud}", MyLogger.LogCategory.ClearHistory);
             
             try
             {
-                MyLogger.Log("[HistoryPanelController] 💾 Сохраняем локальные изменения в облако...", MyLogger.LogCategory.Sync);
+                bool success;
+                if (canClearCloud)
+                {
+                    MyLogger.Log("[HistoryPanelController] 🗑️ Очищаем историю локально и в облаке...", MyLogger.LogCategory.ClearHistory);
+                    success = await _emotionService.ClearHistoryWithCloud();
+                }
+                else
+                {
+                    MyLogger.Log("[HistoryPanelController] 🗑️ Очищаем только локальную историю...", MyLogger.LogCategory.ClearHistory);
+                    _emotionService.ClearHistory();
+                    success = true;
+                }
                 
-                // Запускаем синхронизацию (отправляет несинхронизированные записи в облако)
-                _emotionService.StartSync();
+                if (success)
+                {
+                    ShowPopup("История успешно очищена");
+                    MyLogger.Log("[HistoryPanelController] ✅ История эмоций успешно очищена", MyLogger.LogCategory.ClearHistory);
+                }
+                else
+                {
+                    ShowPopup("Ошибка при очистке облачных данных");
+                    MyLogger.LogWarning("[HistoryPanelController] ⚠️ Ошибка при очистке облачных данных", MyLogger.LogCategory.ClearHistory);
+                }
                 
-                MyLogger.Log("[HistoryPanelController] ✅ Синхронизация локальных изменений запущена", MyLogger.LogCategory.Sync);
+                // Обновляем UI
+                await Task.Delay(1000);
+                DisplayHistory();
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"[HistoryPanelController] ❌ Ошибка при синхронизации локальных изменений: {ex.Message}", MyLogger.LogCategory.Sync);
+                ShowPopup("Ошибка при очистке истории");
+                MyLogger.LogError($"[HistoryPanelController] ❌ Ошибка при очистке истории: {ex.Message}", MyLogger.LogCategory.ClearHistory);
+            }
+            
+            // Скрываем индикатор
+            await Task.Delay(1500);
+            HidePopup();
+        }
+
+        /// <summary>
+        /// Выполняет принудительную синхронизацию с облаком
+        /// </summary>
+        private async void SyncWithCloud()
+        {
+            if (_emotionService == null)
+            {
+                MyLogger.LogError("[HistoryPanelController] EmotionService не доступен для синхронизации с облаком", MyLogger.LogCategory.UI);
+                return;
+            }
+            
+            // Показываем индикатор загрузки
+            ShowPopup("Синхронизация с облаком...");
+            
+            try
+            {
+                MyLogger.Log("[HistoryPanelController] 🔄 Начинаем принудительную синхронизацию с облаком...", MyLogger.LogCategory.UI);
+                
+                if (!_emotionService.IsFirebaseInitialized || !_emotionService.IsAuthenticated)
+                {
+                    MyLogger.LogWarning("[HistoryPanelController] Firebase не инициализирован или пользователь не авторизован", MyLogger.LogCategory.UI);
+                    ShowPopup("Ошибка синхронизации: пользователь не авторизован");
+                    return;
+                }
+                
+                bool success = await _emotionService.ForceSyncWithFirebase();
+                
+                if (success)
+                {
+                    ShowPopup("Данные успешно синхронизированы");
+                    MyLogger.Log("[HistoryPanelController] ✅ Данные успешно синхронизированы с облаком", MyLogger.LogCategory.UI);
+                    
+                    // Добавляем большую задержку для гарантии завершения всех внутренних процессов
+                    await Task.Delay(1000);
+                    
+                    // Очищаем контейнер перед обновлением UI
+                    if (_historyItemsContainer != null)
+                    {
+                        MyLogger.Log($"[HistoryPanelController] Принудительно очищаем контейнер перед обновлением", MyLogger.LogCategory.UI);
+                        foreach (Transform child in _historyItemsContainer)
+                        {
+                            Destroy(child.gameObject);
+                        }
+                    }
+                    
+                    // Делаем более явное обновление UI
+                    MyLogger.Log("[HistoryPanelController] Принудительное обновление UI после синхронизации", MyLogger.LogCategory.UI);
+                    
+                    // Дополнительный цикл событий для обновления UI
+                    await Task.Yield();
+                    
+                    // Повторный вызов отображения данных
+                    DisplayHistory();
+                }
+                else
+                {
+                    ShowPopup("Ошибка синхронизации");
+                    MyLogger.LogWarning("[HistoryPanelController] ⚠️ Ошибка при синхронизации с облаком", MyLogger.LogCategory.UI);
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowPopup("Ошибка синхронизации");
+                MyLogger.LogError($"[HistoryPanelController] ❌ Ошибка при синхронизации с облаком: {ex.Message}", MyLogger.LogCategory.UI);
             }
         }
         #endregion

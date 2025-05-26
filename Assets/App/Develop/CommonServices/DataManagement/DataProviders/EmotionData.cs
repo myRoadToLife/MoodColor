@@ -50,11 +50,21 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
         [JsonProperty("bubbleThreshold")]
         public float BubbleThreshold { get; set; } = 80f;
 
+        [JsonProperty("lastUpdated")]
+        public long LastUpdatedTimestamp { get; set; }
+
+        [JsonIgnore]
+        public DateTime LastUpdated 
+        {
+            get => LastUpdatedTimestamp > 0 ? DateTime.FromFileTimeUtc(LastUpdatedTimestamp) : DateTime.MinValue;
+            set => LastUpdatedTimestamp = value.ToFileTimeUtc();
+        }
+
         [JsonIgnore]
         public DateTime LastUpdate 
-        { 
-            get => DateTime.FromFileTimeUtc(Timestamp);
-            set => Timestamp = value.ToFileTimeUtc();
+        {
+            get => LastUpdated;
+            set => LastUpdated = value;
         }
 
         public EmotionData()
@@ -64,6 +74,7 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
             Color = Color.white;
             Value = 0f;
             Intensity = 0f;
+            LastUpdated = DateTime.UtcNow;
         }
 
         public EmotionData(string type, float intensity = 0, float value = 0, string note = null, Color? color = null, string regionId = null)
@@ -76,6 +87,7 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
             Color = color ?? Color.white;
             RegionId = regionId;
             Timestamp = DateTime.UtcNow.ToFileTimeUtc();
+            LastUpdated = DateTime.UtcNow;
         }
 
         public EmotionData Clone()
@@ -94,7 +106,8 @@ namespace App.Develop.CommonServices.DataManagement.DataProviders
                 MaxCapacity = MaxCapacity,
                 FillRate = FillRate,
                 DrainRate = DrainRate,
-                BubbleThreshold = BubbleThreshold
+                BubbleThreshold = BubbleThreshold,
+                LastUpdatedTimestamp = LastUpdatedTimestamp
             };
         }
 

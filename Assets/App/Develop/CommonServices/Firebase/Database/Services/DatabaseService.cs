@@ -41,6 +41,13 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             new Dictionary<DatabaseReference, EventHandler<ValueChangedEventArgs>>();
         #endregion
 
+        #region Events
+        /// <summary>
+        /// Событие вызывается при изменении ID пользователя
+        /// </summary>
+        public event Action<string> UserIdChanged;
+        #endregion
+
         #region Properties
         /// <summary>
         /// Ссылка на корень базы данных
@@ -112,8 +119,25 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         // Метод для обновления ID пользователя при аутентификации
         public void UpdateUserId(string userId)
         {
+            if (string.IsNullOrEmpty(userId))
+            {
+                MyLogger.LogWarning("🔑 [DATABASE-AUTH] ⚠️ Попытка установить пустой UserId", MyLogger.LogCategory.Firebase);
+                _userId = string.Empty;
+                return;
+            }
+
+            // Проверяем, изменился ли идентификатор
+            bool hasChanged = _userId != userId;
+            
             _userId = userId;
-            MyLogger.Log($"ID пользователя в DatabaseService обновлен: {userId}", MyLogger.LogCategory.Firebase);
+            
+            MyLogger.Log($"🔑 [DATABASE-AUTH] 🔄 UserId обновлен: {_userId.Substring(0, Math.Min(8, _userId.Length))}...", MyLogger.LogCategory.Firebase);
+            
+            if (hasChanged)
+            {
+                MyLogger.Log($"🔑 [DATABASE-AUTH] 📢 Вызываем событие UserIdChanged с новым ID: {_userId.Substring(0, Math.Min(8, _userId.Length))}...", MyLogger.LogCategory.Firebase);
+                UserIdChanged?.Invoke(_userId);
+            }
         }
 
         // Проверка, аутентифицирован ли пользователь (установлен ли _userId)
@@ -648,6 +672,9 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         /// </summary>
         public async Task<List<EmotionHistoryRecord>> GetEmotionHistory(DateTime? startDate = null, DateTime? endDate = null, int limit = 100)
         {
+            // КРИТИЧЕСКИЙ ЛОГ - обходит фильтрацию
+            Debug.Log($"🚨 [CRITICAL-DEBUG] GetEmotionHistory ВЫЗВАН! UserId: {_userId}, startDate: {startDate}, endDate: {endDate}, limit: {limit}");
+            
             MyLogger.Log($"📡 [GetEmotionHistory] Начало запроса истории эмоций. UserId={_userId}, limit={limit}", MyLogger.LogCategory.Firebase);
             
             if (!CheckAuthentication())
@@ -661,33 +688,60 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 string path = $"users/{_userId}/emotionHistory";
                 MyLogger.Log($"🔍 [GetEmotionHistory] Запрашиваем данные по пути: {path}", MyLogger.LogCategory.Firebase);
                 
-                Query query = _database.Child("users").Child(_userId).Child("emotionHistory").OrderByKey();
+                // ДИАГНОСТИКА: Проверяем альтернативные пути
+                Debug.Log($"🔍 [DIAGNOSTIC] Проверяем альтернативные пути для UserId: {_userId}");
                 
-                // Добавляем фильтр по дате начала
-                if (startDate.HasValue)
+                // Проверяем путь emotions
+                var emotionsSnapshot = await _database.Child("users").Child(_userId).Child("emotions").GetValueAsync();
+                Debug.Log($"🔍 [DIAGNOSTIC] users/{_userId}/emotions - Exists: {emotionsSnapshot.Exists}, Children: {emotionsSnapshot.ChildrenCount}");
+                
+                // Проверяем корневой путь пользователя
+                var userSnapshot = await _database.Child("users").Child(_userId).GetValueAsync();
+                Debug.Log($"🔍 [DIAGNOSTIC] users/{_userId} - Exists: {userSnapshot.Exists}, Children: {userSnapshot.ChildrenCount}");
+                if (userSnapshot.Exists)
                 {
-                    var startTimestamp = startDate.Value.ToFileTimeUtc();
-                    query = query.StartAt(null, startTimestamp.ToString());
-                    MyLogger.Log($"📅 [GetEmotionHistory] Фильтр по дате начала: {startDate.Value:O}", MyLogger.LogCategory.Firebase);
+                    Debug.Log($"🔍 [DIAGNOSTIC] Дочерние узлы пользователя: {string.Join(", ", userSnapshot.Children.Select(c => c.Key))}");
                 }
                 
-                // Добавляем фильтр по дате окончания
-                if (endDate.HasValue)
+                // КРИТИЧЕСКАЯ ДИАГНОСТИКА: Проверяем emotionHistory напрямую БЕЗ ФИЛЬТРОВ
+                Debug.Log($"🔍 [CRITICAL-DIAGNOSTIC] Проверяем emotionHistory БЕЗ фильтров...");
+                var rawEmotionHistorySnapshot = await _database.Child("users").Child(_userId).Child("emotionHistory").GetValueAsync();
+                Debug.Log($"🔍 [CRITICAL-DIAGNOSTIC] emotionHistory RAW - Exists: {rawEmotionHistorySnapshot.Exists}, Children: {rawEmotionHistorySnapshot.ChildrenCount}");
+                
+                if (rawEmotionHistorySnapshot.Exists && rawEmotionHistorySnapshot.ChildrenCount > 0)
                 {
-                    var endTimestamp = endDate.Value.ToFileTimeUtc();
-                    query = query.EndAt(null, endTimestamp.ToString());
-                    MyLogger.Log($"📅 [GetEmotionHistory] Фильтр по дате окончания: {endDate.Value:O}", MyLogger.LogCategory.Firebase);
+                    Debug.Log($"🔍 [CRITICAL-DIAGNOSTIC] emotionHistory содержит {rawEmotionHistorySnapshot.ChildrenCount} записей");
+                    
+                    // Показываем первые 3 записи
+                    int count = 0;
+                    foreach (var child in rawEmotionHistorySnapshot.Children)
+                    {
+                        if (count >= 3) break;
+                        Debug.Log($"🔍 [CRITICAL-DIAGNOSTIC] Запись [{count}]: Key={child.Key}, Value={child.GetRawJsonValue()}");
+                        count++;
+                    }
+                }
+                else
+                {
+                    Debug.Log($"🔍 [CRITICAL-DIAGNOSTIC] emotionHistory пуст или не существует!");
                 }
                 
-                // Ограничиваем количество записей
-                query = query.LimitToLast(limit);
+                // ИСПРАВЛЕНИЕ: Убираем OrderByKey() и LimitToLast() - они не работают с нашими данными
+                // Получаем ВСЕ данные без сортировки, фильтрацию делаем локально
+                Query query = _database.Child("users").Child(_userId).Child("emotionHistory");
                 
-                MyLogger.Log($"⏳ [GetEmotionHistory] Выполняем запрос к Firebase...", MyLogger.LogCategory.Firebase);
+                Debug.Log($"🔧 [FIX] Используем простой запрос БЕЗ OrderByKey() и LimitToLast()");
+                
+                MyLogger.Log($"⏳ [GetEmotionHistory] Выполняем простой запрос к Firebase...", MyLogger.LogCategory.Firebase);
                 var snapshot = await query.GetValueAsync();
+                
+                // КРИТИЧЕСКИЙ ЛОГ - результат от Firebase
+                Debug.Log($"🚨 [CRITICAL-DEBUG] Firebase ответ: Exists={snapshot.Exists}, ChildrenCount={snapshot.ChildrenCount}");
+                Debug.Log($"🚨 [CRITICAL-DEBUG] Snapshot Value: {snapshot.Value}");
                 
                 MyLogger.Log($"📊 [GetEmotionHistory] Ответ от Firebase: Exists={snapshot.Exists}, ChildrenCount={snapshot.ChildrenCount}", MyLogger.LogCategory.Firebase);
                 
-                var result = new List<EmotionHistoryRecord>();
+                var allRecords = new List<EmotionHistoryRecord>();
                 
                 if (snapshot.Exists && snapshot.ChildrenCount > 0)
                 {
@@ -704,7 +758,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                             var record = JsonConvert.DeserializeObject<EmotionHistoryRecord>(rawJson);
                             if (record != null)
                             {
-                                result.Add(record);
+                                allRecords.Add(record);
                                 MyLogger.Log($"✅ [GetEmotionHistory] Запись {processedCount + 1} успешно десериализована: Id={record.Id}, Type={record.Type}", MyLogger.LogCategory.Firebase);
                             }
                             else
@@ -724,7 +778,32 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                     MyLogger.LogWarning($"⚠️ [GetEmotionHistory] Firebase вернул пустой результат или snapshot не существует", MyLogger.LogCategory.Firebase);
                 }
                 
-                MyLogger.Log($"🎯 [GetEmotionHistory] Итого получено {result.Count} записей истории эмоций", MyLogger.LogCategory.Firebase);
+                // Локальная фильтрация по датам
+                var filteredRecords = allRecords;
+                
+                if (startDate.HasValue || endDate.HasValue)
+                {
+                    MyLogger.Log($"🔍 [GetEmotionHistory] Применяем локальную фильтрацию по датам: startDate={startDate?.ToString("O")}, endDate={endDate?.ToString("O")}", MyLogger.LogCategory.Firebase);
+                    
+                    filteredRecords = allRecords.Where(record =>
+                    {
+                        if (startDate.HasValue && record.RecordTime < startDate.Value)
+                            return false;
+                        if (endDate.HasValue && record.RecordTime > endDate.Value)
+                            return false;
+                        return true;
+                    }).ToList();
+                    
+                    MyLogger.Log($"📊 [GetEmotionHistory] После фильтрации по датам: {filteredRecords.Count} из {allRecords.Count} записей", MyLogger.LogCategory.Firebase);
+                }
+                
+                // Применяем лимит после фильтрации
+                var result = filteredRecords.OrderByDescending(r => r.RecordTime).Take(limit).ToList();
+                
+                // КРИТИЧЕСКИЙ ЛОГ - финальный результат
+                Debug.Log($"🚨 [CRITICAL-DEBUG] GetEmotionHistory ЗАВЕРШЕН! Возвращаем {result.Count} записей");
+                
+                MyLogger.Log($"🎯 [GetEmotionHistory] Итого получено {result.Count} записей истории эмоций (после всех фильтров)", MyLogger.LogCategory.Firebase);
                 return result;
             }
             catch (Exception ex)
@@ -765,38 +844,29 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             if (!CheckAuthentication())
             {
-                MyLogger.LogWarning("Пользователь не авторизован для добавления записи в историю эмоций", MyLogger.LogCategory.Firebase);
+                MyLogger.LogWarning("📝 [HISTORY-RECORD] ⚠️ Пользователь не авторизован для добавления записи в историю эмоций. UserId: NULL или пустой", MyLogger.LogCategory.Firebase);
+                return;
+            }
+
+            if (record == null)
+            {
+                MyLogger.LogError("📝 [HISTORY-RECORD] ❌ Попытка добавить null запись в историю эмоций", MyLogger.LogCategory.Firebase);
                 return;
             }
 
             try
             {
-                if (record == null)
-                {
-                    throw new ArgumentNullException(nameof(record), "Запись не может быть null");
-                }
-                
-                // Генерируем ID, если его нет
-                if (string.IsNullOrEmpty(record.Id))
-                {
-                    record.Id = Guid.NewGuid().ToString();
-                }
-                
-                var dictionary = record.ToDictionary();
-                
-                // Используем механизм батчинга
                 string path = $"users/{_userId}/emotionHistory/{record.Id}";
-                _batchManager.AddUpdateOperation(path, dictionary);
-                
-                // Выполняем батч немедленно, так как это одиночная операция
-                await _batchManager.ExecuteBatchAsync();
-                
-                MyLogger.Log($"Запись добавлена в историю эмоций через механизм батчинга: {record.Id}, тип: {record.Type}", MyLogger.LogCategory.Firebase);
+                MyLogger.Log($"📝 [HISTORY-RECORD] ➕ Попытка сохранения записи: Path='{path}', RecordId='{record.Id}', Type='{record.Type}', UserId='{_userId}'", MyLogger.LogCategory.Firebase);
+                var userHistoryRef = _database.Child("users").Child(_userId).Child("emotionHistory").Child(record.Id);
+                await userHistoryRef.SetValueAsync(record.ToDictionary());
+                MyLogger.Log($"📝 [HISTORY-RECORD] ✅ Запись успешно сохранена: Path='{path}'", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"Ошибка добавления записи в историю эмоций: {ex.Message}", MyLogger.LogCategory.Firebase);
-                throw;
+                MyLogger.LogError($"📝 [HISTORY-RECORD] ❌ Ошибка сохранения записи истории эмоций: Path='users/{_userId}/emotionHistory/{record.Id}', Error='{ex.Message}'", MyLogger.LogCategory.Firebase);
+                MyLogger.LogError($"📝 [HISTORY-RECORD] ❌ Stack trace: {ex.StackTrace}", MyLogger.LogCategory.Firebase);
+                throw; // Перебрасываем исключение, чтобы его можно было обработать выше
             }
         }
 
@@ -1802,5 +1872,62 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         }
 
         #endregion
+
+        /// <summary>
+        /// Очищает всю историю эмоций пользователя в Firebase
+        /// </summary>
+        public async Task ClearEmotionHistory()
+        {
+            try
+            {
+                MyLogger.Log("🗑️ [ClearEmotionHistory] Начинаем очистку истории эмоций в Firebase", MyLogger.LogCategory.ClearHistory);
+                
+                // Проверяем UserId
+                if (string.IsNullOrEmpty(_userId))
+                {
+                    MyLogger.LogError("❌ [ClearEmotionHistory] UserId пустой или null", MyLogger.LogCategory.ClearHistory);
+                    throw new InvalidOperationException("UserId не установлен");
+                }
+                
+                MyLogger.Log($"🔍 [ClearEmotionHistory] UserId: {_userId}", MyLogger.LogCategory.ClearHistory);
+                
+                // Получаем ссылку на данные пользователя (правильный путь - emotionHistory, а не emotions)
+                var userEmotionsRef = _database.Child("users").Child(_userId).Child("emotionHistory");
+                
+                // Проверяем, есть ли данные для удаления
+                var snapshot = await userEmotionsRef.GetValueAsync();
+                if (snapshot.Exists)
+                {
+                    var recordCount = snapshot.ChildrenCount;
+                    MyLogger.Log($"🔍 [ClearEmotionHistory] Найдено {recordCount} записей для удаления", MyLogger.LogCategory.ClearHistory);
+                    
+                    // Удаляем все данные
+                    await userEmotionsRef.RemoveValueAsync();
+                    MyLogger.Log("🗑️ [ClearEmotionHistory] Команда удаления отправлена в Firebase", MyLogger.LogCategory.ClearHistory);
+                    
+                    // Проверяем, что данные действительно удалены
+                    var verificationSnapshot = await userEmotionsRef.GetValueAsync();
+                    if (!verificationSnapshot.Exists)
+                    {
+                        MyLogger.Log("✅ [ClearEmotionHistory] Данные успешно удалены из Firebase (проверено)", MyLogger.LogCategory.ClearHistory);
+                    }
+                    else
+                    {
+                        MyLogger.LogError("❌ [ClearEmotionHistory] Данные не были удалены из Firebase!", MyLogger.LogCategory.ClearHistory);
+                        throw new Exception("Не удалось удалить данные из Firebase");
+                    }
+                }
+                else
+                {
+                    MyLogger.Log("ℹ️ [ClearEmotionHistory] Нет данных для удаления в Firebase", MyLogger.LogCategory.ClearHistory);
+                }
+            }
+            catch (Exception ex)
+            {
+                MyLogger.LogError($"❌ [ClearEmotionHistory] Ошибка при очистке истории эмоций: {ex.Message}", MyLogger.LogCategory.ClearHistory);
+                MyLogger.LogError($"❌ [ClearEmotionHistory] StackTrace: {ex.StackTrace}", MyLogger.LogCategory.ClearHistory);
+                throw;
+            }
+        }
     }
 }
