@@ -18,6 +18,6 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
         
         // Дополнительные методы, которые могут потребоваться
         Task<bool> ResetPassword(string email);
-        void SignOut();
+        Task SignOut();
     }
 }

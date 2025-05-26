@@ -91,5 +91,37 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         /// Загружает игровые данные пользователя
         /// </summary>
         Task<DataManagement.DataProviders.GameData> LoadUserGameData();
+        
+        /// <summary>
+        /// Получает информацию о всех активных сессиях пользователя
+        /// </summary>
+        /// <returns>Словарь активных сессий, где ключ - это deviceId</returns>
+        Task<Dictionary<string, ActiveSessionData>> GetActiveSessions();
+        
+        /// <summary>
+        /// Регистрирует новую активную сессию для текущего устройства
+        /// </summary>
+        /// <returns>True, если сессия успешно зарегистрирована</returns>
+        Task<bool> RegisterActiveSession();
+        
+        /// <summary>
+        /// Очищает все активные сессии пользователя
+        /// </summary>
+        /// <returns>True, если сессии успешно очищены</returns>
+        Task<bool> ClearActiveSessions();
+        
+        /// <summary>
+        /// Очищает активную сессию конкретного устройства
+        /// </summary>
+        /// <param name="deviceId">Идентификатор устройства</param>
+        /// <returns>True, если сессия успешно очищена</returns>
+        Task<bool> ClearActiveSession(string deviceId);
+        
+        /// <summary>
+        /// Проверяет существование активной сессии с другого устройства
+        /// </summary>
+        /// <param name="currentDeviceId">ID текущего устройства</param>
+        /// <returns>True, если существует активная сессия с другого устройства</returns>
+        Task<bool> CheckActiveSessionExists(string currentDeviceId);
     }
 } 

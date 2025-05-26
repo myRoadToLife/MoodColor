@@ -33,12 +33,12 @@ namespace App.Develop.Utils.Logging
             { LogCategory.Sync, false },        // Отключено - убираем шум
             { LogCategory.UI, false },          // Отключено
             { LogCategory.Network, false },     // Отключено
-            { LogCategory.Firebase, false },    // Отключено - убираем шум, оставляем только Debug.Log
+            { LogCategory.Firebase, true },     // Включено для отладки сессий
             { LogCategory.Editor, false },      // Отключено
             { LogCategory.Gameplay, false },    // Отключено
-            { LogCategory.Bootstrap, false },   // Отключено
+            { LogCategory.Bootstrap, true },    // Включено для отладки сессий
             { LogCategory.Emotion, false },     // Отключено
-            { LogCategory.ClearHistory, false }, // Отключено - убираем шум, оставляем только Debug.Log
+            { LogCategory.ClearHistory, false }, // Отключено - убираем шум
         };
 
         public static void SetCategoryEnabled(LogCategory category, bool enabled)

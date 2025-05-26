@@ -166,12 +166,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9c9042e68d1deb2479aa7978448b9864, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _enableDebugLogging: 1
-  _enableWarningLogging: 1
-  _enableErrorLogging: 1
+  _enableDebugLogging: 0
+  _enableWarningLogging: 0
+  _enableErrorLogging: 0
   _categorySettings:
   - category: 9
-    enabled: 1
+    enabled: 0
   - category: 8
     enabled: 0
   - category: 0

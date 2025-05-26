@@ -2,7 +2,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using App.Develop.CommonServices.Firebase.Database.Services;
+using App.Develop.CommonServices.Firebase.Database.Models;
 using Firebase;
 using Firebase.Auth;
 using System.Threading.Tasks;
@@ -74,34 +76,80 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
         {
             try
             {
+                MyLogger.Log($"🔑 [AUTH-LOGIN] Начинаем процесс входа для: {email}", MyLogger.LogCategory.Firebase);
+                
                 var result = await _auth.SignInWithEmailAndPasswordAsync(email, password);
 
                 if (result?.User == null)
                 {
+                    MyLogger.LogError("❌ [AUTH-LOGIN] Пользователь равен null после входа", MyLogger.LogCategory.Firebase);
                     return (false, "Неизвестная ошибка при входе");
                 }
 
                 // Обновляем ID пользователя в сервисе базы данных
                 _databaseService.UpdateUserId(result.User.UserId);
+                MyLogger.Log($"🔑 [AUTH-LOGIN] UserId обновлен: {result.User.UserId.Substring(0, Math.Min(8, result.User.UserId.Length))}...", MyLogger.LogCategory.Firebase);
 
                 // Обновляем информацию о пользователе перед проверкой верификации
                 await result.User.ReloadAsync();
+                MyLogger.Log($"🔑 [AUTH-LOGIN] Данные пользователя обновлены", MyLogger.LogCategory.Firebase);
 
                 if (!result.User.IsEmailVerified)
                 {
+                    MyLogger.LogWarning($"⚠️ [AUTH-LOGIN] Email не подтвержден: {email}", MyLogger.LogCategory.Firebase);
                     return (false, "Пожалуйста, подтвердите email");
                 }
 
+                // Получаем текущий идентификатор устройства
+                string currentDeviceId = ActiveSessionData.GetCurrentDeviceId();
+                
+                // Логирование для отладки
+                MyLogger.Log($"🔑 [AUTH-LOGIN] Попытка входа с устройства ID: {currentDeviceId}", MyLogger.LogCategory.Firebase);
+                
+                if (string.IsNullOrEmpty(currentDeviceId))
+                {
+                    MyLogger.LogError("❌ [AUTH-LOGIN] Не удалось получить уникальный идентификатор устройства", MyLogger.LogCategory.Firebase);
+                    return (false, "Не удалось идентифицировать устройство");
+                }
+
+                // Проверяем, существует ли уже активная сессия с другого устройства
+                MyLogger.Log($"🔑 [AUTH-LOGIN] Проверяем наличие активных сессий с других устройств", MyLogger.LogCategory.Firebase);
+                bool sessionExists = await _databaseService.CheckActiveSessionExists(currentDeviceId);
+                
+                if (sessionExists)
+                {
+                    MyLogger.Log($"⚠️ [AUTH-LOGIN] Обнаружена активная сессия с другого устройства для пользователя {result.User.Email}", MyLogger.LogCategory.Firebase);
+                    
+                    // Если сессия существует и она не принадлежит текущему устройству, запрещаем вход
+                    // Сначала выходим из системы, чтобы пользователь не остался авторизованным
+                    _auth.SignOut();
+                    _databaseService.UpdateUserId(null);
+                    
+                    return (false, "Вы уже вошли в аккаунт с другого устройства. Пожалуйста, выйдите из аккаунта на другом устройстве и повторите попытку.");
+                }
+
+                // Регистрируем новую активную сессию для текущего устройства
+                MyLogger.Log($"🔑 [AUTH-LOGIN] Регистрируем новую сессию для устройства {currentDeviceId}", MyLogger.LogCategory.Firebase);
+                bool sessionRegistered = await _databaseService.RegisterActiveSession();
+                
+                if (!sessionRegistered)
+                {
+                    MyLogger.LogError("❌ [AUTH-LOGIN] Не удалось зарегистрировать активную сессию", MyLogger.LogCategory.Firebase);
+                    // Можно продолжить вход, даже если регистрация сессии не удалась
+                }
+
+                MyLogger.Log($"✅ [AUTH-LOGIN] Успешный вход для пользователя {result.User.Email} с устройства {currentDeviceId}", MyLogger.LogCategory.Firebase);
                 return (true, null);
             }
             catch (FirebaseException ex)
             {
-                MyLogger.LogError($"❌ Ошибка входа: {ex.Message}", MyLogger.LogCategory.Firebase);
+                MyLogger.LogError($"❌ [AUTH-LOGIN] Ошибка входа: {ex.Message}", MyLogger.LogCategory.Firebase);
                 return (false, GetFriendlyErrorMessage(ex));
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"❌ Неожиданная ошибка входа: {ex.Message}", MyLogger.LogCategory.Firebase);
+                MyLogger.LogError($"❌ [AUTH-LOGIN] Неожиданная ошибка входа: {ex.Message}", MyLogger.LogCategory.Firebase);
+                MyLogger.LogError($"❌ [AUTH-LOGIN] Stack trace: {ex.StackTrace}", MyLogger.LogCategory.Firebase);
                 return (false, "Произошла неожиданная ошибка");
             }
         }
@@ -222,23 +270,55 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
         }
         
 
-        public void SignOut()
+        public async Task SignOut()
         {
             try
             {
-                // Устанавливаем флаг явного выхода из системы
+                MyLogger.Log($"🔑 [AUTH-LOGOUT] Начинаем процесс выхода из системы", MyLogger.LogCategory.Firebase);
+                
+                // Получаем текущий ID устройства перед выходом
+                string deviceId = ActiveSessionData.GetCurrentDeviceId();
+                
+                if (_auth.CurrentUser != null && !string.IsNullOrEmpty(deviceId))
+                {
+                    MyLogger.Log($"🔑 [AUTH-LOGOUT] Очищаем активную сессию для устройства {deviceId}", MyLogger.LogCategory.Firebase);
+                    
+                    try
+                    {
+                        // Здесь мы явно очищаем только сессию текущего устройства
+                        bool sessionCleared = await _databaseService.ClearActiveSession(deviceId);
+                        MyLogger.Log($"🔑 [AUTH-LOGOUT] Результат очистки сессии: {(sessionCleared ? "Успешно" : "Неудачно")}", MyLogger.LogCategory.Firebase);
+                    }
+                    catch (Exception sessionEx)
+                    {
+                        MyLogger.LogError($"❌ [AUTH-LOGOUT] Ошибка при очистке сессии: {sessionEx.Message}", MyLogger.LogCategory.Firebase);
+                        MyLogger.LogError($"❌ [AUTH-LOGOUT] Stack trace: {sessionEx.StackTrace}", MyLogger.LogCategory.Firebase);
+                        // Продолжаем процесс выхода, даже если очистка сессии не удалась
+                    }
+                }
+                else
+                {
+                    MyLogger.LogWarning($"⚠️ [AUTH-LOGOUT] Пропускаем очистку сессии: CurrentUser={_auth.CurrentUser != null}, DeviceId={deviceId}", MyLogger.LogCategory.Firebase);
+                }
+
+                // Выходим из аккаунта Firebase
+                _auth.SignOut();
+                MyLogger.Log($"🔑 [AUTH-LOGOUT] Firebase SignOut выполнен", MyLogger.LogCategory.Firebase);
+                
+                // Сбрасываем UserId в базе данных
+                _databaseService.UpdateUserId(null);
+                MyLogger.Log($"🔑 [AUTH-LOGOUT] UserId сброшен", MyLogger.LogCategory.Firebase);
+                
+                // Сохраняем флаг явного выхода
                 SecurePlayerPrefs.SetBool("explicit_logout", true);
                 SecurePlayerPrefs.Save();
-                MyLogger.Log("✅ Установлен флаг явного выхода из системы", MyLogger.LogCategory.Firebase);
                 
-                _auth.SignOut();
-                // Сбрасываем ID пользователя в сервисе базы данных
-                _databaseService.UpdateUserId(null);
-                MyLogger.Log("✅ Выход выполнен успешно", MyLogger.LogCategory.Firebase);
+                MyLogger.Log("✅ [AUTH-LOGOUT] Пользователь вышел из аккаунта", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"❌ Ошибка при выходе: {ex.Message}", MyLogger.LogCategory.Firebase);
+                MyLogger.LogError($"❌ [AUTH-LOGOUT] Ошибка при выходе из аккаунта: {ex.Message}", MyLogger.LogCategory.Firebase);
+                MyLogger.LogError($"❌ [AUTH-LOGOUT] Stack trace: {ex.StackTrace}", MyLogger.LogCategory.Firebase);
             }
         }
 
@@ -262,3 +342,4 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
         }
     }
 }
+

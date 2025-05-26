@@ -35,6 +35,7 @@ namespace App.Develop.Utils.Logging
         [SerializeField] private List<CategorySettingEntry> _categorySettings = new List<CategorySettingEntry>
         {
             new CategorySettingEntry { category = MyLogger.LogCategory.Firebase, enabled = false },
+            new CategorySettingEntry { category = MyLogger.LogCategory.Bootstrap, enabled = false },
             new CategorySettingEntry { category = MyLogger.LogCategory.Sync, enabled = false },
             new CategorySettingEntry { category = MyLogger.LogCategory.ClearHistory, enabled = false },
             new CategorySettingEntry { category = MyLogger.LogCategory.UI, enabled = false },
