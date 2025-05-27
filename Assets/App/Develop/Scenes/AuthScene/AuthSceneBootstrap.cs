@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using App.Develop.CommonServices.Firebase.Auth;
 using App.Develop.CommonServices.AssetManagement;
@@ -6,7 +7,6 @@ using App.Develop.DI;
 using UnityEngine;
 using System.Threading.Tasks;
 using App.Develop.CommonServices.UI;
-using App.Develop.Utils.Logging;
 
 namespace App.Develop.Scenes.AuthScene
 {
@@ -19,38 +19,31 @@ namespace App.Develop.Scenes.AuthScene
             _container = container;
             _container.Initialize();
 
-            MyLogger.Log("✅ [AuthSceneBootstrap] сцена загружена", MyLogger.LogCategory.Bootstrap);
-
-            var panelManager = _container.Resolve<PanelManager>();
+            PanelManager panelManager = _container.Resolve<PanelManager>();
             if (panelManager == null)
             {
-                MyLogger.LogError("❌ PanelManager не найден в контейнере!", MyLogger.LogCategory.Bootstrap);
-                return;
+                throw new InvalidOperationException("PanelManager not found in container!");
             }
-            
+
             AuthUIController authUIController = await panelManager.ShowPanelAsync<AuthUIController>(AssetAddresses.AuthPanel);
-            
             if (authUIController == null)
             {
-                MyLogger.LogError($"❌ Не удалось загрузить или найти AuthUIController на панели {AssetAddresses.AuthPanel}", MyLogger.LogCategory.Bootstrap);
-                return;
+                throw new InvalidOperationException($"Failed to load or find AuthUIController on panel {AssetAddresses.AuthPanel}");
             }
-            
+
             GameObject authPanelInstance = authUIController.gameObject;
-    
-            var authManager = _container.Resolve<IAuthManager>();
+
+            IAuthManager authManager = _container.Resolve<IAuthManager>();
             if (authManager == null)
             {
-                MyLogger.LogError("❌ IAuthManager не найден в контейнере!", MyLogger.LogCategory.Bootstrap);
-                return;
+                throw new InvalidOperationException("IAuthManager not found in container!");
             }
-            
             authManager.Initialize(authUIController);
-            
-            var profileSetupUI = authPanelInstance.GetComponent<ProfileSetupUI>();
+
+            ProfileSetupUI profileSetupUI = authPanelInstance.GetComponent<ProfileSetupUI>();
             if (profileSetupUI == null)
             {
-                MyLogger.LogError("❌ Не найден компонент ProfileSetupUI на префабе AuthPanel", MyLogger.LogCategory.Bootstrap);
+                throw new InvalidOperationException("ProfileSetupUI component not found on AuthPanel prefab");
             }
             else if (profileSetupUI is IInjectable injectableProfile)
             {

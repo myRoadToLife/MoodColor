@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.ConfigsManagement
 {
@@ -14,13 +13,13 @@ namespace App.Develop.CommonServices.ConfigsManagement
     {
         private readonly IAssetLoader _assetLoader;
         private readonly Dictionary<EmotionTypes, EmotionConfig> _emotionConfigs;
+        private bool _isInitialized = false;
 
         private const string EmotionConfigsAddressableGroup = "Configs/Common/Emotion/";
         // Используем константу из AssetAddresses вместо создания своей
         private const string StartConfigAddressableKey = AssetAddresses.StartEmotionConfig;
 
         public StartEmotionConfig StartEmotionConfig { get; private set; }
-        private bool _isInitialized = false;
 
         public ConfigsProviderService(IAssetLoader assetLoader)
         {
@@ -35,7 +34,42 @@ namespace App.Develop.CommonServices.ConfigsManagement
             await LoadStartEmotionConfigAsync();
             await LoadAllEmotionConfigsAsync();
             _isInitialized = true;
-            MyLogger.Log("✅ ConfigsProviderService инициализирован и все конфиги загружены.", MyLogger.LogCategory.Default);
+        }
+
+        public EmotionConfig LoadEmotionConfig(EmotionTypes type)
+        {
+            if (!_isInitialized)
+            {
+                // LogWarning removed. Caller might get null if not initialized.
+            }
+            return _emotionConfigs.TryGetValue(type, out EmotionConfig cachedConfig) ? cachedConfig : null;
+        }
+
+        public IEnumerable<EmotionTypes> GetAllEmotionTypes()
+        {
+            if (!_isInitialized)
+            {
+                // LogWarning removed.
+            }
+            return _emotionConfigs.Keys;
+        }
+
+        public bool HasConfig(EmotionTypes type)
+        {
+            if (!_isInitialized)
+            {
+                // LogWarning removed.
+            }
+            return _emotionConfigs.ContainsKey(type);
+        }
+
+        public IReadOnlyDictionary<EmotionTypes, EmotionConfig> GetAllConfigs()
+        {
+            if (!_isInitialized)
+            {
+                // LogWarning removed.
+            }
+            return _emotionConfigs;
         }
 
         private async Task LoadStartEmotionConfigAsync()
@@ -43,17 +77,14 @@ namespace App.Develop.CommonServices.ConfigsManagement
             try
             {
                 StartEmotionConfig = await _assetLoader.LoadAssetAsync<StartEmotionConfig>(StartConfigAddressableKey);
-                
                 if (StartEmotionConfig == null)
                 {
-                    throw new InvalidOperationException($"StartEmotionConfig не найден по ключу Addressable: {StartConfigAddressableKey}");
+                    throw new InvalidOperationException($"StartEmotionConfig not found at Addressable key: {StartConfigAddressableKey}");
                 }
-                MyLogger.Log($"✅ StartEmotionConfig загружен успешно (ключ: {StartConfigAddressableKey}, MyLogger.LogCategory.Default)");
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"❌ Ошибка загрузки StartEmotionConfig (ключ: {StartConfigAddressableKey}, MyLogger.LogCategory.Default): {ex.Message}");
-                throw;
+                throw new Exception($"Error loading StartEmotionConfig (key: {StartConfigAddressableKey}): {ex.Message}", ex);
             }
         }
 
@@ -65,7 +96,6 @@ namespace App.Develop.CommonServices.ConfigsManagement
                 loadingTasks.Add(LoadSingleEmotionConfigAsync(type));
             }
             await Task.WhenAll(loadingTasks);
-            MyLogger.Log("✅ Все EmotionConfig были запрошены для загрузки.", MyLogger.LogCategory.Default);
         }
 
         private async Task LoadSingleEmotionConfigAsync(EmotionTypes type)
@@ -74,21 +104,20 @@ namespace App.Develop.CommonServices.ConfigsManagement
             {
                 // Получаем правильный ключ Addressable из констант в AssetAddresses
                 string configKey = GetEmotionConfigKey(type);
-                var config = await _assetLoader.LoadAssetAsync<EmotionConfig>(configKey);
-                
+                EmotionConfig config = await _assetLoader.LoadAssetAsync<EmotionConfig>(configKey);
+
                 if (config != null)
                 {
                     _emotionConfigs[type] = config;
-                    MyLogger.Log($"✅ Загружен конфиг для эмоции {type} по ключу {configKey}", MyLogger.LogCategory.Default);
                 }
                 else
                 {
-                    MyLogger.LogWarning($"⚠️ Не найден конфиг для эмоции {type} по ключу {configKey}", MyLogger.LogCategory.Default);
+                    throw new InvalidOperationException($"Config not found for emotion {type} with key {configKey}");
                 }
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"❌ Ошибка загрузки конфига для {type}: {ex.Message}", MyLogger.LogCategory.Default);
+                throw new Exception($"Error loading config for {type}: {ex.Message}", ex);
             }
         }
 
@@ -104,36 +133,12 @@ namespace App.Develop.CommonServices.ConfigsManagement
                 EmotionTypes.Disgust => AssetAddresses.DisgustConfig,
                 EmotionTypes.Trust => AssetAddresses.TrustConfig,
                 EmotionTypes.Anticipation => AssetAddresses.AnticipationConfig,
-                EmotionTypes.Surprise => AssetAddresses.SurpriseConfig, 
+                EmotionTypes.Surprise => AssetAddresses.SurpriseConfig,
                 EmotionTypes.Love => AssetAddresses.LoveConfig,
                 EmotionTypes.Anxiety => AssetAddresses.AnxietyConfig,
                 EmotionTypes.Neutral => AssetAddresses.NeutralConfig,
                 _ => $"{EmotionConfigsAddressableGroup}{type}Config" // Fallback для новых типов
             };
-        }
-
-        public EmotionConfig LoadEmotionConfig(EmotionTypes type)
-        {
-            if (!_isInitialized) MyLogger.LogWarning("ConfigsProviderService не инициализирован! Конфиги могут быть не загружены.", MyLogger.LogCategory.Default);
-            return _emotionConfigs.TryGetValue(type, out var cachedConfig) ? cachedConfig : null;
-        }
-
-        public IEnumerable<EmotionTypes> GetAllEmotionTypes()
-        {
-            if (!_isInitialized) MyLogger.LogWarning("ConfigsProviderService не инициализирован!", MyLogger.LogCategory.Default);
-            return _emotionConfigs.Keys;
-        }
-
-        public bool HasConfig(EmotionTypes type)
-        {
-            if (!_isInitialized) MyLogger.LogWarning("ConfigsProviderService не инициализирован!", MyLogger.LogCategory.Default);
-            return _emotionConfigs.ContainsKey(type);
-        }
-
-        public IReadOnlyDictionary<EmotionTypes, EmotionConfig> GetAllConfigs()
-        {
-            if (!_isInitialized) MyLogger.LogWarning("ConfigsProviderService не инициализирован!", MyLogger.LogCategory.Default);
-            return _emotionConfigs;
         }
     }
 }

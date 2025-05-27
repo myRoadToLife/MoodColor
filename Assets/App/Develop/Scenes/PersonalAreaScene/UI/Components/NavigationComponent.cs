@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System;
-using App.Develop.Utils.Logging;
 using TMPro;
 
 namespace App.Develop.Scenes.PersonalAreaScene.UI.Components
@@ -96,7 +95,6 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI.Components
         
         private void OnQuitButtonClicked()
         {
-            MyLogger.Log("🔄 [NavigationComponent] Нажата кнопка выхода из приложения");
             OnQuitApplication?.Invoke();
         }
         
@@ -105,8 +103,8 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI.Components
             if (_activeButton != null)
             {
                 // Сбросить предыдущую кнопку
-                var panels = _activeButton.GetComponentsInChildren<Image>();
-                foreach (var panel in panels)
+        Image[] panels = _activeButton.GetComponentsInChildren<Image>();
+        foreach (Image panel in panels)
                 {
                     if (panel.gameObject.name == "WoodenPanel")
                     {
@@ -121,8 +119,8 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI.Components
             if (_activeButton != null)
             {
                 // Подсветить активную кнопку
-                var panels = _activeButton.GetComponentsInChildren<Image>();
-                foreach (var panel in panels)
+        Image[] panels = _activeButton.GetComponentsInChildren<Image>();
+        foreach (Image panel in panels)
                 {
                     if (panel.gameObject.name == "WoodenPanel")
                     {
@@ -132,7 +130,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI.Components
                 }
                 
                 // Запустить анимацию
-                var animation = _activeButton.GetComponent<ButtonClickAnimation>();
+        ButtonClickAnimation animation = _activeButton.GetComponent<ButtonClickAnimation>();
                 if (animation != null)
                 {
                     animation.PlayAnimation();
@@ -174,7 +172,6 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI.Components
         // Добавляем Initialize для поддержки существующего кода
         public void Initialize()
         {
-            MyLogger.Log("🔄 [NavigationComponent] Инициализация компонента с улучшенным UI");
             // Инициализация уже происходит в Awake
         }
         
@@ -187,7 +184,6 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI.Components
         // Метод для поддержки существующего кода
         public void Clear()
         {
-            MyLogger.Log("🔄 [NavigationComponent] Очистка подписок кнопок");
             // Очистка будет выполнена автоматически в OnDestroy
         }
     }

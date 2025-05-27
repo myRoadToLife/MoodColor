@@ -1,20 +1,18 @@
 // Assets/App/Develop/MoodColor/UI/EmotionSelectionManager.cs
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Generic; // Not used
 using App.Develop.CommonServices.Firebase.Database.Models;
-using App.Develop.CommonServices.DataManagement.DataProviders;
+using App.Develop.CommonServices.DataManagement.DataProviders; // For EmotionData, JarData etc. if used by DatabaseService
 using App.Develop.CommonServices.Emotion;
-using App.Develop.Configs.Common.Emotion;
+// using App.Develop.Configs.Common.Emotion; // Not used
 using App.Develop.DI;
-using Firebase.Database;
+// using Firebase.Database; // Not used directly
 using UnityEngine;
-using UnityEngine.UI;
-using App.Develop.Utils.Logging;
+using UnityEngine.UI; // For Slider, InputField, Button
+// using App.Develop.Utils.Logging; // MyLogger removed
 
-// Используем UnityEngine.UI
-
-namespace App.Develop.CommonServices.Firebase.Database.Services
+namespace App.Develop.CommonServices.Firebase.Database.Services // Namespace adjusted to reflect location
 {
     public class EmotionSelectionManager : MonoBehaviour, IInjectable
     {
@@ -43,6 +41,10 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         public void Inject(DIContainer container)
         {
             _databaseService = container.Resolve<DatabaseService>();
+            if (_databaseService == null)
+            {
+                throw new InvalidOperationException("DatabaseService not resolved in EmotionSelectionManager.");
+            }
         }
 
         private void Start()
@@ -56,6 +58,13 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             // Настраиваем обработчики событий кнопок
             _confirmButton?.onClick.AddListener(OnConfirmEmotion);
             _cancelButton?.onClick.AddListener(OnCancelSelection);
+        }
+
+        private void OnDestroy()
+        {
+            // Отписываемся от событий кнопок
+            _confirmButton?.onClick.RemoveListener(OnConfirmEmotion);
+            _cancelButton?.onClick.RemoveListener(OnCancelSelection);
         }
 
         /// <summary>
@@ -74,12 +83,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 // Сбрасываем значения UI
                 if (_intensitySlider != null) _intensitySlider.value = 3; // Средняя интенсивность
                 if (_noteInput != null) _noteInput.text = "";
-
                 _intensitySelectionPanel.SetActive(true);
             }
             else
             {
-                MyLogger.LogError("Панель выбора интенсивности не настроена!", MyLogger.LogCategory.Firebase);
+                throw new InvalidOperationException("Панель выбора интенсивности не настроена!");
             }
         }
 
@@ -106,10 +114,10 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 }
 
                 // 1. Создаем объект EmotionData
-                var emotionData = new EmotionData
+                EmotionData emotionData = new EmotionData // Explicit type
                 {
                     Type = _selectedEmotionType.ToString(),
-                    Intensity = intensity,
+                    Intensity = intensity, // Assuming EmotionData.Intensity is float/double, int might be fine too
                     Note = note,
                     Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                     ColorHex = GetColorHexForEmotion(_selectedEmotionType)
@@ -128,8 +136,6 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 // 5. Начисляем очки пользователю
                 await _databaseService.AddPointsToProfile(POINTS_PER_EMOTION);
 
-                MyLogger.Log($"✅ Эмоция {_selectedEmotionType} с интенсивностью {intensity} сохранена.", MyLogger.LogCategory.Firebase);
-
                 // Скрываем панель выбора
                 if (_intensitySelectionPanel != null)
                 {
@@ -138,8 +144,10 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"❌ Ошибка при подтверждении эмоции: {ex.Message}", MyLogger.LogCategory.Firebase);
-                // TODO: Показать пользователю сообщение об ошибке
+                // MyLogger.LogError($"❌ Ошибка при подтверждении эмоции: {ex.Message}", MyLogger.LogCategory.Firebase); // Replaced by throw
+                // TODO: Показать пользователю сообщение об ошибке (UI handling)
+                _isProcessing = false; // Ensure flag is reset before throwing
+                throw new Exception($"❌ Ошибка при подтверждении эмоции: {ex.Message}", ex);
             }
             finally
             {
@@ -178,13 +186,6 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 default: color = Color.gray; break;
             }
             return "#" + ColorUtility.ToHtmlStringRGBA(color);
-        }
-
-        private void OnDestroy()
-        {
-            // Отписываемся от событий кнопок
-            _confirmButton?.onClick.RemoveListener(OnConfirmEmotion);
-            _cancelButton?.onClick.RemoveListener(OnCancelSelection);
         }
     }
 }

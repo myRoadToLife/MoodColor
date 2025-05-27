@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using App.Develop.CommonServices.Firebase.Database.Models;
 using App.Develop.CommonServices.Firebase.Database.Services;
-using UnityEngine;
-using App.Develop.Utils.Logging;
+// using UnityEngine; // Not used
+// using App.Develop.Utils.Logging; // MyLogger removed
 
 namespace App.Develop.CommonServices.Firebase.Database
 {
@@ -13,25 +13,25 @@ namespace App.Develop.CommonServices.Firebase.Database
     public static class DatabaseValidationExtensions
     {
         /// <summary>
-        /// Проверяет результат валидации и логирует ошибки в консоль
+        /// Проверяет результат валидации и логирует ошибки в консоль (теперь выбрасывает исключение)
         /// </summary>
         /// <param name="result">Результат валидации</param>
         /// <param name="dataType">Название типа данных (для логирования)</param>
-        /// <returns>true если данные валидны, иначе false</returns>
-        public static bool CheckAndLogErrors(this ValidationResult result, string dataType)
+        /// <returns>true если данные валидны (метод теперь void или выбрасывает)</returns>
+        public static void CheckAndThrowErrors(this ValidationResult result, string dataType) // Changed return type
         {
             if (result.IsValid)
             {
-                return true;
+                return;
             }
-            
-            MyLogger.LogError($"Ошибка валидации данных {dataType}. Количество ошибок: {result.Errors.Count}", MyLogger.LogCategory.Firebase);
-            foreach (var error in result.Errors)
+
+            System.Text.StringBuilder errorMessages = new System.Text.StringBuilder();
+            errorMessages.AppendLine($"Ошибка валидации данных {dataType}. Количество ошибок: {result.Errors.Count}");
+            foreach (ValidationError error in result.Errors) // Explicit type
             {
-                MyLogger.LogError($"-- Поле: {error.FieldName}, Ошибка: {error.Message}, Код: {error.ErrorCode}", MyLogger.LogCategory.Firebase);
+                errorMessages.AppendLine($"-- Поле: {error.FieldName}, Ошибка: {error.Message}, Код: {error.ErrorCode}");
             }
-            
-            return false;
+            throw new ArgumentException(errorMessages.ToString());
         }
         
         /// <summary>
@@ -39,30 +39,29 @@ namespace App.Develop.CommonServices.Firebase.Database
         /// </summary>
         /// <param name="validationService">Сервис валидации</param>
         /// <param name="data">Данные для валидации</param>
-        /// <param name="throwException">Выбрасывать исключение при ошибке валидации</param>
+        /// <param name="throwException">Выбрасывать исключение при ошибке валидации (параметр теперь не нужен, всегда выбрасывает)</param>
         /// <typeparam name="T">Тип данных</typeparam>
-        /// <returns>Результат валидации</returns>
-        /// <exception cref="ArgumentException">Исключение, если данные не валидны и throwException=true</exception>
-        public static ValidationResult ValidateAndThrow<T>(this DataValidationService validationService, T data, bool throwException = true)
+        /// <returns>Результат валидации (если валидно)</returns>
+        /// <exception cref="ArgumentException">Исключение, если данные не валидны</exception>
+        /// <exception cref="InvalidOperationException">Если валидатор не найден</exception>
+        public static ValidationResult ValidateAndThrow<T>(this DataValidationService validationService, T data) // Removed throwException param
         {
-            if (!validationService.TryValidate(data, out var result))
+            if (!validationService.TryValidate(data, out ValidationResult result)) // Explicit type
             {
-                MyLogger.LogWarning($"Нет зарегистрированного валидатора для типа {typeof(T)}", MyLogger.LogCategory.Firebase);
-                return null;
+                // MyLogger.LogWarning($"Нет зарегистрированного валидатора для типа {typeof(T)}", MyLogger.LogCategory.Firebase); // Warning removed
+                throw new InvalidOperationException($"Нет зарегистрированного валидатора для типа {typeof(T)}");
             }
-            
-            if (!result.IsValid && throwException)
+
+            if (!result.IsValid)
             {
-                var errors = new List<string>();
-                foreach (var error in result.Errors)
+                List<string> errors = new List<string>();
+                foreach (ValidationError error in result.Errors) // Explicit type
                 {
                     errors.Add($"{error.FieldName}: {error.Message}");
                 }
-                
-                var errorMessage = string.Join("; ", errors);
+                string errorMessage = string.Join("; ", errors);
                 throw new ArgumentException($"Ошибка валидации данных {typeof(T).Name}: {errorMessage}");
             }
-            
             return result;
         }
         
@@ -74,30 +73,32 @@ namespace App.Develop.CommonServices.Firebase.Database
         /// <returns>true если запись валидна, иначе false</returns>
         public static bool IsValidRecord(this EmotionHistoryRecord record, DataValidationService validationService)
         {
-            if (!validationService.TryValidate(record, out var result))
+            if (!validationService.TryValidate(record, out ValidationResult result)) // Explicit type
             {
-                MyLogger.LogWarning("Нет зарегистрированного валидатора для EmotionHistoryRecord", MyLogger.LogCategory.Firebase);
-                return true; // По умолчанию считаем валидным, если нет валидатора
+                // MyLogger.LogWarning("Нет зарегистрированного валидатора для EmotionHistoryRecord", MyLogger.LogCategory.Firebase); // Warning removed
+                return true; // По умолчанию считаем валидным, если нет валидатора (сохраняем поведение)
             }
-            
             return result.IsValid;
         }
         
         /// <summary>
-        /// Проверяет, является ли пользовательский профиль валидным
+        /// Проверяет, является ли пользовательский профиль валидным и выбрасывает исключение при ошибке
         /// </summary>
         /// <param name="userData">Данные пользователя для проверки</param>
         /// <param name="validationService">Сервис валидации</param>
-        /// <returns>true если данные валидны, иначе false</returns>
-        public static bool IsValidUserData(this UserData userData, DataValidationService validationService)
+        /// <exception cref="ArgumentException">Если данные не валидны</exception>
+        /// <exception cref="InvalidOperationException">Если валидатор не найден</exception>
+        public static void ValidateUserData(this UserData userData, DataValidationService validationService) // Changed from IsValidUserData to ValidateUserData
         {
-            if (!validationService.TryValidate(userData, out var result))
+            if (!validationService.TryValidate(userData, out ValidationResult result)) // Explicit type
             {
-                MyLogger.LogWarning("Нет зарегистрированного валидатора для UserData", MyLogger.LogCategory.Firebase);
-                return true; // По умолчанию считаем валидным, если нет валидатора
+                // MyLogger.LogWarning("Нет зарегистрированного валидатора для UserData", MyLogger.LogCategory.Firebase); // Warning removed
+                throw new InvalidOperationException($"Нет зарегистрированного валидатора для типа UserData");
             }
-            
-            return result.CheckAndLogErrors("UserData");
+            if (!result.IsValid)
+            {
+                result.CheckAndThrowErrors("UserData"); // Uses the modified CheckAndThrowErrors
+            }
         }
     }
 } 

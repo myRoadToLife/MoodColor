@@ -119,7 +119,7 @@ namespace App.Develop.CommonServices.GameSystem
         /// Получить незавершенные достижения
         /// </summary>
         /// <returns>Список незавершенных достижений</returns>
-        public List<Achievement> GetInProgressAchievements()
+        public List<Achievement> GetIncompleteAchievements()
         {
             return _gameData.Achievements.Where(a => !a.IsCompleted).ToList();
         }
@@ -217,7 +217,7 @@ namespace App.Develop.CommonServices.GameSystem
         /// </summary>
         /// <param name="achievementId">Идентификатор достижения</param>
         /// <returns>Достижение или null, если не найдено</returns>
-        public Achievement GetAchievement(string achievementId)
+        public Achievement GetAchievementById(string achievementId)
         {
             if (_gameData.AchievementsMap.TryGetValue(achievementId, out var achievement))
             {
@@ -225,6 +225,48 @@ namespace App.Develop.CommonServices.GameSystem
             }
             
             return null;
+        }
+
+        /// <summary>
+        /// Получить достижения определенного типа
+        /// </summary>
+        /// <param name="type">Тип достижений</param>
+        /// <returns>Список достижений указанного типа</returns>
+        public List<Achievement> GetAchievementsByType(AchievementType type)
+        {
+            return _gameData.Achievements.Where(a => a.Type == type).ToList();
+        }
+
+        /// <summary>
+        /// Обновить прогресс достижений
+        /// </summary>
+        public void UpdateProgress()
+        {
+            // Проверяем все достижения
+            CheckAllAchievements();
+            
+            // Сохраняем изменения
+            _playerDataProvider.Save();
+            
+            MyLogger.Log("Прогресс достижений обновлен", MyLogger.LogCategory.Default);
+        }
+
+        /// <summary>
+        /// Сбросить все достижения
+        /// </summary>
+        public void ResetAchievements()
+        {
+            foreach (var achievement in _gameData.Achievements)
+            {
+                achievement.IsCompleted = false;
+                achievement.Progress = 0f;
+                achievement.CompletionDate = null;
+            }
+            
+            // Сохраняем изменения
+            _playerDataProvider.Save();
+            
+            MyLogger.Log("Все достижения сброшены", MyLogger.LogCategory.Default);
         }
 
         #endregion

@@ -4,7 +4,6 @@ using System.Text;
 using System.Security.Cryptography;
 using UnityEngine;
 using System.IO;
-using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Firebase.Common.SecureStorage
 {
@@ -45,12 +44,10 @@ namespace App.Develop.CommonServices.Firebase.Common.SecureStorage
                         {
                             throw new Exception("Ключ шифрования изменился");
                         }
-                        MyLogger.Log("✅ Проверка ключа шифрования успешна", MyLogger.LogCategory.Firebase);
                     }
                     catch
                     {
                         // Если не удалось расшифровать, значит ключ изменился
-                        MyLogger.LogWarning("⚠️ Обнаружено изменение ключа шифрования. Очистка данных.", MyLogger.LogCategory.Firebase);
                         PlayerPrefs.DeleteAll();
                         
                         // Сохраняем новое проверочное значение
@@ -69,26 +66,21 @@ namespace App.Develop.CommonServices.Firebase.Common.SecureStorage
                     string encryptedCheck = EncryptString(CHECK_VALUE);
                     PlayerPrefs.SetString(CHECK_KEY, encryptedCheck);
                     PlayerPrefs.Save();
-                    MyLogger.Log("✅ Первичная инициализация SecurePlayerPrefs выполнена", MyLogger.LogCategory.Firebase);
                 }
-                
-                MyLogger.Log("✅ SecurePlayerPrefs инициализирован успешно", MyLogger.LogCategory.Firebase);
             }
             catch (Exception ex)
             {
                 // Если произошла ошибка, очищаем все данные для безопасности
                 PlayerPrefs.DeleteAll();
                 PlayerPrefs.Save();
-                
-                MyLogger.LogError($"❌ Ошибка инициализации SecurePlayerPrefs: {ex.Message}", MyLogger.LogCategory.Firebase);
-                throw;
+                throw new InvalidOperationException($"❌ Ошибка инициализации SecurePlayerPrefs: {ex.Message}", ex);
             }
         }
 
         // Генерация ключа с помощью SHA256
         private static string GenerateKey(string input)
         {
-            using (var sha256 = SHA256.Create())
+            using (SHA256 sha256 = SHA256.Create())
             {
                 byte[] hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
                 return Convert.ToBase64String(hashBytes);
@@ -122,8 +114,7 @@ namespace App.Develop.CommonServices.Firebase.Common.SecureStorage
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"❌ Ошибка сохранения строки для ключа {key}: {ex.Message}", MyLogger.LogCategory.Firebase);
-                throw;
+                throw new InvalidOperationException($"❌ Ошибка сохранения строки для ключа {key}: {ex.Message}", ex);
             }
         }
 
@@ -141,7 +132,7 @@ namespace App.Develop.CommonServices.Firebase.Common.SecureStorage
             }
             catch (Exception ex)
             {
-                MyLogger.LogWarning($"⚠️ Не удалось расшифровать значение для ключа {key}: {ex.Message}", MyLogger.LogCategory.Firebase);
+                PlayerPrefs.DeleteKey(key);
                 return defaultValue;
             }
         }
@@ -232,7 +223,7 @@ namespace App.Develop.CommonServices.Firebase.Common.SecureStorage
             {
                 // Получаем стабильный ключ нужной длины
                 byte[] keyBytes;
-                using (var sha256 = SHA256.Create())
+                using (SHA256 sha256 = SHA256.Create())
                 {
                     keyBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(_encryptionKey));
                 }
@@ -264,8 +255,7 @@ namespace App.Develop.CommonServices.Firebase.Common.SecureStorage
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"❌ Ошибка шифрования: {ex.Message}", MyLogger.LogCategory.Firebase);
-                throw;
+                throw new CryptographicException($"❌ Ошибка шифрования: {ex.Message}", ex);
             }
         }
 
@@ -276,7 +266,7 @@ namespace App.Develop.CommonServices.Firebase.Common.SecureStorage
             {
                 // Получаем стабильный ключ нужной длины
                 byte[] keyBytes;
-                using (var sha256 = SHA256.Create())
+                using (SHA256 sha256 = SHA256.Create())
                 {
                     keyBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(_encryptionKey));
                 }
@@ -316,8 +306,7 @@ namespace App.Develop.CommonServices.Firebase.Common.SecureStorage
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"❌ Ошибка расшифровки: {ex.Message}", MyLogger.LogCategory.Firebase);
-                throw;
+                throw new CryptographicException($"❌ Ошибка расшифровки: {ex.Message}", ex);
             }
         }
     }

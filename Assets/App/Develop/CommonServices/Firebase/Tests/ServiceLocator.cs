@@ -11,7 +11,7 @@ namespace App.Develop.AppServices.Firebase.Tests
     /// </summary>
     public static class ServiceLocator
     {
-        private static readonly Dictionary<Type, object> s_Services = new Dictionary<Type, object>();
+        private static readonly Dictionary<Type, object> _services = new Dictionary<Type, object>();
 
         /// <summary>
         /// Регистрирует сервис в локаторе.
@@ -22,18 +22,16 @@ namespace App.Develop.AppServices.Firebase.Tests
         {
             if (service == null)
             {
-                Debug.LogError($"Cannot register null service of type {typeof(T).Name}");
-                return;
+                throw new ArgumentNullException(nameof(service), $"Cannot register null service of type {typeof(T).Name}");
             }
 
             Type type = typeof(T);
-            if (s_Services.ContainsKey(type))
+            if (_services.ContainsKey(type))
             {
-                Debug.LogWarning($"Service of type {type.Name} is already registered. Overriding...");
+                // Warning about overriding is removed as per instruction (it's informational)
             }
 
-            s_Services[type] = service;
-            Debug.Log($"Service {type.Name} registered successfully");
+            _services[type] = service;
         }
 
         /// <summary>
@@ -44,40 +42,40 @@ namespace App.Develop.AppServices.Firebase.Tests
         public static T Get<T>() where T : class
         {
             Type type = typeof(T);
-            if (s_Services.TryGetValue(type, out object service))
+            if (_services.TryGetValue(type, out object serviceInstance))
             {
-                return service as T;
+                return serviceInstance as T;
             }
 
-            Debug.LogWarning($"Service of type {type.Name} not found. Creating mock implementation.");
-            
+            // Informational message about mock creation is removed
+
             // Автоматическое создание мок-реализаций, если сервис не найден
             if (typeof(T) == typeof(IFirebaseDatabaseService))
             {
                 RegisterMockFirebaseDatabaseService();
-                return s_Services[type] as T;
+                return _services[type] as T;
             }
             else if (typeof(T) == typeof(IFirebaseConnectionManager))
             {
                 RegisterMockFirebaseConnectionManager();
-                return s_Services[type] as T;
+                return _services[type] as T;
             }
             else if (typeof(T) == typeof(IFirebaseCacheManager))
             {
                 RegisterMockFirebaseCacheManager();
-                return s_Services[type] as T;
+                return _services[type] as T;
             }
             else if (typeof(T) == typeof(IDatabaseService))
             {
                 RegisterMockDatabaseService();
-                return s_Services[type] as T;
+                return _services[type] as T;
             }
             else if (typeof(T) == typeof(IConflictResolutionStrategy))
             {
                 RegisterMockConflictResolver();
-                return s_Services[type] as T;
+                return _services[type] as T;
             }
-            
+
             return null;
         }
 
@@ -88,10 +86,9 @@ namespace App.Develop.AppServices.Firebase.Tests
         public static void Unregister<T>() where T : class
         {
             Type type = typeof(T);
-            if (s_Services.ContainsKey(type))
+            if (_services.ContainsKey(type))
             {
-                s_Services.Remove(type);
-                Debug.Log($"Service {type.Name} unregistered");
+                _services.Remove(type);
             }
         }
 
@@ -100,44 +97,43 @@ namespace App.Develop.AppServices.Firebase.Tests
         /// </summary>
         public static void Clear()
         {
-            s_Services.Clear();
-            Debug.Log("All services cleared");
+            _services.Clear();
         }
-        
+
         #region Helper Methods
         private static void RegisterMockFirebaseDatabaseService()
         {
             Register<IFirebaseDatabaseService>(new MockFirebaseDatabaseService());
         }
-        
+
         private static void RegisterMockFirebaseConnectionManager()
         {
             Register<IFirebaseConnectionManager>(new MockFirebaseConnectionManager());
         }
-        
+
         private static void RegisterMockFirebaseCacheManager()
         {
             Register<IFirebaseCacheManager>(new MockFirebaseCacheManager());
         }
-        
+
         private static void RegisterMockDatabaseService()
         {
             // Создаем и регистрируем мок для DatabaseService
             // Предполагаем, что такой класс уже существует в проекте
-            var mockDatabaseService = MockImplementationFactory.CreateMockDatabaseService();
+            IDatabaseService mockDatabaseService = MockImplementationFactory.CreateMockDatabaseService();
             Register<IDatabaseService>(mockDatabaseService);
         }
-        
+
         private static void RegisterMockConflictResolver()
         {
             // Создаем и регистрируем мок для ConflictResolver
             // Предполагаем, что такой класс уже существует в проекте
-            var mockConflictResolver = MockImplementationFactory.CreateMockConflictResolver();
+            IConflictResolutionStrategy mockConflictResolver = MockImplementationFactory.CreateMockConflictResolver();
             Register<IConflictResolutionStrategy>(mockConflictResolver);
         }
         #endregion
     }
-    
+
     /// <summary>
     /// Фабрика для создания мок-реализаций различных интерфейсов
     /// </summary>
@@ -147,74 +143,63 @@ namespace App.Develop.AppServices.Firebase.Tests
         {
             return new MockDatabaseServiceImpl();
         }
-        
+
         public static IConflictResolutionStrategy CreateMockConflictResolver()
         {
             return new MockConflictResolverImpl();
         }
-        
+
         private class MockDatabaseServiceImpl : IDatabaseService
         {
-            private Dictionary<string, object> m_Database = new Dictionary<string, object>();
-            
+            private Dictionary<string, object> _database = new Dictionary<string, object>();
+
             public Task<T> GetDataAsync<T>(string path) where T : class
             {
-                Debug.Log($"[Mock] GetDataAsync: {path}");
-                
-                if (m_Database.TryGetValue(path, out object data) && data is T typedData)
+                if (_database.TryGetValue(path, out object data) && data is T typedData)
                 {
                     return Task.FromResult(typedData);
                 }
-                
                 return Task.FromResult<T>(null);
             }
-            
+
             public Task<bool> SetDataAsync<T>(string path, T data) where T : class
             {
-                Debug.Log($"[Mock] SetDataAsync: {path}");
-                m_Database[path] = data;
+                _database[path] = data;
                 return Task.FromResult(true);
             }
-            
+
             public Task<bool> UpdateDataAsync<T>(string path, T data) where T : class
             {
-                Debug.Log($"[Mock] UpdateDataAsync: {path}");
-                
-                if (!m_Database.ContainsKey(path))
+                if (!_database.ContainsKey(path))
                 {
                     return Task.FromResult(false);
                 }
-                
-                m_Database[path] = data;
+                _database[path] = data;
                 return Task.FromResult(true);
             }
-            
+
             public Task<bool> DeleteDataAsync(string path)
             {
-                Debug.Log($"[Mock] DeleteDataAsync: {path}");
-                
-                bool removed = m_Database.Remove(path);
+                bool removed = _database.Remove(path);
                 return Task.FromResult(removed);
             }
-            
+
             public Task<bool> SaveDataAsync<T>(string path, T data) where T : class
             {
-                Debug.Log($"[Mock] SaveDataAsync: {path}");
-                m_Database[path] = data;
+                _database[path] = data;
                 return Task.FromResult(true);
             }
         }
-        
+
         private class MockConflictResolverImpl : IConflictResolutionStrategy
         {
             public bool CanResolveConflict<T>(T localData, T remoteData) where T : class
             {
                 return true;
             }
-            
+
             public Task<T> ResolveConflictAsync<T>(string path, T localData, T remoteData) where T : class
             {
-                Debug.Log($"[Mock] ResolveConflictAsync: {path}");
                 return Task.FromResult(localData);
             }
         }

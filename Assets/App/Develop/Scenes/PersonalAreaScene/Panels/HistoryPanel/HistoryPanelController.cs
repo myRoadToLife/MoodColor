@@ -92,7 +92,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
 
             if (_emotionService == null)
             {
-                MyLogger.LogError("[HistoryPanelController] EmotionService не удалось получить из DI контейнера!");
+                throw new InvalidOperationException("[HistoryPanelController] EmotionService could not be resolved from DI container!");
             }
 
             // Если кнопка синхронизации не назначена в инспекторе, создаем её программно
@@ -188,7 +188,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"[HistoryPanelController] Ошибка при создании кнопки синхронизации: {ex.Message}", MyLogger.LogCategory.UI);
+                throw new Exception($"[HistoryPanelController] Error creating sync button: {ex.Message}", ex);
             }
         }
 
@@ -200,8 +200,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         {
             if (_emotionService == null)
             {
-                MyLogger.LogError("[HistoryPanelController] EmotionService не доступен для отображения истории", MyLogger.LogCategory.UI);
-                return;
+                throw new InvalidOperationException("[HistoryPanelController] EmotionService is not available to display history");
             }
 
             MyLogger.Log("[HistoryPanelController] Отображение уже загруженной истории эмоций...", MyLogger.LogCategory.UI);
@@ -216,14 +215,12 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
 
             if (_historyItemPrefab == null)
             {
-                MyLogger.LogError("[HistoryPanelController] Префаб элемента истории (_historyItemPrefab) не назначен!");
-                return;
+                throw new InvalidOperationException("[HistoryPanelController] History item prefab (_historyItemPrefab) is not assigned!");
             }
 
             if (_historyItemsContainer == null)
             {
-                MyLogger.LogError("[HistoryPanelController] Контейнер для элементов истории (_historyItemsContainer) не назначен!");
-                return;
+                throw new InvalidOperationException("[HistoryPanelController] Container for history items (_historyItemsContainer) is not assigned!");
             }
 
             // Очищаем старые элементы
@@ -240,20 +237,13 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             // Получаем СВЕЖИЕ данные из EmotionService
             IEnumerable<EmotionHistoryEntry> historyEntries = _emotionService.GetEmotionHistory();
 
-            // Проверяем что возвращается из GetEmotionHistory
-            MyLogger.Log($"[HistoryPanelController] GetEmotionHistory вернул {(historyEntries == null ? "NULL" : "не NULL")}", MyLogger.LogCategory.UI);
-
             if (historyEntries == null)
             {
-                MyLogger.LogWarning("[HistoryPanelController] GetEmotionHistory() вернул null.", MyLogger.LogCategory.UI);
+                throw new InvalidOperationException("[HistoryPanelController] GetEmotionHistory() returned null.");
                 // TODO: Отобразить сообщение "Ошибка загрузки истории"
-                return;
             }
 
             List<EmotionHistoryEntry> entriesList = historyEntries.ToList();
-
-            // Проверяем количество записей в списке
-            MyLogger.Log($"[HistoryPanelController] Количество записей в истории: {entriesList.Count}", MyLogger.LogCategory.UI);
 
             if (!entriesList.Any())
             {
@@ -265,7 +255,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             // СОЗДАЕМ СПИСОК КЛОНИРОВАННЫХ ЗАПИСЕЙ - важно, чтобы избежать проблем при обновлении данных
             List<EmotionHistoryEntry> clonedEntriesList = new List<EmotionHistoryEntry>();
 
-            foreach (var originalEntry in entriesList)
+            foreach (EmotionHistoryEntry originalEntry in entriesList)
             {
                 if (originalEntry != null)
                 {
@@ -278,10 +268,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
                 }
             }
 
-            // Проверяем количество записей после клонирования
-            MyLogger.Log($"[HistoryPanelController] Количество клонированных записей: {clonedEntriesList.Count}", MyLogger.LogCategory.UI);
-
-            var sortedEntries = clonedEntriesList.OrderByDescending(e => e.Timestamp).ToList();
+            List<EmotionHistoryEntry> sortedEntries = clonedEntriesList.OrderByDescending(e => e.Timestamp).ToList();
 
             // Проверяем количество записей после сортировки
             MyLogger.Log($"[HistoryPanelController] Количество отсортированных записей: {sortedEntries.Count}", MyLogger.LogCategory.UI);
@@ -300,7 +287,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             }
 
             // Используем sortedEntries для отображения
-            foreach (var entry in sortedEntries)
+            foreach (EmotionHistoryEntry entry in sortedEntries)
             {
                 if (entry == null) // Дополнительная проверка, хотя после клонирования и фильтрации null это маловероятно
                 {
@@ -314,7 +301,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
                     MyLogger.LogCategory.UI);
 
                 GameObject itemInstance = Instantiate(_historyItemPrefab, _historyItemsContainer);
-                var itemView = itemInstance.GetComponent<HistoryItemView>();
+                HistoryItemView itemView = itemInstance.GetComponent<HistoryItemView>();
 
                 if (itemView != null)
                 {
@@ -323,9 +310,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
                 }
                 else
                 {
-                    MyLogger.LogError(
-                        $"[HistoryPanelController] На префабе '{_historyItemPrefab.name}' отсутствует компонент HistoryItemView. Запись не будет отображена: {entry.EmotionData?.Type} @ {entry.Timestamp}",
-                        MyLogger.LogCategory.UI);
+                    throw new InvalidOperationException($"[HistoryPanelController] На префабе '{_historyItemPrefab.name}' отсутствует компонент HistoryItemView. Запись не будет отображена: {entry.EmotionData?.Type} @ {entry.Timestamp}");
                 }
             }
 
@@ -390,8 +375,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         {
             if (_emotionService == null)
             {
-                MyLogger.LogError("[HistoryPanelController] EmotionService не доступен для очистки истории", MyLogger.LogCategory.ClearHistory);
-                return;
+                throw new InvalidOperationException("[HistoryPanelController] EmotionService is not available for clearing history");
             }
 
             // Показываем индикатор загрузки
@@ -441,12 +425,14 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             catch (Exception ex)
             {
                 ShowPopup("Ошибка при очистке истории");
-                MyLogger.LogError($"[HistoryPanelController] ❌ Ошибка при очистке истории: {ex.Message}", MyLogger.LogCategory.ClearHistory);
+                throw new Exception($"[HistoryPanelController] Error clearing history: {ex.Message}", ex);
             }
-
-            // Скрываем индикатор
-            await Task.Delay(1500);
+            finally
+            {
+                // Скрываем индикатор - this should be done more reliably
+                await Task.Delay(1500); // Delay might hide popup too soon or too late if exception occurred.
             HidePopup();
+            }
         }
 
         /// <summary>
@@ -456,8 +442,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         {
             if (_emotionService == null)
             {
-                MyLogger.LogError("[HistoryPanelController] EmotionService не доступен для синхронизации с облаком", MyLogger.LogCategory.UI);
-                return;
+                throw new InvalidOperationException("[HistoryPanelController] EmotionService is not available for cloud synchronization");
             }
 
             // Показываем индикатор загрузки
@@ -469,9 +454,8 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
 
                 if (!_emotionService.IsFirebaseInitialized || !_emotionService.IsAuthenticated)
                 {
-                    MyLogger.LogWarning("[HistoryPanelController] Firebase не инициализирован или пользователь не авторизован", MyLogger.LogCategory.UI);
                     ShowPopup("Ошибка синхронизации: пользователь не авторизован");
-                    return;
+                    throw new InvalidOperationException("[HistoryPanelController] Firebase not initialized or user not authenticated");
                 }
 
                 bool success = await _emotionService.ForceSyncWithFirebase();
@@ -507,13 +491,13 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
                 else
                 {
                     ShowPopup("Ошибка синхронизации");
-                    MyLogger.LogWarning("[HistoryPanelController] ⚠️ Ошибка при синхронизации с облаком", MyLogger.LogCategory.UI);
+                    throw new Exception("[HistoryPanelController] Error during cloud synchronization.");
                 }
             }
             catch (Exception ex)
             {
                 ShowPopup("Ошибка синхронизации");
-                MyLogger.LogError($"[HistoryPanelController] ❌ Ошибка при синхронизации с облаком: {ex.Message}", MyLogger.LogCategory.UI);
+                throw new Exception($"[HistoryPanelController] Error during cloud synchronization: {ex.Message}", ex);
             }
         }
 

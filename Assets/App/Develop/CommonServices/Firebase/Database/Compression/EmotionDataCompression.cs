@@ -4,11 +4,11 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 using App.Develop.CommonServices.Firebase.Database.Models;
-using App.Develop.CommonServices.DataManagement.DataProviders;
-using App.Develop.Utils.Logging;
-using Firebase.Database;
+using App.Develop.CommonServices.DataManagement.DataProviders; // Needed for EmotionData
+// using App.Develop.Utils.Logging; // MyLogger removed
+// using Firebase.Database; // Not used
 using Newtonsoft.Json;
-using UnityEngine;
+// using UnityEngine; // Not used
 
 namespace App.Develop.CommonServices.Firebase.Database.Compression
 {
@@ -96,8 +96,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Compression
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"Ошибка при распаковке данных эмоции: {ex.Message}", MyLogger.LogCategory.Firebase);
-                return null;
+                throw new JsonSerializationException($"Ошибка при распаковке данных эмоции: {ex.Message}", ex);
             }
         }
         
@@ -131,8 +130,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Compression
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"Ошибка при распаковке истории эмоций: {ex.Message}", MyLogger.LogCategory.Firebase);
-                return new List<EmotionHistoryRecord>();
+                throw new JsonSerializationException($"Ошибка при распаковке истории эмоций: {ex.Message}", ex);
             }
         }
 
@@ -147,7 +145,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Compression
                 return null;
             
             // Создаем копию для оптимизации
-            var optimized = new EmotionHistoryRecord
+            EmotionHistoryRecord optimized = new EmotionHistoryRecord
             {
                 Id = record.Id,
                 Type = record.Type,
@@ -194,18 +192,14 @@ namespace App.Develop.CommonServices.Firebase.Database.Compression
         {
             byte[] buffer = Encoding.UTF8.GetBytes(text);
             
-            using (MemoryStream memory = new MemoryStream())
+            using (MemoryStream memoryStream = new MemoryStream())
             {
-                using (GZipStream gzip = new GZipStream(memory, System.IO.Compression.CompressionMode.Compress, true))
+                using (GZipStream gzipStream = new GZipStream(memoryStream, CompressionMode.Compress, true))
                 {
-                    gzip.Write(buffer, 0, buffer.Length);
+                    gzipStream.Write(buffer, 0, buffer.Length);
                 }
                 
-                memory.Position = 0;
-                byte[] compressed = new byte[memory.Length];
-                memory.Read(compressed, 0, compressed.Length);
-                
-                return Convert.ToBase64String(compressed);
+                return Convert.ToBase64String(memoryStream.ToArray());
             }
         }
         
@@ -216,20 +210,14 @@ namespace App.Develop.CommonServices.Firebase.Database.Compression
         {
             byte[] gzBuffer = Convert.FromBase64String(base64);
             
-            using (MemoryStream memory = new MemoryStream())
+            using (MemoryStream memoryStreamInput = new MemoryStream(gzBuffer))
             {
-                int msgLength = BitConverter.ToInt32(gzBuffer, 0);
-                memory.Write(gzBuffer, 4, gzBuffer.Length - 4);
-                
-                byte[] buffer = new byte[msgLength];
-                
-                memory.Position = 0;
-                using (GZipStream gzip = new GZipStream(memory, System.IO.Compression.CompressionMode.Decompress))
+                using (GZipStream gzipStream = new GZipStream(memoryStreamInput, CompressionMode.Decompress))
+                using (MemoryStream memoryStreamOutput = new MemoryStream())
                 {
-                    gzip.Read(buffer, 0, buffer.Length);
+                    gzipStream.CopyTo(memoryStreamOutput);
+                    return Encoding.UTF8.GetString(memoryStreamOutput.ToArray());
                 }
-                
-                return Encoding.UTF8.GetString(buffer);
             }
         }
         

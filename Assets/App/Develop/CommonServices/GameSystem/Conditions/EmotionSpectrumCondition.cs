@@ -30,7 +30,7 @@ namespace App.Develop.CommonServices.GameSystem.Conditions
         public bool CheckCondition(PlayerData playerData)
         {
             // Получаем множество всех испытанных эмоций пользователя
-            var experiencedEmotions = GetExperiencedEmotions(playerData);
+            HashSet<string> experiencedEmotions = GetExperiencedEmotions(playerData);
             
             // Проверяем, содержит ли множество испытанных эмоций все необходимые типы
             return _allEmotionTypes.IsSubsetOf(experiencedEmotions);
@@ -42,7 +42,7 @@ namespace App.Develop.CommonServices.GameSystem.Conditions
         public float CalculateProgress(PlayerData playerData)
         {
             // Получаем множество всех испытанных эмоций пользователя
-            var experiencedEmotions = GetExperiencedEmotions(playerData);
+            HashSet<string> experiencedEmotions = GetExperiencedEmotions(playerData);
             
             // Считаем, сколько разных типов эмоций испытал пользователь
             int experiencedCount = 0;
@@ -63,7 +63,7 @@ namespace App.Develop.CommonServices.GameSystem.Conditions
         /// </summary>
         private HashSet<string> GetExperiencedEmotions(PlayerData playerData)
         {
-            var experiencedEmotions = new HashSet<string>();
+            HashSet<string> experiencedEmotions = new HashSet<string>();
             
             // Если данные эмоций отсутствуют, возвращаем пустое множество
             if (playerData?.EmotionData == null)

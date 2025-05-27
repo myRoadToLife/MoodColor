@@ -34,7 +34,7 @@ namespace App.Develop.CommonServices.GameSystem
         /// Получить незавершенные достижения
         /// </summary>
         /// <returns>Список незавершенных достижений</returns>
-        List<Achievement> GetInProgressAchievements();
+        List<Achievement> GetIncompleteAchievements();
         
         /// <summary>
         /// Получить прогресс выполнения достижения
@@ -60,6 +60,23 @@ namespace App.Develop.CommonServices.GameSystem
         /// </summary>
         /// <param name="achievementId">Идентификатор достижения</param>
         /// <returns>Достижение или null, если не найдено</returns>
-        Achievement GetAchievement(string achievementId);
+        Achievement GetAchievementById(string achievementId);
+        
+        /// <summary>
+        /// Получить достижения определенного типа
+        /// </summary>
+        /// <param name="type">Тип достижений</param>
+        /// <returns>Список достижений указанного типа</returns>
+        List<Achievement> GetAchievementsByType(AchievementType type);
+        
+        /// <summary>
+        /// Обновить прогресс достижений
+        /// </summary>
+        void UpdateProgress();
+        
+        /// <summary>
+        /// Сбросить все достижения
+        /// </summary>
+        void ResetAchievements();
     }
 } 

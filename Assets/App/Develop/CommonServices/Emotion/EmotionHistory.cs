@@ -87,13 +87,12 @@ namespace App.Develop.CommonServices.Emotion
         {
             if (emotion == null)
             {
-                MyLogger.LogWarning("❌ Попытка добавить null запись в историю эмоций", MyLogger.LogCategory.Emotion);
-                return;
+                throw new ArgumentNullException(nameof(emotion), "Cannot add null entry to emotion history.");
             }
 
             MyLogger.Log($"AddEntry: Adding entry for {emotion.Type} with EventType={eventType} at {timestamp ?? emotion.LastUpdate}", MyLogger.LogCategory.Emotion);
 
-            var entry = new EmotionHistoryEntry
+            EmotionHistoryEntry entry = new EmotionHistoryEntry
             {
                 EmotionData = emotion.Clone(), // Создаем копию для истории
                 Timestamp = timestamp ?? emotion.LastUpdate, // Используем LastUpdate, если timestamp не указан
@@ -101,13 +100,10 @@ namespace App.Develop.CommonServices.Emotion
                 Note = note
             };
 
-            // НОВЫЙ ЛОГ ЗДЕСЬ
-            MyLogger.Log($"[EmotionHistory.AddEntry] Creating new entry: Timestamp='{entry.Timestamp:O}', Type='{entry.EmotionData?.Type}', Value='{entry.EmotionData?.Value}', EventType='{entry.EventType}', Note='{entry.Note}', SyncId='{entry.SyncId}'", MyLogger.LogCategory.Emotion);
-
             // Проверяем, не существует ли уже запись с таким SyncId (для избежания дубликатов)
             if (!string.IsNullOrEmpty(entry.SyncId))
             {
-                var existingEntry = _historyQueue.FirstOrDefault(e => e.SyncId == entry.SyncId);
+                EmotionHistoryEntry existingEntry = _historyQueue.FirstOrDefault(e => e.SyncId == entry.SyncId);
                 if (existingEntry != null)
                 {
                     MyLogger.Log($"[EmotionHistory] Запись с SyncId={entry.SyncId} уже существует, пропускаем добавление");
@@ -121,7 +117,7 @@ namespace App.Develop.CommonServices.Emotion
             _historyQueue.Enqueue(entry);
             
             // Добавляем в словарь по типу
-            if (Enum.TryParse<EmotionTypes>(emotion.Type, out var emotionType))
+            if (Enum.TryParse<EmotionTypes>(emotion.Type, out EmotionTypes emotionType))
             {
                 if (!_historyByType.ContainsKey(emotionType))
                 {
@@ -134,11 +130,11 @@ namespace App.Develop.CommonServices.Emotion
             // Ограничиваем размер истории
             if (_historyQueue.Count > MAX_HISTORY_ENTRIES)
             {
-                var oldestEntry = _historyQueue.Dequeue();
+                EmotionHistoryEntry oldestEntry = _historyQueue.Dequeue();
                 
                 // Также удаляем из словаря по типу
-                if (Enum.TryParse<EmotionTypes>(oldestEntry.EmotionData.Type, out var oldEmotionType) && 
-                    _historyByType.TryGetValue(oldEmotionType, out var entries))
+                if (Enum.TryParse<EmotionTypes>(oldestEntry.EmotionData.Type, out EmotionTypes oldEmotionType) && 
+                    _historyByType.TryGetValue(oldEmotionType, out List<EmotionHistoryEntry> entries))
                 {
                     entries.Remove(oldestEntry);
                 }
@@ -161,8 +157,7 @@ namespace App.Develop.CommonServices.Emotion
         {
             if (record == null)
             {
-                MyLogger.LogWarning("[EmotionHistory] Попытка добавить NULL EmotionHistoryRecord");
-                return;
+                throw new ArgumentNullException(nameof(record), "Cannot add null EmotionHistoryRecord.");
             }
             
             try
@@ -170,7 +165,7 @@ namespace App.Develop.CommonServices.Emotion
                 // Проверяем, не существует ли уже запись с таким SyncId
                 if (!string.IsNullOrEmpty(record.Id))
                 {
-                    var existingEntry = _historyQueue.FirstOrDefault(e => e.SyncId == record.Id);
+                    EmotionHistoryEntry existingEntry = _historyQueue.FirstOrDefault(e => e.SyncId == record.Id);
                     if (existingEntry != null)
                     {
                         MyLogger.Log($"[EmotionHistory] Запись с SyncId={record.Id} уже существует, пропускаем добавление");
@@ -179,28 +174,25 @@ namespace App.Develop.CommonServices.Emotion
                 }
                 
                 // Конвертируем в EmotionData
-                var emotionData = record.ToEmotionData();
+                CommonServices.DataManagement.DataProviders.EmotionData emotionData = record.ToEmotionData();
                 
                 if (emotionData == null)
                 {
-                    MyLogger.LogError($"[EmotionHistory] Ошибка конвертации EmotionHistoryRecord в EmotionData: record.Id={record.Id}, record.Type={record.Type}");
-                    return;
+                    throw new InvalidOperationException($"Error converting EmotionHistoryRecord to EmotionData: record.Id={record.Id}, record.Type={record.Type}");
                 }
                 
                 if (string.IsNullOrEmpty(emotionData.Type))
                 {
-                    MyLogger.LogError($"[EmotionHistory] EmotionData после конвертации содержит пустой Type: record.Id={record.Id}");
-                    return;
+                    throw new InvalidOperationException($"EmotionData after conversion has empty Type: record.Id={record.Id}");
                 }
                 
                 // Парсим тип события
-                if (!Enum.TryParse<EmotionEventType>(record.EventType, out var eventType))
+                if (!Enum.TryParse<EmotionEventType>(record.EventType, out EmotionEventType eventType))
                 {
-                    MyLogger.LogWarning($"[EmotionHistory] Не удалось распознать тип события: {record.EventType}, используем ValueChanged");
-                    eventType = EmotionEventType.ValueChanged;
+                    eventType = EmotionEventType.ValueChanged; // Default value
                 }
                 
-                var entry = new EmotionHistoryEntry
+                EmotionHistoryEntry entry = new EmotionHistoryEntry
                 {
                     EmotionData = emotionData,
                     Timestamp = record.RecordTime,
@@ -216,7 +208,7 @@ namespace App.Develop.CommonServices.Emotion
                 _historyQueue.Enqueue(entry);
                 
                 // Добавляем в словарь по типу
-                if (Enum.TryParse<EmotionTypes>(emotionData.Type, out var emotionType))
+                if (Enum.TryParse<EmotionTypes>(emotionData.Type, out EmotionTypes emotionType))
                 {
                     if (!_historyByType.ContainsKey(emotionType))
                     {
@@ -233,13 +225,13 @@ namespace App.Develop.CommonServices.Emotion
                 // Ограничиваем размер истории
                 if (_historyQueue.Count > MAX_HISTORY_ENTRIES)
                 {
-                    var oldestEntry = _historyQueue.Dequeue();
+                    EmotionHistoryEntry oldestEntry = _historyQueue.Dequeue();
                     
                     // Также удаляем из словаря по типу
-                    if (oldestEntry != null && oldestEntry.EmotionData != null && 
+                    if (oldestEntry != null && oldestEntry.EmotionData != null &&
                         !string.IsNullOrEmpty(oldestEntry.EmotionData.Type) &&
-                        Enum.TryParse<EmotionTypes>(oldestEntry.EmotionData.Type, out var oldEmotionType) && 
-                        _historyByType.TryGetValue(oldEmotionType, out var entries))
+                        Enum.TryParse<EmotionTypes>(oldestEntry.EmotionData.Type, out EmotionTypes oldEmotionType) && 
+                        _historyByType.TryGetValue(oldEmotionType, out List<EmotionHistoryEntry> entries))
                     {
                         entries.Remove(oldestEntry);
                     }
@@ -250,7 +242,7 @@ namespace App.Develop.CommonServices.Emotion
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"[EmotionHistory] Ошибка при добавлении записи из Firebase: {ex.Message}");
+                throw new Exception($"Error adding entry from Firebase: {ex.Message}", ex);
             }
         }
 
@@ -270,7 +262,7 @@ namespace App.Develop.CommonServices.Emotion
             }
 
             // Создаем список из очереди (делаем копию, чтобы не изменять исходную очередь)
-            var entriesList = _historyQueue.ToList();
+            List<EmotionHistoryEntry> entriesList = _historyQueue.ToList();
             MyLogger.Log($"[EmotionHistory.GetHistory] Создан список из очереди, размер: {entriesList.Count}");
             
             // Логируем типы событий в истории
@@ -291,7 +283,7 @@ namespace App.Develop.CommonServices.Emotion
             }
             
             // Сортируем для отображения (последние записи сверху)
-            var sortedEntries = entriesList.OrderByDescending(e => e.Timestamp).ToList();
+            List<EmotionHistoryEntry> sortedEntries = entriesList.OrderByDescending(e => e.Timestamp).ToList();
             MyLogger.Log($"[EmotionHistory.GetHistory] Отсортированный список, размер: {sortedEntries.Count}");
             
             // Логирование некоторых записей для отладки
@@ -300,7 +292,7 @@ namespace App.Develop.CommonServices.Emotion
                 MyLogger.Log("[EmotionHistory.GetHistory] Примеры записей:");
                 for (int i = 0; i < Math.Min(5, sortedEntries.Count); i++)
                 {
-                    var entry = sortedEntries[i];
+                    EmotionHistoryEntry entry = sortedEntries[i];
                     MyLogger.Log($"  {i}: Timestamp={entry.Timestamp:O}, Type={entry.EmotionData?.Type}, Event={entry.EventType}, Note={entry.Note}");
                 }
             }
@@ -316,7 +308,7 @@ namespace App.Develop.CommonServices.Emotion
             if (!_historyByType.ContainsKey(type))
                 return Enumerable.Empty<EmotionHistoryEntry>();
 
-            var entries = _historyByType[type].AsEnumerable();
+            IEnumerable<EmotionHistoryEntry> entries = _historyByType[type].AsEnumerable();
             
             if (from.HasValue)
                 entries = entries.Where(e => e.Timestamp >= from.Value);
@@ -332,11 +324,11 @@ namespace App.Develop.CommonServices.Emotion
         /// </summary>
         public Dictionary<EmotionTypes, float> GetAverageIntensityByPeriod(DateTime from, DateTime to)
         {
-            var result = new Dictionary<EmotionTypes, float>();
+            Dictionary<EmotionTypes, float> result = new Dictionary<EmotionTypes, float>();
             
-            foreach (var type in Enum.GetValues(typeof(EmotionTypes)).Cast<EmotionTypes>())
+            foreach (EmotionTypes type in Enum.GetValues(typeof(EmotionTypes)).Cast<EmotionTypes>())
             {
-                var entries = GetHistoryByType(type, from, to)
+                IEnumerable<EmotionHistoryEntry> entries = GetHistoryByType(type, from, to)
                     .Where(e => e.EventType == EmotionEventType.IntensityChanged);
                 
                 if (!entries.Any()) continue;
@@ -350,8 +342,8 @@ namespace App.Develop.CommonServices.Emotion
 
         public Dictionary<TimeOfDay, EmotionTimeStats> GetEmotionsByTimeOfDay(DateTime? from = null, DateTime? to = null)
         {
-            var result = new Dictionary<TimeOfDay, EmotionTimeStats>();
-            var entries = GetHistory(from, to)
+            Dictionary<TimeOfDay, EmotionTimeStats> result = new Dictionary<TimeOfDay, EmotionTimeStats>();
+            IEnumerable<EmotionHistoryEntry> entries = GetHistory(from, to)
                 .Where(e => e.EventType == EmotionEventType.ValueChanged);
 
             // Инициализируем статистику для каждого времени суток
@@ -367,11 +359,11 @@ namespace App.Develop.CommonServices.Emotion
                 };
             }
 
-            foreach (var entry in entries)
+            foreach (EmotionHistoryEntry entry in entries)
             {
-                var timeOfDay = TimeHelper.GetTimeOfDay(entry.Timestamp);
-                var stats = result[timeOfDay];
-                var emotionType = Enum.Parse<EmotionTypes>(entry.EmotionData.Type);
+                TimeOfDay timeOfDay = TimeHelper.GetTimeOfDay(entry.Timestamp);
+                EmotionTimeStats stats = result[timeOfDay];
+                EmotionTypes emotionType = Enum.Parse<EmotionTypes>(entry.EmotionData.Type);
 
                 // Обновляем счетчики
                 if (!stats.EmotionCounts.ContainsKey(emotionType))
@@ -398,8 +390,8 @@ namespace App.Develop.CommonServices.Emotion
         {
             MyLogger.Log($"GetLoggingFrequency: from={from}, to={to}, groupByDay={groupByDay}");
             
-            var history = GetHistory(from, to);
-            var valueChangedEntries = history.Where(e => e.EventType == EmotionEventType.ValueChanged);
+            IEnumerable<EmotionHistoryEntry> history = GetHistory(from, to);
+            IEnumerable<EmotionHistoryEntry> valueChangedEntries = history.Where(e => e.EventType == EmotionEventType.ValueChanged);
             MyLogger.Log($"Value changed entries: {valueChangedEntries.Count()}");
             
             var groupedEntries = groupByDay
@@ -410,7 +402,7 @@ namespace App.Develop.CommonServices.Emotion
             
             var stats = groupedEntries.Select(group =>
             {
-                var emotionTypeCounts = group
+                Dictionary<EmotionTypes, int> emotionTypeCounts = group
                     .GroupBy(e => Enum.Parse<EmotionTypes>(e.EmotionData.Type))
                     .ToDictionary(g => g.Key, g => g.Count());
                     
@@ -430,23 +422,23 @@ namespace App.Develop.CommonServices.Emotion
 
         public List<EmotionCombinationStats> GetPopularEmotionCombinations(DateTime? from = null, DateTime? to = null, int topCount = 5)
         {
-            var entries = GetHistory(from, to)
+            List<EmotionHistoryEntry> entries = GetHistory(from, to)
                 .Where(e => e.EventType == EmotionEventType.EmotionMixed)
                 .ToList();
 
-            var combinations = new Dictionary<(EmotionTypes, EmotionTypes), EmotionCombinationStats>();
+            Dictionary<(EmotionTypes, EmotionTypes), EmotionCombinationStats> combinations = new Dictionary<(EmotionTypes, EmotionTypes), EmotionCombinationStats>();
 
-            foreach (var entry in entries)
+            foreach (EmotionHistoryEntry entry in entries)
             {
                 // Предполагаем, что у нас есть информация о комбинации в данных
                 if (entry.EmotionData.Note?.Contains("+") == true)
                 {
-                    var parts = entry.EmotionData.Note.Split('+');
+                    string[] parts = entry.EmotionData.Note.Split('+');
                     if (parts.Length == 2 &&
-                        Enum.TryParse<EmotionTypes>(parts[0].Trim(), out var first) &&
-                        Enum.TryParse<EmotionTypes>(parts[1].Trim(), out var second))
+                        Enum.TryParse<EmotionTypes>(parts[0].Trim(), out EmotionTypes first) &&
+                        Enum.TryParse<EmotionTypes>(parts[1].Trim(), out EmotionTypes second))
                     {
-                        var key = (first, second);
+                        (EmotionTypes, EmotionTypes) key = (first, second);
                         if (!combinations.ContainsKey(key))
                         {
                             combinations[key] = new EmotionCombinationStats
@@ -459,7 +451,7 @@ namespace App.Develop.CommonServices.Emotion
                             };
                         }
 
-                        var stats = combinations[key];
+                        EmotionCombinationStats stats = combinations[key];
                         stats.CombinationCount++;
                         stats.AverageResultIntensity = ((stats.AverageResultIntensity * (stats.CombinationCount - 1)) + 
                                                        entry.EmotionData.Intensity) / stats.CombinationCount;
@@ -475,7 +467,7 @@ namespace App.Develop.CommonServices.Emotion
 
         public List<EmotionTrendStats> GetEmotionTrends(DateTime from, DateTime to, bool groupByDay = true)
         {
-            var result = new List<EmotionTrendStats>();
+            List<EmotionTrendStats> result = new List<EmotionTrendStats>();
             var entries = GetHistory(from, to)
                 .Where(e => e.EventType == EmotionEventType.ValueChanged)
                 .GroupBy(e => groupByDay ? e.Timestamp.Date : 
@@ -486,16 +478,16 @@ namespace App.Develop.CommonServices.Emotion
 
             foreach (var group in entries)
             {
-                var stats = new EmotionTrendStats
+                EmotionTrendStats stats = new EmotionTrendStats
                 {
                     Date = group.Key,
                     AverageIntensities = new Dictionary<EmotionTypes, float>()
                 };
 
                 // Вычисляем средние значения для каждого типа эмоций
-                foreach (var type in Enum.GetValues(typeof(EmotionTypes)).Cast<EmotionTypes>())
+                foreach (EmotionTypes type in Enum.GetValues(typeof(EmotionTypes)).Cast<EmotionTypes>())
                 {
-                    var typeEntries = group.Where(e => e.EmotionData.Type == type.ToString());
+                    IEnumerable<EmotionHistoryEntry> typeEntries = group.Where(e => e.EmotionData.Type == type.ToString());
                     if (typeEntries.Any())
                     {
                         float avgValue = typeEntries.Average(e => e.EmotionData.Value);
@@ -513,13 +505,13 @@ namespace App.Develop.CommonServices.Emotion
                     // Вычисляем тренд
                     if (previousStats != null && previousStats.AverageIntensities.Any())
                     {
-                        var commonEmotions = stats.AverageIntensities.Keys
+                        IEnumerable<EmotionTypes> commonEmotions = stats.AverageIntensities.Keys
                             .Intersect(previousStats.AverageIntensities.Keys);
 
                         if (commonEmotions.Any())
                         {
                             float totalDiff = 0;
-                            foreach (var emotion in commonEmotions)
+                            foreach (EmotionTypes emotion in commonEmotions)
                             {
                                 totalDiff += stats.AverageIntensities[emotion] - previousStats.AverageIntensities[emotion];
                             }
@@ -553,11 +545,11 @@ namespace App.Develop.CommonServices.Emotion
         {
             MyLogger.Log($"[EmotionHistory] Начало удаления дубликатов. Текущее количество записей: {_historyQueue.Count}");
             
-            var uniqueEntries = new List<EmotionHistoryEntry>();
-            var seenSyncIds = new HashSet<string>();
+            List<EmotionHistoryEntry> uniqueEntries = new List<EmotionHistoryEntry>();
+            HashSet<string> seenSyncIds = new HashSet<string>();
             
             // Проходим по всем записям и оставляем только уникальные
-            foreach (var entry in _historyQueue)
+            foreach (EmotionHistoryEntry entry in _historyQueue)
             {
                 if (string.IsNullOrEmpty(entry.SyncId))
                 {
@@ -580,13 +572,13 @@ namespace App.Develop.CommonServices.Emotion
             _historyQueue.Clear();
             _historyByType.Clear();
             
-            foreach (var entry in uniqueEntries)
+            foreach (EmotionHistoryEntry entry in uniqueEntries)
             {
                 _historyQueue.Enqueue(entry);
                 
                 // Добавляем в словарь по типу
                 if (entry.EmotionData != null && !string.IsNullOrEmpty(entry.EmotionData.Type) &&
-                    Enum.TryParse<EmotionTypes>(entry.EmotionData.Type, out var emotionType))
+                    Enum.TryParse<EmotionTypes>(entry.EmotionData.Type, out EmotionTypes emotionType))
                 {
                     if (!_historyByType.ContainsKey(emotionType))
                     {
@@ -623,12 +615,12 @@ namespace App.Develop.CommonServices.Emotion
             
             try
             {
-                var records = _cache.GetAllRecords();
+                List<EmotionHistoryRecord> records = _cache.GetAllRecords();
                 MyLogger.Log($"📥 [EmotionHistory.LoadFromCache] Получено {records?.Count ?? 0} записей из кэша", MyLogger.LogCategory.Firebase);
                 
                 if (records != null && records.Count > 0)
                 {
-                    foreach (var record in records)
+                    foreach (EmotionHistoryRecord record in records)
                     {
                         MyLogger.Log($"➕ [EmotionHistory.LoadFromCache] Добавляем запись: Id={record.Id}, Type={record.Type}, Timestamp={record.RecordTime:yyyy-MM-dd HH:mm:ss}", MyLogger.LogCategory.Firebase);
                         AddEntry(record);
@@ -659,7 +651,7 @@ namespace App.Develop.CommonServices.Emotion
             try
             {
                 // Преобразуем запись в EmotionHistoryRecord, используя обновленный конструктор
-                var record = new EmotionHistoryRecord(entry); // Теперь передаем весь entry
+                EmotionHistoryRecord record = new EmotionHistoryRecord(entry); // Теперь передаем весь entry
                 
                 // Добавляем в кэш
                 _cache.AddRecord(record);
@@ -678,7 +670,7 @@ namespace App.Develop.CommonServices.Emotion
             if (string.IsNullOrEmpty(syncId)) return;
             
             // Находим запись в истории и обновляем статус
-            var entry = _historyQueue.FirstOrDefault(e => e.SyncId == syncId);
+            EmotionHistoryEntry entry = _historyQueue.FirstOrDefault(e => e.SyncId == syncId);
             
             if (entry != null)
             {
@@ -687,7 +679,7 @@ namespace App.Develop.CommonServices.Emotion
                 // Также обновляем в кэше
                 if (_useCache)
                 {
-                    var record = _cache.GetRecord(syncId);
+                    EmotionHistoryRecord record = _cache.GetRecord(syncId);
                     if (record != null)
                     {
                         record.SyncStatus = isSynced ? SyncStatus.Synced : SyncStatus.NotSynced;
@@ -725,8 +717,7 @@ namespace App.Develop.CommonServices.Emotion
         {
             if (entry == null)
             {
-                MyLogger.LogWarning("❌ Попытка добавить null запись в историю эмоций", MyLogger.LogCategory.Emotion);
-                return;
+                throw new ArgumentNullException(nameof(entry), "Cannot add null direct entry to emotion history.");
             }
 
             MyLogger.Log($"[EmotionHistory.AddEntryDirect] Adding direct entry: SyncId='{entry.SyncId}', Type='{entry.EmotionData?.Type}', EventType='{entry.EventType}', Timestamp='{entry.Timestamp:O}'", MyLogger.LogCategory.Emotion);
@@ -734,7 +725,7 @@ namespace App.Develop.CommonServices.Emotion
             // Проверяем, не существует ли уже запись с таким SyncId (для избежания дубликатов)
             if (!string.IsNullOrEmpty(entry.SyncId))
             {
-                var existingEntry = _historyQueue.FirstOrDefault(e => e.SyncId == entry.SyncId);
+                EmotionHistoryEntry existingEntry = _historyQueue.FirstOrDefault(e => e.SyncId == entry.SyncId);
                 if (existingEntry != null)
                 {
                     MyLogger.Log($"[EmotionHistory.AddEntryDirect] Запись с SyncId={entry.SyncId} уже существует, пропускаем добавление");
@@ -746,7 +737,7 @@ namespace App.Develop.CommonServices.Emotion
             _historyQueue.Enqueue(entry);
             
             // Добавляем в словарь по типу
-            if (entry.EmotionData != null && Enum.TryParse<EmotionTypes>(entry.EmotionData.Type, out var emotionType))
+            if (entry.EmotionData != null && Enum.TryParse<EmotionTypes>(entry.EmotionData.Type, out EmotionTypes emotionType))
             {
                 if (!_historyByType.ContainsKey(emotionType))
                 {
@@ -759,11 +750,11 @@ namespace App.Develop.CommonServices.Emotion
             // Ограничиваем размер истории
             if (_historyQueue.Count > MAX_HISTORY_ENTRIES)
             {
-                var oldestEntry = _historyQueue.Dequeue();
+                EmotionHistoryEntry oldestEntry = _historyQueue.Dequeue();
                 
                 // Также удаляем из словаря по типу
-                if (oldestEntry?.EmotionData != null && Enum.TryParse<EmotionTypes>(oldestEntry.EmotionData.Type, out var oldEmotionType) && 
-                    _historyByType.TryGetValue(oldEmotionType, out var entries))
+                if (oldestEntry?.EmotionData != null && Enum.TryParse<EmotionTypes>(oldestEntry.EmotionData.Type, out EmotionTypes oldEmotionType) && 
+                    _historyByType.TryGetValue(oldEmotionType, out List<EmotionHistoryEntry> entries))
                 {
                     entries.Remove(oldestEntry);
                 }

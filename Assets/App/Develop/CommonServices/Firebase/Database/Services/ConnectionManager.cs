@@ -4,31 +4,29 @@ using System.Threading.Tasks;
 using Firebase;
 using Firebase.Database;
 using UnityEngine;
-using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Firebase.Database.Services
 {
     /// <summary>
     /// Класс для управления соединением с Firebase
     /// </summary>
-    public class ConnectionManager : IConnectionManager
+    public class ConnectionManager : IConnectionManager, IDisposable
     {
         #region Private Fields
         private readonly DatabaseReference _database;
         private readonly DatabaseReference _connectedRef;
         private bool _isConnected;
-        private bool _keepConnection;
-        private float _connectionCheckInterval = 30f; // Интервал проверки соединения в секундах
-        private float _lastConnectionCheck;
-        private EventHandler<ValueChangedEventArgs> _connectionCallback;
+        private bool _keepConnectionAlive;
+        private float _connectionCheckIntervalSeconds = 30f;
+        private float _lastConnectionCheckTime;
+        private EventHandler<ValueChangedEventArgs> _connectionChangedCallback;
         private List<Action<bool>> _connectionStateListeners = new List<Action<bool>>();
         
-        // Для оптимизации запросов
         private bool _isOfflineCachingEnabled = true;
-        private float _disablePersistenceAfterInactivitySeconds = 300f; // 5 минут
+        private float _disablePersistenceAfterInactivitySeconds = 300f;
         private float _lastActivityTime;
         private System.Threading.CancellationTokenSource _persistenceCts;
-        private bool _isPersistenceEnabled = true; // Локальное отслеживание состояния персистентности
+        private bool _isPersistenceCurrentlyEnabled = true;
         #endregion
 
         #region Properties
@@ -40,19 +38,37 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         /// <summary>
         /// Включен ли режим сохранения соединения
         /// </summary>
-        public bool KeepConnection 
+        public bool KeepConnection
         {
-            get => _keepConnection;
-            set => SetKeepConnection(value);
+            get => _keepConnectionAlive;
+            set => SetKeepConnectionAlive(value);
         }
         
         /// <summary>
-        /// Интервал проверки соединения
+        /// Для обратной совместимости с интерфейсом
         /// </summary>
-        public float ConnectionCheckInterval
+        bool IConnectionManager.KeepConnection
         {
-            get => _connectionCheckInterval;
-            set => _connectionCheckInterval = Mathf.Max(5f, value);
+            get => KeepConnection;
+            set => KeepConnection = value;
+        }
+        
+        /// <summary>
+        /// Интервал проверки соединения в секундах
+        /// </summary>
+        public float ConnectionCheckIntervalSeconds
+        {
+            get => _connectionCheckIntervalSeconds;
+            set => _connectionCheckIntervalSeconds = Mathf.Max(5f, value);
+        }
+        
+        /// <summary>
+        /// Для обратной совместимости с интерфейсом
+        /// </summary>
+        float IConnectionManager.ConnectionCheckInterval
+        {
+            get => ConnectionCheckIntervalSeconds;
+            set => ConnectionCheckIntervalSeconds = value;
         }
         
         /// <summary>
@@ -61,7 +77,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         public bool IsOfflineCachingEnabled
         {
             get => _isOfflineCachingEnabled;
-            set => SetOfflineCaching(value);
+            set => SetOfflineCachingEnabled(value);
         }
         
         /// <summary>
@@ -79,22 +95,20 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         /// Создает новый экземпляр менеджера соединений
         /// </summary>
         /// <param name="database">Ссылка на базу данных</param>
-        /// <param name="keepConnection">Поддерживать ли соединение постоянно</param>
-        public ConnectionManager(DatabaseReference database, bool keepConnection = true)
+        /// <param name="keepConnectionAliveFlag">Поддерживать ли соединение постоянно</param>
+        public ConnectionManager(DatabaseReference database, bool keepConnectionAliveFlag = true)
         {
             _database = database ?? throw new ArgumentNullException(nameof(database));
             _connectedRef = database.Root.Child(".info/connected");
-            _keepConnection = keepConnection;
+            _keepConnectionAlive = keepConnectionAliveFlag;
             
-            _connectionCallback = new EventHandler<ValueChangedEventArgs>(OnConnectionChanged);
+            _connectionChangedCallback = new EventHandler<ValueChangedEventArgs>(OnConnectionStatusChanged);
             _lastActivityTime = Time.realtimeSinceStartup;
             
-            if (keepConnection)
+            if (_keepConnectionAlive)
             {
                 StartConnectionMonitoring();
             }
-            
-            MyLogger.Log("✅ ConnectionManager инициализирован", MyLogger.LogCategory.Firebase);
         }
         #endregion
 
@@ -102,16 +116,16 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         /// <summary>
         /// Включает или выключает режим поддержания соединения
         /// </summary>
-        private void SetKeepConnection(bool keep)
+        private void SetKeepConnectionAlive(bool keepAlive)
         {
-            if (_keepConnection == keep)
+            if (_keepConnectionAlive == keepAlive)
             {
                 return;
             }
             
-            _keepConnection = keep;
+            _keepConnectionAlive = keepAlive;
             
-            if (_keepConnection)
+            if (_keepConnectionAlive)
             {
                 StartConnectionMonitoring();
             }
@@ -119,8 +133,6 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             {
                 StopConnectionMonitoring();
             }
-            
-            MyLogger.Log($"ConnectionManager: Режим поддержания соединения {(_keepConnection ? "включен" : "выключен", MyLogger.LogCategory.Firebase)}");
         }
         
         /// <summary>
@@ -128,8 +140,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         /// </summary>
         private void StartConnectionMonitoring()
         {
-            _connectedRef.ValueChanged += _connectionCallback;
-            MyLogger.Log("ConnectionManager: Наблюдение за соединением запущено", MyLogger.LogCategory.Firebase);
+            _connectedRef.ValueChanged += _connectionChangedCallback;
         }
         
         /// <summary>
@@ -137,29 +148,26 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         /// </summary>
         private void StopConnectionMonitoring()
         {
-            _connectedRef.ValueChanged -= _connectionCallback;
-            MyLogger.Log("ConnectionManager: Наблюдение за соединением остановлено", MyLogger.LogCategory.Firebase);
+            _connectedRef.ValueChanged -= _connectionChangedCallback;
         }
         
         /// <summary>
         /// Обработчик изменения состояния соединения
         /// </summary>
-        private void OnConnectionChanged(object sender, ValueChangedEventArgs e)
+        private void OnConnectionStatusChanged(object sender, ValueChangedEventArgs eventArgs)
         {
-            if (e.DatabaseError != null)
+            if (eventArgs.DatabaseError != null)
             {
-                MyLogger.LogError($"ConnectionManager: Ошибка проверки соединения: {e.DatabaseError.Message}", MyLogger.LogCategory.Firebase);
                 _isConnected = false;
+                throw new Exception($"ConnectionManager: Ошибка проверки соединения: {eventArgs.DatabaseError.Message}", eventArgs.DatabaseError.ToException());
             }
-            else if (e.Snapshot != null && e.Snapshot.Exists)
+            else if (eventArgs.Snapshot != null && eventArgs.Snapshot.Exists)
             {
-                bool connected = (bool)e.Snapshot.Value;
-                if (_isConnected != connected)
+                bool currentlyConnected = (bool)eventArgs.Snapshot.Value;
+                if (_isConnected != currentlyConnected)
                 {
-                    _isConnected = connected;
+                    _isConnected = currentlyConnected;
                     NotifyConnectionStateChanged(_isConnected);
-                    
-                    MyLogger.Log($"ConnectionManager: Состояние соединения изменилось: {(_isConnected ? "подключено" : "отключено", MyLogger.LogCategory.Firebase)}");
                 }
             }
         }
@@ -177,7 +185,6 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             
             _connectionStateListeners.Add(listener);
             
-            // Сразу вызываем с текущим состоянием
             listener(_isConnected);
         }
         
@@ -198,18 +205,18 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         /// <summary>
         /// Уведомляет слушателей об изменении состояния соединения
         /// </summary>
-        /// <param name="isConnected">Новое состояние соединения</param>
-        private void NotifyConnectionStateChanged(bool isConnected)
+        /// <param name="isConnectedStatus">Новое состояние соединения</param>
+        private void NotifyConnectionStateChanged(bool isConnectedStatus)
         {
-            foreach (var listener in _connectionStateListeners)
+            foreach (Action<bool> listener in new List<Action<bool>>(_connectionStateListeners))
             {
                 try
                 {
-                    listener(isConnected);
+                    listener(isConnectedStatus);
                 }
                 catch (Exception ex)
                 {
-                    MyLogger.LogError($"ConnectionManager: Ошибка в обработчике состояния соединения: {ex.Message}", MyLogger.LogCategory.Firebase);
+                    throw new Exception($"ConnectionManager: Ошибка в обработчике состояния соединения: {ex.Message}", ex);
                 }
             }
         }
@@ -218,11 +225,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         /// Проверяет соединение с Firebase
         /// </summary>
         /// <returns>true, если соединение активно, иначе false</returns>
-        public async Task<bool> CheckConnection()
+        public async Task<bool> CheckConnectionAsync()
         {
             try
             {
-                var snapshot = await _connectedRef.GetValueAsync();
+                DataSnapshot snapshot = await _connectedRef.GetValueAsync();
                 if (snapshot != null && snapshot.Exists)
                 {
                     _isConnected = (bool)snapshot.Value;
@@ -232,14 +239,13 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                     _isConnected = false;
                 }
                 
-                _lastConnectionCheck = Time.realtimeSinceStartup;
+                _lastConnectionCheckTime = Time.realtimeSinceStartup;
                 return _isConnected;
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"ConnectionManager: Ошибка проверки соединения: {ex.Message}", MyLogger.LogCategory.Firebase);
                 _isConnected = false;
-                return false;
+                throw new Exception($"ConnectionManager: Ошибка проверки соединения: {ex.Message}", ex);
             }
         }
         
@@ -249,7 +255,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         /// <returns>true, если требуется проверка</returns>
         public bool ShouldCheckConnection()
         {
-            return Time.realtimeSinceStartup - _lastConnectionCheck >= _connectionCheckInterval;
+            return Time.realtimeSinceStartup - _lastConnectionCheckTime >= _connectionCheckIntervalSeconds;
         }
         #endregion
         
@@ -258,7 +264,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         /// Включает или выключает офлайн кэширование
         /// </summary>
         /// <param name="enable">true для включения, false для отключения</param>
-        private void SetOfflineCaching(bool enable)
+        private void SetOfflineCachingEnabled(bool enable)
         {
             if (_isOfflineCachingEnabled == enable)
             {
@@ -269,22 +275,12 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             
             try
             {
-                if (_isOfflineCachingEnabled)
-                {
-                    FirebaseDatabase.DefaultInstance.SetPersistenceEnabled(true);
-                    _isPersistenceEnabled = true;
-                    MyLogger.Log("ConnectionManager: Офлайн кэширование включено", MyLogger.LogCategory.Firebase);
-                }
-                else
-                {
-                    FirebaseDatabase.DefaultInstance.SetPersistenceEnabled(false);
-                    _isPersistenceEnabled = false;
-                    MyLogger.Log("ConnectionManager: Офлайн кэширование отключено", MyLogger.LogCategory.Firebase);
-                }
+                FirebaseDatabase.DefaultInstance.SetPersistenceEnabled(_isOfflineCachingEnabled);
+                _isPersistenceCurrentlyEnabled = _isOfflineCachingEnabled;
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"ConnectionManager: Ошибка при изменении режима кэширования: {ex.Message}", MyLogger.LogCategory.Firebase);
+                throw new InvalidOperationException($"ConnectionManager: Ошибка при изменении режима кэширования: {ex.Message}", ex);
             }
         }
         
@@ -295,36 +291,32 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         {
             _lastActivityTime = Time.realtimeSinceStartup;
             
-            // Если необходимо, включаем персистентность снова
-            if (_isOfflineCachingEnabled && !_isPersistenceEnabled)
+            if (_isOfflineCachingEnabled && !_isPersistenceCurrentlyEnabled)
             {
                 try
                 {
                     FirebaseDatabase.DefaultInstance.SetPersistenceEnabled(true);
-                    _isPersistenceEnabled = true;
-                    MyLogger.Log("ConnectionManager: Персистентность включена после активности пользователя", MyLogger.LogCategory.Firebase);
+                    _isPersistenceCurrentlyEnabled = true;
                 }
                 catch (Exception ex)
                 {
-                    MyLogger.LogError($"ConnectionManager: Ошибка при включении персистентности: {ex.Message}", MyLogger.LogCategory.Firebase);
+                    throw new InvalidOperationException($"ConnectionManager: Ошибка при включении персистентности: {ex.Message}", ex);
                 }
             }
             
-            // Отменяем предыдущий запланированный таймер отключения
             _persistenceCts?.Cancel();
+            _persistenceCts?.Dispose();
             _persistenceCts = new System.Threading.CancellationTokenSource();
-            
-            // Запускаем новый таймер
-            var token = _persistenceCts.Token;
+            System.Threading.CancellationToken token = _persistenceCts.Token;
+
             Task.Delay(TimeSpan.FromSeconds(_disablePersistenceAfterInactivitySeconds), token)
-                .ContinueWith(t => 
+                .ContinueWith(task =>
                 {
-                    if (!t.IsCanceled && _isOfflineCachingEnabled)
+                    if (!task.IsCanceled && _isOfflineCachingEnabled && _isPersistenceCurrentlyEnabled)
                     {
-                        // Прошло достаточное время бездействия, отключаем персистентность
                         DisablePersistenceToSaveResources();
                     }
-                }, System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext());
+                }, TaskScheduler.FromCurrentSynchronizationContext());
         }
         
         /// <summary>
@@ -335,12 +327,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             try
             {
                 FirebaseDatabase.DefaultInstance.SetPersistenceEnabled(false);
-                _isPersistenceEnabled = false;
-                MyLogger.Log("ConnectionManager: Персистентность отключена для экономии ресурсов", MyLogger.LogCategory.Firebase);
+                _isPersistenceCurrentlyEnabled = false;
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"ConnectionManager: Ошибка при отключении персистентности: {ex.Message}", MyLogger.LogCategory.Firebase);
+                throw new InvalidOperationException($"ConnectionManager: Ошибка при отключении персистентности: {ex.Message}", ex);
             }
         }
         
@@ -355,55 +346,36 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 if (prioritizeNetwork)
                 {
                     FirebaseDatabase.DefaultInstance.GoOnline();
-                    MyLogger.Log("ConnectionManager: Установлен приоритет сетевого доступа", MyLogger.LogCategory.Firebase);
                 }
                 else
                 {
                     FirebaseDatabase.DefaultInstance.GoOffline();
-                    MyLogger.Log("ConnectionManager: Установлен приоритет кэшированных данных", MyLogger.LogCategory.Firebase);
                 }
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"ConnectionManager: Ошибка при изменении приоритета доступа: {ex.Message}", MyLogger.LogCategory.Firebase);
+                throw new InvalidOperationException($"ConnectionManager: Ошибка при изменении приоритета доступа: {ex.Message}", ex);
             }
         }
         
         /// <summary>
-        /// Устанавливает тайм-аут для сетевых операций
+        /// Устанавливает тайм-аут для сетевых операций (концептуально, SDK не предоставляет)
         /// </summary>
-        /// <param name="timeoutMs">Тайм-аут в миллисекундах</param>
-        public void SetNetworkTimeout(long timeoutMs)
+        /// <param name="timeoutMilliseconds">Тайм-аут в миллисекундах</param>
+        public void SetNetworkTimeout(long timeoutMilliseconds)
         {
-            try
-            {
-                // Метод SetPersistenceCacheSizeBytes не существует, поэтому просто логируем действие
-                MyLogger.Log($"ConnectionManager: Установка тайм-аута сетевых операций: {timeoutMs} мс " +
-                          "(примечание: реальная установка не выполнена из-за ограничений SDK, MyLogger.LogCategory.Firebase)");
-            }
-            catch (Exception ex)
-            {
-                MyLogger.LogError($"ConnectionManager: Ошибка при установке тайм-аута: {ex.Message}", MyLogger.LogCategory.Firebase);
-            }
+            // Firebase SDK for Unity does not offer a direct way to set network timeouts for RTDB operations.
+            // This method remains as a placeholder or for future SDK enhancements.
         }
         
         /// <summary>
-        /// Устанавливает размер кэша
+        /// Устанавливает размер кэша (концептуально, SDK не предоставляет прямого контроля)
         /// </summary>
         /// <param name="sizeBytes">Размер кэша в байтах</param>
         public void SetCacheSize(long sizeBytes)
         {
-            try
-            {
-                // В Firebase SDK нет прямого метода установки размера кэша
-                // Используем доступный метод SetPersistenceCacheSizeBytes, если он будет добавлен в SDK
-                MyLogger.Log($"ConnectionManager: Установка размера кэша: {sizeBytes} байт " +
-                          "(примечание: реальная установка не выполнена из-за ограничений SDK, MyLogger.LogCategory.Firebase)");
-            }
-            catch (Exception ex)
-            {
-                MyLogger.LogError($"ConnectionManager: Ошибка при установке размера кэша: {ex.Message}", MyLogger.LogCategory.Firebase);
-            }
+            // Firebase SDK for Unity manages cache size internally. SetPersistenceCacheSizeBytes is not a public API.
+            // This method remains as a placeholder.
         }
         #endregion
         
@@ -418,9 +390,16 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             _persistenceCts?.Cancel();
             _persistenceCts?.Dispose();
             _persistenceCts = null;
-            
-            MyLogger.Log("ConnectionManager: Ресурсы освобождены", MyLogger.LogCategory.Firebase);
+            GC.SuppressFinalize(this);
         }
         #endregion
+
+        /// <summary>
+        /// Для обратной совместимости с интерфейсом
+        /// </summary>
+        async Task<bool> IConnectionManager.CheckConnection()
+        {
+            return await CheckConnectionAsync();
+        }
     }
 } 

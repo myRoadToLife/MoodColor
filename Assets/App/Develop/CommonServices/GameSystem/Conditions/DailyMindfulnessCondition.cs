@@ -44,7 +44,7 @@ namespace App.Develop.CommonServices.GameSystem.Conditions
             }
             
             // Получаем даты транзакций, связанных с отметкой эмоций
-            var emotionDates = playerData.GameData.PointsTransactions
+            List<DateTime> emotionDates = playerData.GameData.PointsTransactions
                 .Where(t => t.Source == PointsSource.EmotionMarked)
                 .Select(t => t.Timestamp.Date)
                 .Distinct()

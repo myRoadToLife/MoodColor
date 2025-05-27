@@ -13,6 +13,7 @@ using System.Linq;
 using System;
 using App.Develop.CommonServices.Firebase.Auth.Services;
 using App.Develop.CommonServices.Emotion;
+using System.Threading.Tasks;
 
 namespace App.Develop.Scenes.PersonalAreaScene.Settings
 {
@@ -74,7 +75,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
                               "Проблема с инъекцией зависимостей при использовании Addressables.");
                 // Возможно, стоит показать пользователю сообщение об ошибке или перезагрузить сцену
                 ShowPopup("Произошла ошибка при загрузке. Пожалуйста, попробуйте позже.");
-                yield break;
+                throw new InvalidOperationException($"_authStateService remained NULL after {waitTime} seconds! Dependency injection issue with Addressables.");
             }
             
             // Теперь, когда у нас есть все зависимости, можно инициализировать компонент
@@ -131,13 +132,14 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
                 catch (Exception ex)
                 {
                     MyLogger.LogError($"❌ [AccountDeletionManager] ОШИБКА при попытке Resolve<IAuthStateService>: {ex.Message}\n{ex.StackTrace}");
+                    throw new InvalidOperationException($"[AccountDeletionManager] Error resolving IAuthStateService: {ex.Message}", ex);
                 }
                 
                 _authStateService = resolvedService;
                 if (_authStateService == null) 
                 {
                     MyLogger.LogError("❌ [AccountDeletionManager] IAuthStateService остался NULL после попытки Resolve! Это критическая ошибка.");
-                    return; 
+                    throw new InvalidOperationException("[AccountDeletionManager] IAuthStateService remained NULL after Resolve attempt! This is a critical error.");
                 }
                 else
                 {
@@ -155,6 +157,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             catch (Exception ex)
             {
                 MyLogger.LogError($"❌ Глобальная ошибка в Inject AccountDeletionManager: {ex.Message}\n{ex.StackTrace}");
+                throw new InvalidOperationException($"Global error in Inject AccountDeletionManager: {ex.Message}", ex);
             }
         }
         
@@ -219,8 +222,8 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             // Проверка инициализации сервиса
             if (_authStateService == null)
             {
-                MyLogger.LogError("❌ _authStateService is NULL в CheckAuthenticationState!");
-                return;
+                MyLogger.LogError("❌ _authStateService is NULL in CheckAuthenticationState!");
+                throw new InvalidOperationException("_authStateService is NULL in CheckAuthenticationState!");
             }
             
             // Проверяем состояние аутентификации и при необходимости восстанавливаем
@@ -229,11 +232,9 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         
         private IEnumerator CheckAndRestoreAuthenticationState()
         {
-            // Проверяем, что сервис аутентификации инициализирован
             if (_authStateService == null)
             {
-                MyLogger.LogError("❌ _authStateService is NULL в CheckAndRestoreAuthenticationState! Инъекция не произошла или запущена слишком поздно.");
-                yield break;
+                throw new InvalidOperationException("_authStateService is NULL in CheckAndRestoreAuthenticationState! Injection failed or was too late.");
             }
 
             // Проверяем, авторизован ли пользователь
@@ -242,7 +243,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
                 MyLogger.LogWarning("⚠️ Пользователь не авторизован при открытии AccountDeletionManager");
                 
                 // Пытаемся восстановить аутентификацию
-                var restoreTask = _authStateService.RestoreAuthenticationAsync();
+                Task<bool> restoreTask = _authStateService.RestoreAuthenticationAsync();
                 
                 // Ждем завершения восстановления
                 while (!restoreTask.IsCompleted)
@@ -275,7 +276,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         {
             if (_authStateService != null && _authStateService.IsAuthenticated)
             {
-                var reloadTask = _authStateService.CurrentUser.ReloadAsync();
+                Task reloadTask = _authStateService.CurrentUser.ReloadAsync();
                 yield return new WaitUntil(() => reloadTask.IsCompleted);
                 
                 if (reloadTask.IsFaulted)
@@ -311,7 +312,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             if (hasErrors)
             {
                 MyLogger.LogError("❌ Критические UI элементы отсутствуют. Возможно, префаб не загружен полностью через Addressables.");
-                return;
+                throw new InvalidOperationException("Critical UI elements are missing. Prefab might not be fully loaded via Addressables.");
             }
 
             try
@@ -326,6 +327,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             catch (Exception ex)
             {
                 MyLogger.LogError($"❌ Ошибка при инициализации UI: {ex.Message}\n{ex.StackTrace}");
+                throw new InvalidOperationException($"Error initializing UI: {ex.Message}", ex);
             }
         }
 
@@ -367,6 +369,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             catch (Exception ex)
             {
                 MyLogger.LogError($"❌ Ошибка при настройке кнопок: {ex.Message}");
+                throw new Exception($"Error setting up buttons: {ex.Message}", ex);
             }
         }
 
@@ -384,6 +387,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             catch (Exception ex)
             {
                 MyLogger.LogError($"❌ Ошибка при настройке переключателей: {ex.Message}");
+                throw new Exception($"Error setting up toggles: {ex.Message}", ex);
             }
         }
 
@@ -402,6 +406,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             catch (Exception ex)
             {
                 MyLogger.LogError($"❌ Ошибка при настройке полей ввода: {ex.Message}");
+                throw new Exception($"Error setting up input fields: {ex.Message}", ex);
             }
         }
         #endregion
@@ -436,20 +441,20 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             if (_passwordInput == null)
             {
                 MyLogger.LogError("[RefreshPasswordField] _passwordInput is NULL!");
-                yield break;
+                throw new InvalidOperationException("[RefreshPasswordField] _passwordInput is NULL!");
             }
             
             // Проверяем, есть ли необходимые компоненты TextMeshPro
             if (_passwordInput.textComponent == null)
             {
                 MyLogger.LogError("[RefreshPasswordField] _passwordInput.textComponent is NULL! Это критическая проблема для TMP_InputField.");
-                yield break;
+                throw new InvalidOperationException("[RefreshPasswordField] _passwordInput.textComponent is NULL! Это критическая проблема для TMP_InputField.");
             }
             
             if (_passwordInput.fontAsset == null)
             {
                 MyLogger.LogError("[RefreshPasswordField] _passwordInput.fontAsset is NULL! Это вызовет ошибку.");
-                // Fallback на системный шрифт или ничего не делать, зависит от требований
+                throw new InvalidOperationException("[RefreshPasswordField] _passwordInput.fontAsset is NULL! Это вызовет ошибку.");
             }
             else
             {
@@ -484,6 +489,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             catch (Exception ex)
             {
                 MyLogger.LogError($"[RefreshPasswordField] Ошибка при установке курсора: {ex.Message}");
+                throw new Exception($"[RefreshPasswordField] Error setting caret position: {ex.Message}", ex);
             }
         }
         #endregion
@@ -501,7 +507,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
                 if (_auth == null)
                 {
                     ShowPopup("Ошибка выхода: сервис аутентификации недоступен.");
-                    return;
+                    throw new InvalidOperationException("_auth is NULL in Logout! Authentication service unavailable.");
                 }
             }
             
@@ -520,7 +526,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             if (_confirmDeletePanel == null)
             {
                 MyLogger.LogError("❌ _confirmDeletePanel is NULL в ShowDeleteConfirmation! Возможно, после перехода на Addressables префаб не загружен.");
-                return;
+                throw new InvalidOperationException("_confirmDeletePanel is NULL in ShowDeleteConfirmation! Prefab might not be loaded after Addressables transition.");
             }
             
             // Дополнительная проверка аутентификации перед показом панели
@@ -529,7 +535,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
                 MyLogger.LogError("❌ Пользователь не авторизован при открытии панели удаления");
                 ShowPopup("Для удаления аккаунта необходимо войти в систему.");
                 StartCoroutine(DelayedRedirect());
-                return;
+                throw new InvalidOperationException("User not authenticated when opening deletion panel.");
             }
             
             _confirmDeletePanel.SetActive(true);

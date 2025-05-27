@@ -11,7 +11,10 @@ using System.Threading.Tasks;
 using App.Develop.CommonServices.GameSystem;
 using App.Develop.CommonServices.Firebase.Database.Services;
 using System.Collections;
+using App.Develop.CommonServices.Firebase.Database.Models;
 using App.Develop.Utils.Logging;
+using App.Develop.Utils.Reactive;
+using App.Develop.CommonServices.DataManagement.DataProviders;
 
 namespace App.Develop.Scenes.PersonalAreaScene.UI
 {
@@ -41,7 +44,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         {
             if (container == null) throw new ArgumentNullException(nameof(container));
             if (factory == null) throw new ArgumentNullException(nameof(factory));
-            if (_ui == null) throw new ArgumentNullException(nameof(_ui), "PersonalAreaUIController не назначен в инспекторе");
+            if (_ui == null) throw new ArgumentNullException(nameof(_ui), "PersonalAreaUIController is not assigned in the inspector");
 
             _service = container.Resolve<IPersonalAreaService>();
             _sceneSwitcher = container.Resolve<SceneSwitcher>();
@@ -54,9 +57,9 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             {
                 _databaseService = container.Resolve<IDatabaseService>();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                MyLogger.LogWarning($"[PersonalAreaManager] Не удалось получить IDatabaseService: {ex.Message}. Никнейм пользователя не будет загружен.", MyLogger.LogCategory.Network);
+                // LogWarning was here, removed. Nickname will not be loaded if service is unavailable.
             }
 
             Initialize();
@@ -77,8 +80,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"Ошибка при инициализации UI: {ex.Message}");
-                throw;
+                throw new InvalidOperationException($"Error during UI initialization: {ex.Message}", ex);
             }
         }
 
@@ -129,7 +131,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
 
             if (!panelShown)
             {
-                MyLogger.LogError("❌ [PersonalAreaManager] Не удалось отобразить/скрыть панель логирования эмоций.");
+                throw new InvalidOperationException("[PersonalAreaManager] Failed to toggle LogEmotionPanel.");
             }
         }
 
@@ -139,7 +141,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
 
             if (!panelShown)
             {
-                MyLogger.LogError("❌ [PersonalAreaManager] Не удалось отобразить/скрыть панель истории.");
+                throw new InvalidOperationException("[PersonalAreaManager] Failed to toggle HistoryPanel.");
             }
         }
 
@@ -149,7 +151,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
 
             if (!panelShown)
             {
-                MyLogger.LogError("❌ [PersonalAreaManager] Не удалось отобразить/скрыть панель друзей.");
+                throw new InvalidOperationException("[PersonalAreaManager] Failed to toggle FriendsPanel.");
             }
         }
 
@@ -159,18 +161,15 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
 
             if (!panelShown)
             {
-                MyLogger.LogError("❌ [PersonalAreaManager] Не удалось отобразить/скрыть панель мастерской.");
+                throw new InvalidOperationException("[PersonalAreaManager] Failed to toggle WorkshopPanel.");
             }
         }
 
         private async Task ShowSettingsPanelAsync()
         {
-            MyLogger.Log($"[PersonalAreaManager instance {this.GetInstanceID()}] ShowSettingsPanelAsync called. PanelManager type: {_panelManager?.GetType().Name ?? "null"}", MyLogger.LogCategory.UI);
-            MyLogger.Log($"[PersonalAreaManager instance {this.GetInstanceID()}] Attempting to toggle settings panel.", MyLogger.LogCategory.UI);
-
             bool panelIsNowVisible = await _panelManager.TogglePanelAsync<SettingsPanelController>(AssetAddresses.SettingsPanel);
-
-            MyLogger.Log($"[PersonalAreaManager instance {this.GetInstanceID()}] ToggleSettingsPanelAsync completed. Panel is now {(panelIsNowVisible ? "visible" : "not visible")}.", MyLogger.LogCategory.UI);
+            // Original logs about visibility removed. If toggle fails, it might throw from PanelManager or return false.
+            // Here, we assume if it doesn't throw, the operation itself was "successful" in attempting the toggle.
         }
 
         private void SetupUserProfile()
@@ -187,38 +186,36 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         {
             if (_databaseService == null)
             {
-                MyLogger.LogWarning("[PersonalAreaManager] DatabaseService не доступен. Используем дефолтное имя пользователя.");
                 return;
             }
             
             try
             {
-                MyLogger.Log("[PersonalAreaManager] Загружаем профиль пользователя из Firebase...", MyLogger.LogCategory.Firebase);
-                
                 // Проверяем, авторизован ли пользователь
                 if (!_databaseService.IsAuthenticated)
                 {
-                    MyLogger.LogWarning("[PersonalAreaManager] Пользователь не авторизован. Используем дефолтное имя.", MyLogger.LogCategory.Firebase);
                     return;
                 }
                 
                 // Загружаем профиль пользователя
-                var userProfile = await _databaseService.GetUserProfile();
+                UserProfile userProfile = await _databaseService.GetUserProfile();
                 
                 if (userProfile != null && !string.IsNullOrEmpty(userProfile.Nickname))
                 {
                     // Устанавливаем никнейм пользователя
                     _ui.SetUsername(userProfile.Nickname);
-                    MyLogger.Log($"[PersonalAreaManager] Никнейм пользователя загружен: {userProfile.Nickname}", MyLogger.LogCategory.Firebase);
                 }
                 else
                 {
-                    MyLogger.LogWarning("[PersonalAreaManager] Профиль пользователя пуст или не содержит никнейма.", MyLogger.LogCategory.Firebase);
+                    // LogWarning removed, default name remains.
                 }
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"[PersonalAreaManager] Ошибка при загрузке профиля пользователя: {ex.Message}", MyLogger.LogCategory.Firebase);
+                // LogError converted to throw. If profile loading is critical, this is appropriate.
+                // If app can continue with default name, this should be a non-throwing log.
+                // Forcing stricter error handling for now.
+                throw new Exception($"Error loading user profile: {ex.Message}", ex);
             }
         }
 
@@ -226,7 +223,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         {
             foreach (EmotionTypes type in Enum.GetValues(typeof(EmotionTypes)))
             {
-                var variable = _service.GetEmotionVariable(type);
+                IReadOnlyVariable<EmotionData> variable = _service.GetEmotionVariable(type);
                 if (variable != null)
                 {
                     _ui.SetJarFloat(type, variable.Value.Value);
@@ -245,7 +242,6 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         {
             if (_pointsService == null)
             {
-                MyLogger.LogWarning("[PersonalAreaManager] PointsService не внедрен. Статистика не будет обновлена.");
                 _ui.SetPoints(0);
                 _ui.SetEntries(0);
                 return;
@@ -261,18 +257,16 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
                 _pointsService.OnPointsChanged += HandlePointsChanged;
                 
                 // Загружаем актуальные данные из Firebase
-                MyLogger.Log("[PersonalAreaManager] Загружаем данные статистики из Firebase...", MyLogger.LogCategory.Firebase);
                 await _pointsService.InitializeAsync();
                 
                 // После завершения загрузки из Firebase обновляем представление
-                MyLogger.Log("[PersonalAreaManager] Данные статистики загружены из Firebase", MyLogger.LogCategory.Firebase);
                 UpdateStatisticsView();
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"[PersonalAreaManager] Ошибка загрузки данных из Firebase: {ex.Message}", MyLogger.LogCategory.Firebase);
                 // Если произошла ошибка, все равно отображаем UI с доступными данными
                 UpdateStatisticsView();
+                throw new Exception($"Error loading statistics data from Firebase: {ex.Message}", ex);
             }
         }
 
@@ -285,7 +279,6 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
 
             _ui.SetPoints(currentPoints);
             _ui.SetEntries(entriesCount);
-            MyLogger.Log($"[PersonalAreaManager] Статистика обновлена: Очки={currentPoints}, Записи={entriesCount}", MyLogger.LogCategory.Gameplay);
         }
 
         private void HandlePointsChanged(int newPointsValue)
@@ -295,8 +288,6 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
 
         private void HandleQuitApplication()
         {
-            MyLogger.Log("[PersonalAreaManager] Закрытие приложения...", MyLogger.LogCategory.UI);
-            
             StartCoroutine(ConfirmAndQuitApplication());
         }
         

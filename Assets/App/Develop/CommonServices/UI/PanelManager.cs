@@ -23,7 +23,7 @@ namespace App.Develop.CommonServices.UI
 
         public async Task<T> ShowPanelAsync<T>(string addressableKey) where T : MonoBehaviour
         {
-            if (_activePanels.TryGetValue(addressableKey, out var existingPanel))
+            if (_activePanels.TryGetValue(addressableKey, out GameObject existingPanel))
             {
                 if (existingPanel == null)
                 {
@@ -40,16 +40,14 @@ namespace App.Develop.CommonServices.UI
             GameObject instance = await _assetLoader.InstantiateAsync(addressableKey);
             if (instance == null)
             {
-                MyLogger.LogError($"❌ Не удалось создать экземпляр панели из Addressable: {addressableKey}");
-                return null;
+                throw new InvalidOperationException($"Failed to instantiate panel from Addressable: {addressableKey}");
             }
 
-            var component = instance.GetComponentInChildren<T>();
+            T component = instance.GetComponentInChildren<T>();
             if (component == null)
             {
-                MyLogger.LogError($"❌ Компонент {typeof(T).Name} не найден в иерархии префаба {addressableKey} (поиск через GetComponentInChildren)");
-                Addressables.ReleaseInstance(instance);
-                return null;
+                Addressables.ReleaseInstance(instance); // Release if component not found
+                throw new InvalidOperationException($"Component {typeof(T).Name} not found in prefab hierarchy {addressableKey} (searched via GetComponentInChildren)");
             }
 
             _factory.InjectDependencies(component);
@@ -63,7 +61,7 @@ namespace App.Develop.CommonServices.UI
         public async Task<bool> TogglePanelAsync<T>(string addressableKey) where T : MonoBehaviour
         {
             MyLogger.Log($"[PanelManager] TogglePanelAsync вызван для ключа: {addressableKey}, тип: {typeof(T).Name}");
-            if (_activePanels.TryGetValue(addressableKey, out var panel))
+            if (_activePanels.TryGetValue(addressableKey, out GameObject panel))
             {
                 MyLogger.Log($"[PanelManager] Панель {addressableKey} найдена в _activePanels.");
                 if (panel == null)
@@ -71,7 +69,7 @@ namespace App.Develop.CommonServices.UI
                     MyLogger.LogWarning($"[PanelManager] 🧹 Панель {addressableKey} была уничтожена (null). Удаляем ссылку и пытаемся показать заново.");
                     _activePanels.Remove(addressableKey);
                     // Пытаемся показать заново, так как ссылка была утеряна
-                    var newPanelComponent = await ShowPanelAsync<T>(addressableKey);
+                    T newPanelComponent = await ShowPanelAsync<T>(addressableKey);
                     return newPanelComponent != null; // Возвращаем true, если панель успешно показана (стала активной)
                 }
 
@@ -84,14 +82,14 @@ namespace App.Develop.CommonServices.UI
             {
                 MyLogger.Log($"[PanelManager] Панель {addressableKey} НЕ найдена в _activePanels. Показываем новую.");
                 // Панели нет в словаре, значит показываем ее
-                var panelComponent = await ShowPanelAsync<T>(addressableKey);
+                T panelComponent = await ShowPanelAsync<T>(addressableKey);
                 return panelComponent != null; // Возвращаем true, если панель успешно показана (стала активной)
             }
         }
 
         public void HidePanel(string panelPath)
         {
-            if (_activePanels.TryGetValue(panelPath, out var panel) && panel != null)
+            if (_activePanels.TryGetValue(panelPath, out GameObject panel) && panel != null)
             {
                 panel.SetActive(false);
             }
@@ -99,7 +97,7 @@ namespace App.Develop.CommonServices.UI
 
         public void HideAllPanels()
         {
-            foreach (var panel in _activePanels.Values)
+            foreach (GameObject panel in _activePanels.Values)
             {
                 if (panel != null)
                 {
@@ -110,7 +108,7 @@ namespace App.Develop.CommonServices.UI
 
         public void Dispose()
         {
-            foreach (var panelGo in _activePanels.Values)
+            foreach (GameObject panelGo in _activePanels.Values)
             {
                 if (panelGo != null)
                 {

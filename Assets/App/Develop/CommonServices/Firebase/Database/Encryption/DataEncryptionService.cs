@@ -2,8 +2,8 @@ using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
-using App.Develop.Utils.Logging;
-using UnityEngine;
+// using App.Develop.Utils.Logging; // MyLogger removed
+// using UnityEngine; // Not used
 
 namespace App.Develop.CommonServices.Firebase.Database.Encryption
 {
@@ -14,7 +14,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Encryption
     {
         #region Constants
 
-        // Размер ключа AES (16 байт = 128 бит, 24 байта = 192 бита, 32 байта = 256 бит)
+        // Размер ключа AES (32 байта = 256 бит)
         private const int c_KeySize = 32;
 
         // Размер вектора инициализации (всегда 16 байт для AES)
@@ -30,7 +30,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Encryption
 
         #region Private Fields
 
-        private readonly byte[] _encryptionKey;
+        private readonly byte[] _encryptionKeyBytes;
         private readonly string _encryptionPassword;
 
         #endregion
@@ -46,28 +46,23 @@ namespace App.Develop.CommonServices.Firebase.Database.Encryption
             if (string.IsNullOrEmpty(password))
             {
                 // Если пароль не указан, генерируем случайный ключ
-                _encryptionKey = new byte[c_KeySize];
-
-                using (var rng = RandomNumberGenerator.Create())
+                _encryptionKeyBytes = new byte[c_KeySize];
+                using (RandomNumberGenerator rng = RandomNumberGenerator.Create())
                 {
-                    rng.GetBytes(_encryptionKey);
+                    rng.GetBytes(_encryptionKeyBytes);
                 }
-
-                _encryptionPassword = Convert.ToBase64String(_encryptionKey);
+                _encryptionPassword = Convert.ToBase64String(_encryptionKeyBytes);
             }
             else
             {
                 // Если пароль указан, используем его
                 _encryptionPassword = password;
-
                 // Генерируем ключ фиксированного размера на основе пароля
-                using (var deriveBytes = new Rfc2898DeriveBytes(password, new byte[c_SaltSize], c_Iterations))
+                using (Rfc2898DeriveBytes deriveBytes = new Rfc2898DeriveBytes(password, new byte[c_SaltSize], c_Iterations, HashAlgorithmName.SHA256))
                 {
-                    _encryptionKey = deriveBytes.GetBytes(c_KeySize);
+                    _encryptionKeyBytes = deriveBytes.GetBytes(c_KeySize);
                 }
             }
-
-            MyLogger.Log("✅ DataEncryptionService инициализирован", MyLogger.LogCategory.Firebase);
         }
 
         #endregion
@@ -90,18 +85,16 @@ namespace App.Develop.CommonServices.Firebase.Database.Encryption
             {
                 // Создаем вектор инициализации
                 byte[] iv = new byte[c_IvSize];
-
-                using (var rng = RandomNumberGenerator.Create())
+                using (RandomNumberGenerator rng = RandomNumberGenerator.Create())
                 {
                     rng.GetBytes(iv);
                 }
 
                 // Шифруем данные
-                byte[] encrypted;
-
-                using (var aes = Aes.Create())
+                byte[] encryptedBytes;
+                using (Aes aes = Aes.Create())
                 {
-                    aes.Key = _encryptionKey;
+                    aes.Key = _encryptionKeyBytes;
                     aes.IV = iv;
                     aes.Mode = CipherMode.CBC;
                     aes.Padding = PaddingMode.PKCS7;
@@ -112,26 +105,22 @@ namespace App.Develop.CommonServices.Firebase.Database.Encryption
                     {
                         // Сначала записываем вектор инициализации
                         memoryStream.Write(iv, 0, iv.Length);
-
                         using (CryptoStream cryptoStream = new CryptoStream(memoryStream, encryptor, CryptoStreamMode.Write))
                         {
                             using (StreamWriter streamWriter = new StreamWriter(cryptoStream))
                             {
                                 streamWriter.Write(plainText);
                             }
-
-                            encrypted = memoryStream.ToArray();
                         }
+                        encryptedBytes = memoryStream.ToArray();
                     }
                 }
-
                 // Возвращаем зашифрованные данные в формате Base64
-                return Convert.ToBase64String(encrypted);
+                return Convert.ToBase64String(encryptedBytes);
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"❌ Ошибка шифрования: {ex.Message}", MyLogger.LogCategory.Firebase);
-                throw;
+                throw new CryptographicException($"❌ Ошибка шифрования: {ex.Message}", ex);
             }
         }
 
@@ -158,10 +147,10 @@ namespace App.Develop.CommonServices.Firebase.Database.Encryption
                 // Преобразуем Base64 в массив байтов
                 byte[] cipherBytes = Convert.FromBase64String(encryptedText);
 
-                // Проверяем, что у нас достаточно данных (IV + хотя бы 1 блок данных)
+                // Проверяем, что у нас достаточно данных (IV + хотя бы 1 байт данных)
                 if (cipherBytes.Length <= c_IvSize)
                 {
-                    throw new ArgumentException("Недостаточно данных для расшифровки");
+                    throw new ArgumentException("Недостаточно данных для расшифровки (длина меньше или равна IV)");
                 }
 
                 // Извлекаем вектор инициализации
@@ -170,10 +159,9 @@ namespace App.Develop.CommonServices.Firebase.Database.Encryption
 
                 // Расшифровываем данные
                 string plainText;
-
-                using (var aes = Aes.Create())
+                using (Aes aes = Aes.Create())
                 {
-                    aes.Key = _encryptionKey;
+                    aes.Key = _encryptionKeyBytes;
                     aes.IV = iv;
                     aes.Mode = CipherMode.CBC;
                     aes.Padding = PaddingMode.PKCS7;
@@ -191,13 +179,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Encryption
                         }
                     }
                 }
-
                 return plainText;
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"❌ Ошибка дешифрования: {ex.Message}", MyLogger.LogCategory.Firebase);
-                throw;
+                throw new CryptographicException($"❌ Ошибка дешифрования: {ex.Message}", ex);
             }
         }
 
@@ -228,17 +214,18 @@ namespace App.Develop.CommonServices.Firebase.Database.Encryption
             if (input.Length % 4 != 0)
                 return false;
 
-            // Проверка на допустимые символы Base64
-            foreach (char c in input)
-            {
-                if ((c < 'A' || c > 'Z') &&
-                    (c < 'a' || c > 'z') &&
-                    (c < '0' || c > '9') &&
-                    c != '+' && c != '/' && c != '=')
-                {
-                    return false;
-                }
-            }
+            // Проверка на допустимые символы Base64 (упрощенная, Convert.FromBase64String сделает полную проверку)
+            // for (int i = 0; i < input.Length; i++) // char c in input
+            // {
+            //     char c = input[i];
+            //     if (!((c >= 'A' && c <= 'Z') ||
+            //           (c >= 'a' && c <= 'z') ||
+            //           (c >= '0' && c <= '9') ||
+            //           c == '+' || c == '/' || c == '='))
+            //     {
+            //         return false;
+            //     }
+            // }
 
             try
             {
@@ -246,7 +233,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Encryption
                 Convert.FromBase64String(input);
                 return true;
             }
-            catch
+            catch (FormatException) // Catch specific exception
             {
                 return false;
             }

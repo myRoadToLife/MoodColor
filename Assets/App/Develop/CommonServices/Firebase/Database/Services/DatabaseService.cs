@@ -1777,7 +1777,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 var validationResult = _validationService.Validate<EmotionHistoryRecord>(record);
                 if (!validationResult.IsValid)
                 {
-                    validationResult.CheckAndLogErrors("EmotionHistoryRecord");
+                    validationResult.CheckAndThrowErrors("EmotionHistoryRecord");
                     MyLogger.LogError("❌ Валидация записи истории эмоций не пройдена. Запись не будет сохранена.", MyLogger.LogCategory.Firebase);
                     return false;
                 }
@@ -2329,5 +2329,85 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         }
         
         #endregion
+
+        public Task<Dictionary<string, EmotionData>> GetUserEmotionsAsync()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task UpdateUserEmotionsAsync(Dictionary<string, EmotionData> emotions)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task UpdateUserEmotionAsync(EmotionData emotion)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task AddEmotionHistoryRecordAsync(EmotionHistoryRecord record)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task AddEmotionHistoryRecordAsync(EmotionData emotion, EmotionEventType eventType)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task AddEmotionHistoryBatchAsync(List<EmotionHistoryRecord> records)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task UpdateEmotionSyncStatusBatchAsync(Dictionary<string, SyncStatus> recordStatusPairs)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task DeleteEmotionHistoryRecordBatchAsync(List<string> recordIds)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<List<EmotionHistoryRecord>> GetEmotionHistoryAsync(DateTime? startDate = null, DateTime? endDate = null, int limit = 100)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<List<EmotionHistoryRecord>> GetUnsyncedEmotionHistoryAsync(int limit = 50)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task UpdateEmotionHistoryRecordStatusAsync(string recordId, SyncStatus status)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task DeleteEmotionHistoryRecordAsync(string recordId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<Dictionary<string, int>> GetEmotionStatisticsAsync(DateTime startDate, DateTime endDate)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<EmotionSyncSettings> GetSyncSettingsAsync()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task UpdateSyncSettingsAsync(EmotionSyncSettings settings)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task ClearEmotionHistoryAsync()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

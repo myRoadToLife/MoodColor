@@ -8,13 +8,13 @@ namespace App.Develop.AppServices.Firebase.Tests
     /// </summary>
     public class TestBootstrap : MonoBehaviour
     {
-        [SerializeField] private bool m_InitializeOnAwake = true;
+        [SerializeField] private bool _initializeOnAwake = true;
         
-        private static bool m_IsInitialized;
+        private static bool _isInitialized;
         
         private void Awake()
         {
-            if (m_InitializeOnAwake && !m_IsInitialized)
+            if (_initializeOnAwake && !_isInitialized)
             {
                 InitializeTestEnvironment();
             }
@@ -25,7 +25,7 @@ namespace App.Develop.AppServices.Firebase.Tests
         /// </summary>
         public void InitializeTestEnvironment()
         {
-            if (m_IsInitialized)
+            if (_isInitialized)
             {
                 Debug.Log("Test environment already initialized");
                 return;
@@ -34,33 +34,33 @@ namespace App.Develop.AppServices.Firebase.Tests
             Debug.Log("Initializing Firebase test environment...");
             
             // Создаем тестовые реализации всех сервисов
-            var connectionManager = new TestFirebaseConnectionManager();
-            var databaseService = new TestDatabaseService();
-            var firebaseDatabaseService = new TestFirebaseDatabaseService();
-            var cacheManager = new TestFirebaseCacheManager();
-            var conflictResolver = new TestConflictResolutionStrategy();
+            TestFirebaseConnectionManager connectionManager = new TestFirebaseConnectionManager();
+            TestDatabaseService databaseService = new TestDatabaseService();
+            TestFirebaseDatabaseService firebaseDatabaseService = new TestFirebaseDatabaseService();
+            TestFirebaseCacheManager cacheManager = new TestFirebaseCacheManager();
+            TestConflictResolutionStrategy conflictResolver = new TestConflictResolutionStrategy();
             
             // Создаем GameObject для хранения ссылок на сервисы
-            var servicesContainer = new GameObject("Firebase Test Services");
+            GameObject servicesContainer = new GameObject("Firebase Test Services");
             DontDestroyOnLoad(servicesContainer);
             
             // Добавляем тестовые сервисы на GameObject
-            var connectionManagerComponent = servicesContainer.AddComponent<TestConnectionManagerComponent>();
+            TestConnectionManagerComponent connectionManagerComponent = servicesContainer.AddComponent<TestConnectionManagerComponent>();
             connectionManagerComponent.Initialize(connectionManager);
             
-            var databaseServiceComponent = servicesContainer.AddComponent<TestDatabaseServiceComponent>();
+            TestDatabaseServiceComponent databaseServiceComponent = servicesContainer.AddComponent<TestDatabaseServiceComponent>();
             databaseServiceComponent.Initialize(databaseService);
             
-            var firebaseDatabaseServiceComponent = servicesContainer.AddComponent<TestFirebaseDatabaseServiceComponent>();
+            TestFirebaseDatabaseServiceComponent firebaseDatabaseServiceComponent = servicesContainer.AddComponent<TestFirebaseDatabaseServiceComponent>();
             firebaseDatabaseServiceComponent.Initialize(firebaseDatabaseService);
             
-            var cacheManagerComponent = servicesContainer.AddComponent<TestCacheManagerComponent>();
+            TestCacheManagerComponent cacheManagerComponent = servicesContainer.AddComponent<TestCacheManagerComponent>();
             cacheManagerComponent.Initialize(cacheManager);
             
-            var conflictResolverComponent = servicesContainer.AddComponent<TestConflictResolverComponent>();
+            TestConflictResolverComponent conflictResolverComponent = servicesContainer.AddComponent<TestConflictResolverComponent>();
             conflictResolverComponent.Initialize(conflictResolver);
             
-            m_IsInitialized = true;
+            _isInitialized = true;
             
             Debug.Log("Firebase test environment initialized successfully");
         }
@@ -71,13 +71,13 @@ namespace App.Develop.AppServices.Firebase.Tests
     /// </summary>
     public class TestConnectionManagerComponent : MonoBehaviour
     {
-        private static IFirebaseConnectionManager m_Instance;
+        private static IFirebaseConnectionManager _instance;
         
-        public static IFirebaseConnectionManager Instance => m_Instance;
+        public static IFirebaseConnectionManager Instance => _instance;
         
         public void Initialize(IFirebaseConnectionManager manager)
         {
-            m_Instance = manager;
+            _instance = manager;
         }
     }
     
@@ -86,13 +86,13 @@ namespace App.Develop.AppServices.Firebase.Tests
     /// </summary>
     public class TestDatabaseServiceComponent : MonoBehaviour
     {
-        private static IDatabaseService m_Instance;
+        private static IDatabaseService _instance;
         
-        public static IDatabaseService Instance => m_Instance;
+        public static IDatabaseService Instance => _instance;
         
         public void Initialize(IDatabaseService service)
         {
-            m_Instance = service;
+            _instance = service;
         }
     }
     
@@ -101,13 +101,13 @@ namespace App.Develop.AppServices.Firebase.Tests
     /// </summary>
     public class TestFirebaseDatabaseServiceComponent : MonoBehaviour
     {
-        private static IFirebaseDatabaseService m_Instance;
+        private static IFirebaseDatabaseService _instance;
         
-        public static IFirebaseDatabaseService Instance => m_Instance;
+        public static IFirebaseDatabaseService Instance => _instance;
         
         public void Initialize(IFirebaseDatabaseService service)
         {
-            m_Instance = service;
+            _instance = service;
         }
     }
     
@@ -116,13 +116,13 @@ namespace App.Develop.AppServices.Firebase.Tests
     /// </summary>
     public class TestCacheManagerComponent : MonoBehaviour
     {
-        private static IFirebaseCacheManager m_Instance;
+        private static IFirebaseCacheManager _instance;
         
-        public static IFirebaseCacheManager Instance => m_Instance;
+        public static IFirebaseCacheManager Instance => _instance;
         
         public void Initialize(IFirebaseCacheManager manager)
         {
-            m_Instance = manager;
+            _instance = manager;
         }
     }
     
@@ -131,13 +131,13 @@ namespace App.Develop.AppServices.Firebase.Tests
     /// </summary>
     public class TestConflictResolverComponent : MonoBehaviour
     {
-        private static IConflictResolutionStrategy m_Instance;
+        private static IConflictResolutionStrategy _instance;
         
-        public static IConflictResolutionStrategy Instance => m_Instance;
+        public static IConflictResolutionStrategy Instance => _instance;
         
         public void Initialize(IConflictResolutionStrategy resolver)
         {
-            m_Instance = resolver;
+            _instance = resolver;
         }
     }
 }
