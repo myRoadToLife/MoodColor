@@ -1,0 +1,10 @@
+{
+    "patterns": {
+        "include": ["Assets/App/Develop/**/*.cs"],
+        "exclude": []
+    },
+    "output": {
+        "format": "xml",
+        "file": "develop-output.xml"
+    }
+} 
