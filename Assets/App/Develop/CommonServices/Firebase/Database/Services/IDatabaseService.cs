@@ -123,5 +123,19 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         /// <param name="currentDeviceId">ID текущего устройства</param>
         /// <returns>True, если существует активная сессия с другого устройства</returns>
         Task<bool> CheckActiveSessionExists(string currentDeviceId);
+        
+        /// <summary>
+        /// Проверяет существование пользователя в базе данных
+        /// </summary>
+        /// <param name="userId">ID пользователя</param>
+        /// <returns>True, если пользователь существует</returns>
+        Task<bool> CheckUserExists(string userId);
+        
+        /// <summary>
+        /// Обновляет активную сессию для указанного устройства
+        /// </summary>
+        /// <param name="deviceId">ID устройства</param>
+        /// <returns>True, если сессия успешно обновлена</returns>
+        Task<bool> UpdateActiveSession(string deviceId);
     }
 } 

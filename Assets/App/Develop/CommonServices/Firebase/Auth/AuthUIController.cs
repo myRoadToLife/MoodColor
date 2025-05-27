@@ -17,6 +17,7 @@ namespace App.Develop.CommonServices.Firebase.Auth
         [Header("Login Panel")]
         [SerializeField] private GameObject _loginPanel;
         [SerializeField] private Button _loginButton;
+        [SerializeField] private Button _googleSignInButton; // Google Sign-In button
         [SerializeField] private Button _switchToRegisterButton; // From login to register form
         [SerializeField] private Button _forgotPasswordButton;
 
@@ -154,6 +155,12 @@ namespace App.Develop.CommonServices.Firebase.Auth
         public void OnLoginButtonClicked()
         {
             _authManager.LoginUser(_emailInput.text.Trim(), _passwordInput.text.Trim(), _rememberMeToggle.isOn);
+        }
+
+        public void OnGoogleSignInButtonClicked()
+        {
+            Debug.Log("🔵 [AUTH-UI] Нажата кнопка Google Sign-In");
+            _authManager.LoginWithGoogle();
         }
 
         public void OnCheckEmailVerifiedButtonClicked()

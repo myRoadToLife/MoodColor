@@ -18,6 +18,7 @@ namespace App.Develop.CommonServices.Firebase.Auth
         void Initialize(AuthUIController uiController);
         void RegisterUser(string email, string password, bool rememberMe);
         void LoginUser(string email, string password, bool rememberMe);
+        void LoginWithGoogle();
         string GetLastUsedEmail();
         void CheckEmailVerification();
         void SendEmailVerification();
@@ -154,6 +155,44 @@ namespace App.Develop.CommonServices.Firebase.Auth
             {
                 MyLogger.LogError($"🔴 Ошибка при входе: {ex}", MyLogger.LogCategory.Firebase);
                 _uiController.ShowPopup("Произошла ошибка при входе");
+            }
+            finally
+            {
+                _isProcessing = false;
+            }
+        }
+
+        public async void LoginWithGoogle()
+        {
+            Debug.Log("🟡 [AUTH-MANAGER] Начинаем LoginWithGoogle()");
+            if (_isProcessing || _uiController == null) 
+            {
+                Debug.Log("🔴 [AUTH-MANAGER] Процесс уже выполняется или UI контроллер null");
+                return;
+            }
+            _isProcessing = true;
+
+            try
+            {
+                Debug.Log("🟡 [AUTH-MANAGER] Вызываем _authService.LoginWithGoogle()");
+                var result = await _authService.LoginWithGoogle();
+
+                if (result.success)
+                {
+                    SecurePlayerPrefs.SetBool("explicit_logout", false);
+                    SecurePlayerPrefs.Save();
+                    _uiController.ShowPopup("Вход через Google выполнен!");
+                    _sceneSwitcher.ProcessSwitchSceneFor(new OutputAuthSceneArgs(new PersonalAreaInputArgs()));
+                }
+                else
+                {
+                    _uiController.ShowPopup($"Ошибка входа через Google: {result.error}");
+                }
+            }
+            catch (Exception ex)
+            {
+                MyLogger.LogError($"🔴 Ошибка при входе через Google: {ex}", MyLogger.LogCategory.Firebase);
+                _uiController.ShowPopup("Произошла ошибка при входе через Google");
             }
             finally
             {

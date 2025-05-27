@@ -2257,6 +2257,76 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 return false;
             }
         }
+
+        /// <summary>
+        /// Проверяет существование пользователя в базе данных
+        /// </summary>
+        /// <param name="userId">ID пользователя</param>
+        /// <returns>True, если пользователь существует</returns>
+        public async Task<bool> CheckUserExists(string userId)
+        {
+            if (string.IsNullOrEmpty(userId))
+            {
+                MyLogger.LogWarning("❌ UserId не может быть пустым при проверке существования пользователя", MyLogger.LogCategory.Firebase);
+                return false;
+            }
+
+            try
+            {
+                var userRef = _database.Child("users").Child(userId);
+                var userSnapshot = await userRef.GetValueAsync();
+                
+                bool exists = userSnapshot.Exists;
+                MyLogger.Log($"🔍 Проверка существования пользователя {userId}: {(exists ? "существует" : "не существует")}", MyLogger.LogCategory.Firebase);
+                
+                return exists;
+            }
+            catch (Exception ex)
+            {
+                MyLogger.LogError($"❌ Ошибка при проверке существования пользователя {userId}: {ex.Message}", MyLogger.LogCategory.Firebase);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Обновляет активную сессию для указанного устройства
+        /// </summary>
+        /// <param name="deviceId">ID устройства</param>
+        /// <returns>True, если сессия успешно обновлена</returns>
+        public async Task<bool> UpdateActiveSession(string deviceId)
+        {
+            if (!CheckAuthentication())
+            {
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(deviceId))
+            {
+                MyLogger.LogError("❌ DeviceId не может быть пустым при обновлении сессии", MyLogger.LogCategory.Firebase);
+                return false;
+            }
+
+            try
+            {
+                var sessionData = new ActiveSessionData
+                {
+                    DeviceId = deviceId,
+                    DeviceInfo = SystemInfo.deviceModel,
+                    LastActivityTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                };
+
+                var activeSessionsRef = _database.Child("users").Child(_userId).Child("activeSessions").Child(deviceId);
+                await activeSessionsRef.SetValueAsync(sessionData.ToDictionary());
+                
+                MyLogger.Log($"✅ Активная сессия обновлена для устройства: {deviceId}", MyLogger.LogCategory.Firebase);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MyLogger.LogError($"❌ Ошибка при обновлении активной сессии для устройства {deviceId}: {ex.Message}", MyLogger.LogCategory.Firebase);
+                return false;
+            }
+        }
         
         #endregion
     }

@@ -3,14 +3,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using App.Develop.CommonServices.Firebase.Database.Services;
 using App.Develop.CommonServices.Firebase.Database.Models;
 using Firebase;
 using Firebase.Auth;
-using System.Threading.Tasks;
 using UnityEngine;
 using App.Develop.CommonServices.Firebase.Common.SecureStorage;
 using App.Develop.Utils.Logging;
+using Google;
 
 namespace App.Develop.CommonServices.Firebase.Auth.Services
 {
@@ -268,7 +269,26 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
                 return false;
             }
         }
-        
+
+        public async Task<(bool success, string error)> LoginWithGoogle()
+        {
+            try
+            {
+                // Согласно официальной документации Firebase:
+                // https://firebase.google.com/docs/auth/unity/google-signin?hl=ru
+                // Для Google Sign-In в Unity нужно:
+                // 1. Следовать инструкциям для Android и iOS+ чтобы получить токен идентификатора
+                // 2. Использовать Google Play Games Services или другой способ получения токенов
+                // 3. Затем обменять токены на Firebase credentials
+                return (false, "Google Sign-In требует дополнительной настройки. Используйте вход по email/паролю.");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Ошибка входа через Google: {ex.Message}");
+            }
+        }
+
+
 
         public async Task SignOut()
         {

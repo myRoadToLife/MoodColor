@@ -10,6 +10,9 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
         // Метод для входа пользователя
         Task<(bool success, string error)> LoginUser(string email, string password);
         
+        // Метод для входа через Google
+        Task<(bool success, string error)> LoginWithGoogle();
+        
         // Метод для повторной отправки письма верификации
         Task<bool> ResendVerificationEmail();
         
