@@ -64,8 +64,9 @@ namespace App.Develop.CommonServices.Firebase.Database.Models
             Tags = new List<string>();
         }
 
-        public EmotionHistoryRecord(EmotionData emotion, EmotionEventType eventType) : this()
+        public EmotionHistoryRecord(EmotionData emotion, EmotionEventType eventType)
         {
+            Id = Guid.NewGuid().ToString();
             Type = emotion.Type;
             Value = emotion.Value;
             Intensity = emotion.Intensity;
@@ -75,9 +76,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Models
             Timestamp = emotion.Timestamp;
             EventType = eventType.ToString();
             LocalId = emotion.Id;
+            SyncStatus = SyncStatus.NotSynced;
+            Tags = new List<string>();
         }
 
-        public EmotionHistoryRecord(EmotionHistoryEntry entryToSave) : this()
+        public EmotionHistoryRecord(EmotionHistoryEntry entryToSave)
         {
             Id = entryToSave.SyncId;
             Type = entryToSave.EmotionData.Type;
@@ -90,6 +93,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Models
             EventType = entryToSave.EventType.ToString();
             LocalId = entryToSave.EmotionData.Id;
             SyncStatus = entryToSave.IsSynced ? SyncStatus.Synced : SyncStatus.NotSynced;
+            Tags = new List<string>();
         }
 
         public Dictionary<string, object> ToDictionary()
@@ -122,7 +126,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Models
             }
 
             if (Tags != null && Tags.Count > 0)
-                dict["tags"] = Tags.ToList();
+                dict["tags"] = Tags;
 
             return dict;
         }

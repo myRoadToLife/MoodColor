@@ -7,6 +7,7 @@ using App.Develop.CommonServices.DataManagement.DataProviders;
 using Newtonsoft.Json;
 using UnityEngine;
 using Firebase.Database;
+using App.Develop.Utils.Logging;
 
 namespace App.Develop.CommonServices.Firebase.Database.Services
 {
@@ -49,6 +50,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         private readonly DatabaseService _databaseService;
         private readonly EmotionSyncSettings _syncSettings;
         private readonly Queue<ConflictData> _pendingConflicts = new Queue<ConflictData>();
+        private bool _isProcessingConflicts = false;
         private readonly Dictionary<string, int> _conflictCountByType = new Dictionary<string, int>();
         
         #endregion
@@ -61,7 +63,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             _syncSettings = syncSettings ?? throw new ArgumentNullException(nameof(syncSettings));
             
             // Инициализируем счетчики конфликтов по типам
-            foreach (EmotionTypes type in Enum.GetValues(typeof(EmotionTypes)))
+            foreach (var type in Enum.GetValues(typeof(EmotionTypes)))
             {
                 _conflictCountByType[type.ToString()] = 0;
             }
@@ -82,8 +84,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         public async Task<ConflictResolutionResult> ResolveConflict<T>(T clientData, T serverData, string dataType, ConflictResolutionStrategy? strategy = null)
         {
             // Если стратегия не указана, используем из настроек
-            ConflictResolutionStrategy resolveStrategy = strategy ?? _syncSettings.ConflictStrategy;
-            ConflictData conflict = new ConflictData(clientData, serverData, dataType, DateTime.Now);
+            var resolveStrategy = strategy ?? _syncSettings.ConflictStrategy;
+            var conflict = new ConflictData(clientData, serverData, dataType, DateTime.Now);
+            
+            // Логируем информацию о конфликте
+            LogConflict(conflict, resolveStrategy);
             
             // Увеличиваем счетчик конфликтов для этого типа
             IncrementConflictCount(dataType);
@@ -103,7 +108,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                         return await ResolveWithMostRecentData(conflict);
                         
                     case ConflictResolutionStrategy.KeepBoth:
-                        return await ResolveByMergingOrManual(conflict);
+                        return await ResolveByKeepingBoth(conflict);
                         
                     case ConflictResolutionStrategy.AskUser:
                         return await RequireManualResolution(conflict);
@@ -115,7 +120,16 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException($"Ошибка при разрешении конфликта для типа {dataType}: {ex.Message}", ex);
+                MyLogger.LogError($"Ошибка при разрешении конфликта: {ex.Message}", MyLogger.LogCategory.Firebase);
+                
+                // В случае ошибки возвращаем серверные данные как более надежные
+                return new ConflictResolutionResult
+                {
+                    ResolvedData = serverData,
+                    Strategy = ConflictResolutionStrategy.ServerWins,
+                    Success = false,
+                    Error = ex.Message
+                };
             }
             finally
             {
@@ -132,6 +146,8 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             // Для эмоций используем специализированное решение
             if (clientEmotion.Type != serverEmotion.Type)
             {
+                MyLogger.LogWarning($"Несоответствие типов эмоций: клиент {clientEmotion.Type}, сервер {serverEmotion.Type}", MyLogger.LogCategory.Firebase);
+                // Если типы не совпадают, что-то не так. Берем серверные данные.
                 return new ConflictResolutionResult
                 {
                     ResolvedData = serverEmotion,
@@ -160,14 +176,14 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         }
         
         /// <summary>
-        /// Разрешает конфликт путем слияния данных (данные уже слиты)
+        /// Разрешает конфликт путем слияния данных
         /// </summary>
-        public Task<ConflictResolutionResult> ResolveMergeAsync<T>(ConflictData conflict, T mergedData)
+        public async Task<ConflictResolutionResult> ResolveMergeAsync<T>(ConflictData conflict, T mergedData)
         {
             try
             {
                 // Здесь мы получаем уже слитые пользователем или автоматикой данные
-                ConflictResolutionResult result = new ConflictResolutionResult
+                var result = new ConflictResolutionResult
                 {
                     ResolvedData = mergedData,
                     Strategy = ConflictResolutionStrategy.KeepBoth,
@@ -175,11 +191,19 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 };
                 
                 OnConflictResolved?.Invoke(conflict, result);
-                return Task.FromResult(result);
+                return result;
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException($"Ошибка при слиянии данных для типа {conflict.DataType}: {ex.Message}", ex);
+                MyLogger.LogError($"Ошибка при слиянии данных: {ex.Message}", MyLogger.LogCategory.Firebase);
+                
+                return new ConflictResolutionResult
+                {
+                    ResolvedData = conflict.ServerData,
+                    Strategy = ConflictResolutionStrategy.ServerWins,
+                    Success = false,
+                    Error = ex.Message
+                };
             }
         }
         
@@ -194,74 +218,91 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         /// <summary>
         /// Автоматически разрешает конфликт в соответствии с выбранной стратегией
         /// </summary>
-        /// <param name="localData">Локальные данные</param>
-        /// <param name="serverData">Данные с сервера</param>
-        /// <param name="strategy">Стратегия разрешения конфликта</param>
+        /// <param name="_localData">Локальные данные</param>
+        /// <param name="_serverData">Данные с сервера</param>
+        /// <param name="_strategy">Стратегия разрешения конфликта</param>
         /// <returns>Разрешенные данные</returns>
-        public EmotionData ResolveConflict(EmotionData localData, EmotionData serverData, ConflictResolutionStrategy strategy)
+        public EmotionData ResolveConflict(EmotionData _localData, EmotionData _serverData, ConflictResolutionStrategy _strategy)
         {
-            if (localData == null && serverData == null)
+            if (_localData == null && _serverData == null)
                 return null;
 
-            if (localData == null)
-                return serverData;
+            if (_localData == null)
+                return _serverData;
 
-            if (serverData == null)
-                return localData;
+            if (_serverData == null)
+                return _localData;
 
             // Если данные идентичны, конфликта нет
-            if (localData.Equals(serverData))
-                return localData;
+            if (_localData.Equals(_serverData))
+                return _localData;
 
             EmotionData resolvedData = null;
 
-            switch (strategy)
+            switch (_strategy)
             {
                 case ConflictResolutionStrategy.ServerWins:
-                    resolvedData = serverData.Clone() as EmotionData;
+                    resolvedData = _serverData.Clone() as EmotionData;
                     break;
 
                 case ConflictResolutionStrategy.ClientWins:
-                    resolvedData = localData.Clone() as EmotionData;
+                    resolvedData = _localData.Clone() as EmotionData;
                     break;
 
                 case ConflictResolutionStrategy.MostRecent:
-                    resolvedData = localData.Timestamp >= serverData.Timestamp 
-                        ? localData.Clone() as EmotionData 
-                        : serverData.Clone() as EmotionData;
+                    resolvedData = _localData.Timestamp >= _serverData.Timestamp 
+                        ? _localData.Clone() as EmotionData 
+                        : _serverData.Clone() as EmotionData;
                     break;
 
                 case ConflictResolutionStrategy.Merge:
-                    resolvedData = MergeEmotionData(localData, serverData);
+                    resolvedData = MergeEmotionData(_localData, _serverData);
                     break;
 
                 case ConflictResolutionStrategy.Manual:
+                    // Вызываем событие для ручного разрешения
                     if (OnManualResolutionRequiredEmotions != null)
                     {
-                        OnManualResolutionRequiredEmotions.Invoke(localData, serverData, (EmotionData chosenData) => {
-                            // This callback would be invoked by UI, but this method is synchronous.
-                            // For now, we can't use the result of this callback directly here.
-                            // The UI would need to call another method to finalize.
-                            // This part of the logic might need redesign for sync vs async.
-                        });
-                        resolvedData = localData.Timestamp >= serverData.Timestamp 
-                            ? localData.Clone() as EmotionData 
-                            : serverData.Clone() as EmotionData;
+                        bool resolutionComplete = false;
+                        EmotionData manuallyResolvedData = null;
+
+                        // Callback для получения результата разрешения
+                        void ResolutionCallback(EmotionData result)
+                        {
+                            manuallyResolvedData = result;
+                            resolutionComplete = true;
+                        }
+
+                        // Вызываем событие для пользовательского интерфейса
+                        OnManualResolutionRequiredEmotions.Invoke(_localData, _serverData, ResolutionCallback);
+
+                        // В асинхронной среде здесь нужно было бы вернуть Task/Promise
+                        // Поскольку это синхронный метод, мы просто логируем, что требуется ручное разрешение
+                        MyLogger.Log("Требуется ручное разрешение конфликта. Используем временную стратегию MostRecent.", MyLogger.LogCategory.Firebase);
+                        
+                        // Временно используем стратегию "Самые последние данные"
+                        resolvedData = _localData.Timestamp >= _serverData.Timestamp 
+                            ? _localData.Clone() as EmotionData 
+                            : _serverData.Clone() as EmotionData;
                     }
                     else
                     {
-                        resolvedData = localData.Timestamp >= serverData.Timestamp 
-                            ? localData.Clone() as EmotionData 
-                            : serverData.Clone() as EmotionData;
+                        // Если нет слушателей для ручного разрешения, используем MostRecent
+                        MyLogger.LogWarning("Стратегия Manual выбрана, но нет слушателей для OnManualResolutionRequired. Используем MostRecent.", MyLogger.LogCategory.Firebase);
+                        resolvedData = _localData.Timestamp >= _serverData.Timestamp 
+                            ? _localData.Clone() as EmotionData 
+                            : _serverData.Clone() as EmotionData;
                     }
                     break;
 
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(strategy), $"Неизвестная стратегия разрешения конфликтов: {strategy}");
+                    MyLogger.LogError($"Неизвестная стратегия разрешения конфликтов: {_strategy}", MyLogger.LogCategory.Firebase);
+                    resolvedData = _localData.Clone() as EmotionData;
+                    break;
             }
 
             // Вызываем событие об успешном разрешении конфликта
-            OnConflictResolvedEmotions?.Invoke(localData, serverData, resolvedData, strategy);
+            OnConflictResolvedEmotions?.Invoke(_localData, _serverData, resolvedData, _strategy);
 
             return resolvedData;
         }
@@ -269,31 +310,31 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         /// <summary>
         /// Разрешает конфликты для нескольких элементов данных
         /// </summary>
-        /// <param name="localDataDict">Словарь локальных данных</param>
-        /// <param name="serverDataDict">Словарь данных с сервера</param>
-        /// <param name="strategy">Стратегия разрешения конфликтов</param>
+        /// <param name="_localDataDict">Словарь локальных данных</param>
+        /// <param name="_serverDataDict">Словарь данных с сервера</param>
+        /// <param name="_strategy">Стратегия разрешения конфликтов</param>
         /// <returns>Разрешенный словарь данных</returns>
         public Dictionary<string, EmotionData> ResolveConflicts(
-            Dictionary<string, EmotionData> localDataDict, 
-            Dictionary<string, EmotionData> serverDataDict, 
-            ConflictResolutionStrategy strategy)
+            Dictionary<string, EmotionData> _localDataDict, 
+            Dictionary<string, EmotionData> _serverDataDict, 
+            ConflictResolutionStrategy _strategy)
         {
             var resolvedDict = new Dictionary<string, EmotionData>();
             
             // Объединяем ключи из обоих словарей
             HashSet<string> allKeys = new HashSet<string>();
             
-            if (localDataDict != null)
+            if (_localDataDict != null)
             {
-                foreach (var key in localDataDict.Keys)
+                foreach (var key in _localDataDict.Keys)
                 {
                     allKeys.Add(key);
                 }
             }
             
-            if (serverDataDict != null)
+            if (_serverDataDict != null)
             {
-                foreach (var key in serverDataDict.Keys)
+                foreach (var key in _serverDataDict.Keys)
                 {
                     allKeys.Add(key);
                 }
@@ -302,10 +343,10 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             // Разрешаем конфликт для каждого ключа
             foreach (var key in allKeys)
             {
-                EmotionData localData = (localDataDict != null && localDataDict.TryGetValue(key, out EmotionData ld)) ? ld : null;
-                EmotionData serverData = (serverDataDict != null && serverDataDict.TryGetValue(key, out EmotionData sd)) ? sd : null;
+                EmotionData localData = _localDataDict != null && _localDataDict.ContainsKey(key) ? _localDataDict[key] : null;
+                EmotionData serverData = _serverDataDict != null && _serverDataDict.ContainsKey(key) ? _serverDataDict[key] : null;
                 
-                EmotionData resolvedData = ResolveConflict(localData, serverData, strategy);
+                EmotionData resolvedData = ResolveConflict(localData, serverData, _strategy);
                 
                 if (resolvedData != null)
                 {
@@ -323,9 +364,9 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         /// <summary>
         /// Разрешает конфликт в пользу серверных данных
         /// </summary>
-        private Task<ConflictResolutionResult> ResolveWithServerData(ConflictData conflict)
+        private async Task<ConflictResolutionResult> ResolveWithServerData(ConflictData conflict)
         {
-            ConflictResolutionResult result = new ConflictResolutionResult
+            var result = new ConflictResolutionResult
             {
                 ResolvedData = conflict.ServerData,
                 Strategy = ConflictResolutionStrategy.ServerWins,
@@ -333,15 +374,15 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             };
             
             OnConflictResolved?.Invoke(conflict, result);
-            return Task.FromResult(result);
+            return result;
         }
         
         /// <summary>
         /// Разрешает конфликт в пользу клиентских данных
         /// </summary>
-        private Task<ConflictResolutionResult> ResolveWithClientData(ConflictData conflict)
+        private async Task<ConflictResolutionResult> ResolveWithClientData(ConflictData conflict)
         {
-            ConflictResolutionResult result = new ConflictResolutionResult
+            var result = new ConflictResolutionResult
             {
                 ResolvedData = conflict.ClientData,
                 Strategy = ConflictResolutionStrategy.ClientWins,
@@ -349,69 +390,90 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             };
             
             OnConflictResolved?.Invoke(conflict, result);
-            return Task.FromResult(result);
+            return result;
         }
         
         /// <summary>
         /// Разрешает конфликт, выбирая наиболее свежие данные
         /// </summary>
-        private Task<ConflictResolutionResult> ResolveWithMostRecentData(ConflictData conflict)
+        private async Task<ConflictResolutionResult> ResolveWithMostRecentData(ConflictData conflict)
         {
-            if (conflict.ClientData is ITimeStamped clientStamped && conflict.ServerData is ITimeStamped serverStamped)
+            // Для определения свежести нужны метки времени
+            // Это надо реализовывать индивидуально для каждого типа данных
+            
+            // В качестве примера, для эмоций
+            if (conflict.ClientData is EmotionData clientEmotion && conflict.ServerData is EmotionData serverEmotion)
             {
-                bool useClientData = clientStamped.Timestamp >= serverStamped.Timestamp;
+                bool useClientData = clientEmotion.LastUpdate > serverEmotion.LastUpdate;
                 
-                ConflictResolutionResult result = new ConflictResolutionResult
+                var result = new ConflictResolutionResult
                 {
-                    ResolvedData = useClientData ? conflict.ClientData : conflict.ServerData,
+                    ResolvedData = useClientData ? clientEmotion : serverEmotion,
                     Strategy = ConflictResolutionStrategy.MostRecent,
                     Success = true
                 };
                 
                 OnConflictResolved?.Invoke(conflict, result);
-                return Task.FromResult(result);
+                return result;
             }
+            
             // Если тип данных неизвестен или нет метки времени, используем серверные данные
-            return ResolveWithServerData(conflict);
+            return await ResolveWithServerData(conflict);
         }
         
         /// <summary>
-        /// Разрешает конфликт, сохраняя обе версии данных (требует ручного вмешательства или слияния)
+        /// Разрешает конфликт, сохраняя обе версии данных
         /// </summary>
-        private Task<ConflictResolutionResult> ResolveByMergingOrManual(ConflictData conflict)
+        private async Task<ConflictResolutionResult> ResolveByKeepingBoth(ConflictData conflict)
         {
             // Этот метод зависит от типа данных и требует специфической реализации
             // В данном случае, просто вызываем метод для ручного разрешения
-            return RequireManualResolution(conflict);
+            return await RequireManualResolution(conflict);
         }
         
         /// <summary>
         /// Запрашивает ручное разрешение конфликта у пользователя
         /// </summary>
-        private Task<ConflictResolutionResult> RequireManualResolution(ConflictData conflict)
+        private async Task<ConflictResolutionResult> RequireManualResolution(ConflictData conflict)
         {
+            // Добавляем конфликт в очередь для ручного разрешения
             _pendingConflicts.Enqueue(conflict);
+            
+            // Уведомляем UI о необходимости вмешательства пользователя
             OnManualResolutionRequired?.Invoke(conflict);
             OnPendingConflictsCountChanged?.Invoke(_pendingConflicts.Count);
-
-            // По умолчанию возвращаем серверные данные, т.к. решение отложено
-            ConflictResolutionResult result = new ConflictResolutionResult
+            
+            // В этом случае мы не разрешаем конфликт немедленно
+            // UI должен вызвать один из методов разрешения позже
+            
+            // По умолчанию возвращаем серверные данные
+            return new ConflictResolutionResult
             {
                 ResolvedData = conflict.ServerData,
                 Strategy = ConflictResolutionStrategy.AskUser,
-                Success = false,
+                Success = false, // Отмечаем как неуспешный, так как пользователь еще не принял решение
                 Error = "Ожидание решения пользователя"
             };
-            return Task.FromResult(result);
         }
         
         /// <summary>
-        /// Логирует информацию о конфликте (детали)
+        /// Логирует информацию о конфликте
         /// </summary>
-        private void LogConflictDetails(ConflictData conflict, ConflictResolutionStrategy strategy)
+        private void LogConflict(ConflictData conflict, ConflictResolutionStrategy strategy)
         {
-            // Метод оставлен пустым, так как логирование удалено
-            // Можно полностью удалить, если нет внешних вызовов
+            try
+            {
+                string clientJson = JsonConvert.SerializeObject(conflict.ClientData);
+                string serverJson = JsonConvert.SerializeObject(conflict.ServerData);
+                
+                MyLogger.Log($"[Конфликт] Тип: {conflict.DataType}, Стратегия: {strategy}\n" +
+                          $"Клиент: {clientJson}\n" +
+                          $"Сервер: {serverJson}", MyLogger.LogCategory.Firebase);
+            }
+            catch (Exception ex)
+            {
+                MyLogger.LogError($"Ошибка при логировании конфликта: {ex.Message}", MyLogger.LogCategory.Firebase);
+            }
         }
         
         /// <summary>
@@ -443,18 +505,25 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         /// <summary>
         /// Объединяет данные из локального и серверного источников
         /// </summary>
-        private EmotionData MergeEmotionData(EmotionData local, EmotionData server)
+        private EmotionData MergeEmotionData(EmotionData _local, EmotionData _server)
         {
-            EmotionData baseData = local.Timestamp >= server.Timestamp ? local : server;
-            EmotionData otherData = local.Timestamp >= server.Timestamp ? server : local;
+            // Создаем новый объект на основе самых последних данных
+            EmotionData baseData = _local.Timestamp >= _server.Timestamp ? _local : _server;
+            EmotionData otherData = _local.Timestamp >= _server.Timestamp ? _server : _local;
             
+            // Клонируем базовые данные
             EmotionData mergedData = baseData.Clone() as EmotionData;
             
-            if (mergedData == null) throw new InvalidOperationException("Clone returned null for EmotionData.");
-
+            // Интеллектуальное объединение значений
+            // Для числовых значений можем использовать среднее, максимум или другие стратегии
+            
+            // Для значения эмоции используем среднее
             mergedData.Value = (baseData.Value + otherData.Value) / 2f;
+            
+            // Для интенсивности берем максимальное значение
             mergedData.Intensity = Mathf.Max(baseData.Intensity, otherData.Intensity);
-
+            
+            // Для заметок объединяем, если они различаются
             if (!string.IsNullOrEmpty(otherData.Note) && !string.Equals(baseData.Note, otherData.Note))
             {
                 if (string.IsNullOrEmpty(baseData.Note))
@@ -463,6 +532,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                     mergedData.Note = $"{baseData.Note} | {otherData.Note}";
             }
             
+            // Обновляем временную метку
             mergedData.Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             
             return mergedData;
@@ -499,10 +569,5 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         public ConflictResolutionStrategy Strategy { get; set; }
         public bool Success { get; set; }
         public string Error { get; set; }
-    }
-
-    public interface ITimeStamped
-    {
-        long Timestamp { get; }
     }
 } 

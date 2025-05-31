@@ -74,7 +74,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Models
         public string Region { get; set; }
 
         [JsonProperty("isOnline")]
-        public bool IsOnline { get; set; } // This might be better managed by presence system
+        public bool IsOnline { get; set; }
 
         [JsonProperty("stats")]
         public UserStats Stats { get; set; } = new UserStats();
@@ -119,10 +119,10 @@ namespace App.Develop.CommonServices.Firebase.Database.Models
     public class CurrentEmotion
     {
         [JsonProperty("type")]
-        public string Type { get; set; } // Consider EmotionTypes
+        public string Type { get; set; }
 
         [JsonProperty("intensity")]
-        public int Intensity { get; set; } // Or float if more granular
+        public int Intensity { get; set; }
 
         [JsonProperty("timestamp")]
         public long Timestamp { get; set; }
