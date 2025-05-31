@@ -1,0 +1,47 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+1. Class structure. The order of the main blocks of class members: Fields -> Constructor -> Properties -> Methods. Within each block, we follow the order of members depending on modifiers: public -> protected -> private. Events also belong to fields (usually at the top), but some prefer to assign them to properties. 
+2. Do not put more than one space between lines.
+3. All access modifiers must always be written, except for interface members (there is no point in writing public in them, since only public members can be there).
+4. All variable names should follow camelCase notation. That is, the first word should start with a lowercase letter and each new word should start with an uppercase letter, for example: canMerge, playerMoney, name, etc.
+5. Public and protected fields are named with a capital letter (public bool CanMerge, protected string Name), and private fields are named with an underscore and a lowercase letter (private int _coins). All properties and constants are named with a capital letter regardless of the modifier.
+6. Methods, classes, interfaces, structures, and enumerations are always named with a capital letter.
+7. It is important to give each member an accurate name. If the field is plural, then the name should also be plural. For example: coins coins, coin coin.
+8. Classes, fields, and properties are usually named with nouns, and methods with verbs. Try to give the most understandable name that reflects the essence without silly abbreviations — you won't save time that way.
+9. Exceptions are methods that return a Boolean flag some of them are better named Is, Can, Has... (those that return a flag, for example, IsEmpty(), CanMerge(). I would also like to draw your attention to methods with the name Check...()—this is not a very accurate name, because such methods often have additional actions, so it is better to try to write using Is if you just want to check something and return a flag.
+10. There are also additional methods, such as bool Try... (TryBuild). So
+we name methods that may not be executed and return a flag about it.
+11. Properties - flags are similar to IsEmpty, CanMerge, etc.
+12. Events are named in the past tense (Killed), and subscriber methods
+with On... (OnKilled). But sometimes you can just sign a method without any
+On
+13. It is also worth making sure that there is no tautology. For example, the class
+is called Character and it has a method CharacterMove().
+When you call the method, you get Character.CharacterMove().
+Here, Move is enough to make the code readable and understandable
+this is often the case
+14. All if, switch, for, etc. blocks are separated from the rest by empty lines
+15. If there is a check for false, we do it like this: if(… == false), without
+using ! – this is more readable
+16. There should be blank lines between case blocks in the switch statement
+for better readability
+17. It is also worth making sure that the code does not turn into a mess without blank
+lines (indent between methods, code blocks, etc., i.e.,
+try to make the code visually structured).
+18. It is worth monitoring the adequacy of class names. GameManager/Controller
+etc. Sometimes you can use similar names for some narrow
+tasks, but more often than not, the class can be named more accurately. These names
+do not reflect the responsibility of the class
+19. There should be no magic numbers in the code. That is, if there is a
+number, it should be put into a named variable/field
+so that we understand what that number stands for. Sometimes it is permissible to
+leave 0 if it is clear from the context what this number is responsible for
+20. It is undesirable to perform calculations in the output text. In the output, we
+expect to see only the result, without additional operations.
+21. We try to remove code duplication. If there are repeating blocks of code,
+
+ we move them to methods

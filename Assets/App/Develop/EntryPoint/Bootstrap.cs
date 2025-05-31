@@ -22,7 +22,7 @@ namespace App.Develop.EntryPoint
         {
             var sceneSwitcher = container.Resolve<SceneSwitcher>();
             var auth = container.Resolve<FirebaseAuth>();
-            var databaseService = container.Resolve<DatabaseService>();
+            var databaseService = container.Resolve<IDatabaseService>();
 
             Debug.Log("🚀 [BOOTSTRAP-FORCE] Запуск Bootstrap...");
             MyLogger.Log("🚀 Запуск Bootstrap...", MyLogger.LogCategory.Bootstrap);

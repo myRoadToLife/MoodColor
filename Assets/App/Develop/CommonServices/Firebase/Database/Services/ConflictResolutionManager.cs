@@ -47,7 +47,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         
         #region Приватные поля
         
-        private readonly DatabaseService _databaseService;
+        private readonly IDatabaseService _databaseService;
         private readonly EmotionSyncSettings _syncSettings;
         private readonly Queue<ConflictData> _pendingConflicts = new Queue<ConflictData>();
         private bool _isProcessingConflicts = false;
@@ -57,7 +57,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         
         #region Конструктор
         
-        public ConflictResolutionManager(DatabaseService databaseService, EmotionSyncSettings syncSettings)
+        public ConflictResolutionManager(IDatabaseService databaseService, EmotionSyncSettings syncSettings)
         {
             _databaseService = databaseService ?? throw new ArgumentNullException(nameof(databaseService));
             _syncSettings = syncSettings ?? throw new ArgumentNullException(nameof(syncSettings));

@@ -25,7 +25,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services // Namespace adj
         [SerializeField] private Button _cancelButton;              // Кнопка отмены
 
         // --- Зависимости ---
-        private DatabaseService _databaseService;
+        private IDatabaseService _databaseService;
 
         // --- Внутренние переменные ---
         private EmotionTypes _selectedEmotionType;
@@ -40,10 +40,10 @@ namespace App.Develop.CommonServices.Firebase.Database.Services // Namespace adj
         /// </summary>
         public void Inject(DIContainer container)
         {
-            _databaseService = container.Resolve<DatabaseService>();
+            _databaseService = container.Resolve<IDatabaseService>();
             if (_databaseService == null)
             {
-                throw new InvalidOperationException("DatabaseService not resolved in EmotionSelectionManager.");
+                throw new InvalidOperationException("IDatabaseService not resolved in EmotionSelectionManager.");
             }
         }
 
@@ -125,7 +125,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services // Namespace adj
                 };
 
                 // 2. Сохраняем запись об эмоции в Firebase
-                await _databaseService.AddEmotion(emotionData);
+                await _databaseService.UpdateUserEmotion(emotionData);
 
                 // 3. Обновляем текущую эмоцию пользователя
                 await _databaseService.UpdateCurrentEmotion(emotionData.Type, emotionData.Intensity);
@@ -134,7 +134,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services // Namespace adj
                 await _databaseService.UpdateJarAmount(emotionData.Type, AMOUNT_PER_EMOTION);
 
                 // 5. Начисляем очки пользователю
-                await _databaseService.AddPointsToProfile(POINTS_PER_EMOTION);
+                await _databaseService.UpdateUserProfileField("totalPoints", POINTS_PER_EMOTION);
 
                 // Скрываем панель выбора
                 if (_intensitySelectionPanel != null)

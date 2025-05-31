@@ -8,12 +8,12 @@ using App.Develop.CommonServices.Emotion;
 namespace App.Develop.CommonServices.Firebase.Database.Services
 {
     /// <summary>
-    /// Интерфейс сервиса для работы с эмоциями в базе данных Firebase
+    /// Интерфейс сервиса для работы с эмоциями в Firebase Database
     /// </summary>
     public interface IEmotionDatabaseService
     {
         /// <summary>
-        /// Получает текущие эмоции пользователя
+        /// Получает все эмоции пользователя
         /// </summary>
         Task<Dictionary<string, EmotionData>> GetUserEmotions();
         
@@ -38,7 +38,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         Task AddEmotionHistoryRecord(EmotionData emotion, EmotionEventType eventType);
         
         /// <summary>
-        /// Пакетное добавление записей в историю эмоций
+        /// Пакетное добавление записей в историю
         /// </summary>
         Task AddEmotionHistoryBatch(List<EmotionHistoryRecord> records);
         
@@ -88,7 +88,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         Task UpdateSyncSettings(EmotionSyncSettings settings);
         
         /// <summary>
-        /// Очищает всю историю эмоций в облаке
+        /// Очищает историю эмоций пользователя
         /// </summary>
         Task ClearEmotionHistory();
     }

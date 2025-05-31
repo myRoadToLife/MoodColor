@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using App.Develop.CommonServices.Firebase.Auth.Models;
 using App.Develop.CommonServices.Firebase.Database.Services;
 using App.Develop.CommonServices.Firebase.Database.Models;
 using Firebase;
@@ -12,25 +13,41 @@ using UnityEngine;
 using App.Develop.CommonServices.Firebase.Common.SecureStorage;
 using App.Develop.Utils.Logging;
 using Google;
+using UserProfile = App.Develop.CommonServices.Firebase.Database.Models.UserProfile;
 
 namespace App.Develop.CommonServices.Firebase.Auth.Services
 {
+    /// <summary>
+    /// Сервис аутентификации Firebase
+    /// </summary>
     public class AuthService : IAuthService
     {
         private readonly FirebaseAuth _auth;
-        private readonly DatabaseService _databaseService;
+        private readonly IDatabaseService _databaseService;
         private readonly ValidationService _validationService;
         private Dictionary<string, DateTime> _lastEmailSentTime = new Dictionary<string, DateTime>();
         private const int MIN_EMAIL_INTERVAL_SECONDS = 60; // 1 минута между письмами
 
+        // Конструктор с параметрами для FirebaseAuth и DatabaseService
         public AuthService(
-            FirebaseAuth auth,
-            DatabaseService databaseService,
+            FirebaseAuth auth, 
+            IDatabaseService databaseService,
             ValidationService validationService)
         {
-            _auth = auth ?? throw new ArgumentNullException(nameof(auth));
-            _databaseService = databaseService ?? throw new ArgumentNullException(nameof(databaseService));
-            _validationService = validationService ?? throw new ArgumentNullException(nameof(validationService));
+            _auth = auth;
+            _databaseService = databaseService;
+            _validationService = validationService;
+            
+            if (_auth == null)
+            {
+                throw new ArgumentNullException(nameof(auth), "Auth is null!");
+            }
+            if (_databaseService == null)
+            {
+                throw new ArgumentNullException(nameof(databaseService), "DatabaseService is null!");
+            }
+            
+            MyLogger.Log("✅ AuthService инициализирован", MyLogger.LogCategory.Firebase);
         }
 
         public async Task<(bool success, string error)> RegisterUser(string email, string password)
@@ -45,7 +62,17 @@ namespace App.Develop.CommonServices.Firebase.Auth.Services
                 }
 
                 _databaseService.UpdateUserId(result.User.UserId);
-                await _databaseService.CreateNewUser(result.User.UserId, email);
+
+                // Создаем объект профиля пользователя
+                var userProfile = new UserProfile
+                {
+                    Email = email,
+                    CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                    LastActive = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                };
+
+                // Вызываем CreateUserProfile с правильными параметрами
+                await _databaseService.CreateUserProfile(userProfile, result.User.UserId);
 
                 try
                 {

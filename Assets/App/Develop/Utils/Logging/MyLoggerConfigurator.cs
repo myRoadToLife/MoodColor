@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System;
 
 namespace App.Develop.Utils.Logging
 {
@@ -50,7 +51,18 @@ namespace App.Develop.Utils.Logging
                 _instance = this;
                 DontDestroyOnLoad(gameObject);
                 Debug.Log("[MyLoggerConfigurator] Инициализация...");
-                ApplyLogSettings();
+
+                // ВРЕМЕННО: Принудительно включаем все логи для диагностики
+                MyLogger.IsDebugLoggingEnabled = true;
+                MyLogger.IsWarningLoggingEnabled = true;
+                MyLogger.IsErrorLoggingEnabled = true;
+                foreach (MyLogger.LogCategory category in Enum.GetValues(typeof(MyLogger.LogCategory)))
+                {
+                    MyLogger.SetCategoryEnabled(category, true);
+                }
+                Debug.Log("[MyLoggerConfigurator] ВРЕМЕННО: Все логи принудительно включены для диагностики.");
+
+                ApplyLogSettings(); // Теперь применяем настройки из инспектора (они могут снова что-то отключить)
             }
             else
             {

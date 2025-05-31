@@ -9,7 +9,13 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
     /// <summary>
     /// Интерфейс базового сервиса для работы с Firebase Realtime Database
     /// </summary>
-    public interface IDatabaseService : IEmotionDatabaseService, IUserProfileDatabaseService
+    public interface IDatabaseService : 
+        IEmotionDatabaseService, 
+        IUserProfileDatabaseService, 
+        IJarDatabaseService, 
+        IGameDataDatabaseService, 
+        ISessionManagementService, 
+        IBackupDatabaseService
     {
         /// <summary>
         /// Ссылка на корень базы данных
@@ -137,5 +143,10 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         /// <param name="deviceId">ID устройства</param>
         /// <returns>True, если сессия успешно обновлена</returns>
         Task<bool> UpdateActiveSession(string deviceId);
+        
+        /// <summary>
+        /// Событие изменения ID пользователя
+        /// </summary>
+        event Action<string> UserIdChanged;
     }
 } 
