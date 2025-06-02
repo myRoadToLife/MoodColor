@@ -7,7 +7,9 @@ namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Base
     {
         protected virtual void OnValidate()
         {
+#if UNITY_EDITOR
             ValidateReferences();
+#endif
         }
 
         protected virtual void ValidateReferences() { }

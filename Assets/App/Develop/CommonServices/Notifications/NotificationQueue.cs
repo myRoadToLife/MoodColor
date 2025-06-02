@@ -23,10 +23,10 @@ namespace App.Develop.CommonServices.Notifications
         // Максимальное количество уведомлений в очереди
         private int _maxQueueSize = 100;
 
-        // Ссылка на NotificationManager
-        private NotificationManager _notificationManager;
+        // Ссылка на INotificationManager
+        private INotificationManager _notificationManager;
         
-        public NotificationQueue(NotificationManager notificationManager, int processingInterval = 5000, int maxQueueSize = 100)
+        public NotificationQueue(INotificationManager notificationManager, int processingInterval = 5000, int maxQueueSize = 100)
         {
             _notificationManager = notificationManager;
             _processingInterval = processingInterval;

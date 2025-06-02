@@ -15,7 +15,8 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         IJarDatabaseService, 
         IGameDataDatabaseService, 
         ISessionManagementService, 
-        IBackupDatabaseService
+        IBackupDatabaseService,
+        IRegionalDatabaseService
     {
         /// <summary>
         /// Ссылка на корень базы данных

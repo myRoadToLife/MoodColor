@@ -48,10 +48,9 @@ namespace App.Develop.CommonServices.Notifications
         
         private void Awake()
         {
-            if (NotificationManager.Instance != null)
-            {
-                DontDestroyOnLoad(gameObject);
-            }
+            // В новой архитектуре жизненный цикл сервиса управляется через DI контейнер
+            // Убираем зависимость от старого Singleton NotificationManager
+            DontDestroyOnLoad(gameObject);
         }
         
         private void OnDestroy()

@@ -14,5 +14,11 @@
   },
   "search.exclude": {
     "**/*.meta": true
-  }
+  },
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit",
+    "source.fixAll": "explicit"
+  },
+  "editor.formatOnPaste": true
 } 

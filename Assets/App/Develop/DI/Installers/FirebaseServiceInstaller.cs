@@ -10,6 +10,7 @@ using App.Develop.CommonServices.Firebase.RemoteConfig.Services;
 using App.Develop.CommonServices.Firebase;
 using App.Develop.CommonServices.Firebase.Auth;
 using App.Develop.DI;
+using App.Develop.DI.Installers;
 using Firebase.Auth;
 using Firebase.Database;
 using UnityEngine;
@@ -30,20 +31,22 @@ namespace App.Develop.DI.Installers
         {
             try
             {
+                MyLogger.Log("🔧 Регистрация Firebase Services...", MyLogger.LogCategory.Bootstrap);
+
                 // Регистрируем сервисы базы данных
                 RegisterDatabaseServices(container);
-                
+
                 // Регистрируем остальные сервисы
                 RegisterAuthServices(container);
                 RegisterAnalyticsServices(container);
                 RegisterMessagingServices(container);
                 RegisterRemoteConfigServices(container);
-                
+
                 // Регистрируем главный фасад в последнюю очередь,
                 // так как он зависит от всех остальных сервисов
                 RegisterFirebaseServiceFacade(container);
-                
-                MyLogger.Log("✅ Firebase Services успешно зарегистрированы", MyLogger.LogCategory.Bootstrap);
+
+                MyLogger.Log("✅ Firebase Services зарегистрированы", MyLogger.LogCategory.Bootstrap);
             }
             catch (Exception ex)
             {
@@ -67,7 +70,7 @@ namespace App.Develop.DI.Installers
                         c.Resolve<DataValidationService>()
                     )
                 ).NonLazy();
-                
+
                 container.RegisterAsSingle<IJarDatabaseService>(c =>
                     new JarDatabaseService(
                         c.Resolve<DatabaseReference>(),
@@ -75,7 +78,7 @@ namespace App.Develop.DI.Installers
                         c.Resolve<DataValidationService>()
                     )
                 ).NonLazy();
-                
+
                 container.RegisterAsSingle<IGameDataDatabaseService>(c =>
                     new GameDataDatabaseService(
                         c.Resolve<DatabaseReference>(),
@@ -83,7 +86,7 @@ namespace App.Develop.DI.Installers
                         c.Resolve<DataValidationService>()
                     )
                 ).NonLazy();
-                
+
                 container.RegisterAsSingle<ISessionManagementService>(c =>
                     new SessionManagementService(
                         c.Resolve<DatabaseReference>(),
@@ -91,7 +94,7 @@ namespace App.Develop.DI.Installers
                         c.Resolve<DataValidationService>()
                     )
                 ).NonLazy();
-                
+
                 container.RegisterAsSingle<IBackupDatabaseService>(c =>
                     new BackupDatabaseService(
                         c.Resolve<DatabaseReference>(),
@@ -99,7 +102,7 @@ namespace App.Develop.DI.Installers
                         c.Resolve<DataValidationService>()
                     )
                 ).NonLazy();
-                
+
                 container.RegisterAsSingle<IEmotionDatabaseService>(c =>
                     new EmotionDatabaseService(
                         c.Resolve<DatabaseReference>(),
@@ -107,7 +110,15 @@ namespace App.Develop.DI.Installers
                         c.Resolve<DataValidationService>()
                     )
                 ).NonLazy();
-                
+
+                container.RegisterAsSingle<IRegionalDatabaseService>(c =>
+                    new RegionalDatabaseService(
+                        c.Resolve<DatabaseReference>(),
+                        c.Resolve<FirebaseCacheManager>(),
+                        c.Resolve<DataValidationService>()
+                    )
+                ).NonLazy();
+
                 // Регистрируем фасад, который реализует старый интерфейс
                 container.RegisterAsSingle<IDatabaseService>(c =>
                     new DatabaseServiceFacade(
@@ -119,15 +130,16 @@ namespace App.Develop.DI.Installers
                         (GameDataDatabaseService)c.Resolve<IGameDataDatabaseService>(),
                         (SessionManagementService)c.Resolve<ISessionManagementService>(),
                         (BackupDatabaseService)c.Resolve<IBackupDatabaseService>(),
-                        (EmotionDatabaseService)c.Resolve<IEmotionDatabaseService>()
+                        (EmotionDatabaseService)c.Resolve<IEmotionDatabaseService>(),
+                        (RegionalDatabaseService)c.Resolve<IRegionalDatabaseService>()
                     )
                 ).NonLazy();
-                
+
                 // Регистрируем EmotionHistoryCache
                 container.RegisterAsSingle<EmotionHistoryCache>(c =>
                     new EmotionHistoryCache(c.Resolve<FirebaseCacheManager>())
                 ).NonLazy();
-                
+
                 MyLogger.Log("✅ Database Services успешно зарегистрированы", MyLogger.LogCategory.Bootstrap);
             }
             catch (Exception ex)
@@ -136,7 +148,7 @@ namespace App.Develop.DI.Installers
                 throw;
             }
         }
-        
+
         /// <summary>
         /// Регистрирует сервисы аутентификации Firebase
         /// </summary>
@@ -146,7 +158,7 @@ namespace App.Develop.DI.Installers
             {
                 // Сервис валидации
                 container.RegisterAsSingle<ValidationService>(c => new ValidationService()).NonLazy();
-                
+
                 // Создаем сервисы аутентификации через фабричные методы
                 container.RegisterAsSingle<IAuthService>(c =>
                     new AuthService(
@@ -155,7 +167,7 @@ namespace App.Develop.DI.Installers
                         c.Resolve<ValidationService>()
                     )
                 ).NonLazy();
-                
+
                 // AuthStateService создаем после регистрации authService
                 container.RegisterAsSingle<IAuthStateService>(c =>
                     new AuthStateService(
@@ -163,7 +175,7 @@ namespace App.Develop.DI.Installers
                         c.Resolve<IAuthService>()
                     )
                 ).NonLazy();
-                
+
                 // Регистрируем AuthManager как обычный сервис, а не MonoBehaviour
                 container.RegisterAsSingle<IAuthManager>(c =>
                 {
@@ -171,14 +183,14 @@ namespace App.Develop.DI.Installers
                     authManager.Inject(c);
                     return authManager;
                 }).NonLazy();
-                
+
                 // Сервис профиля пользователя
                 container.RegisterAsSingle<UserProfileService>(c =>
                     new UserProfileService(
                         c.Resolve<IDatabaseService>()
                     )
                 ).NonLazy();
-                
+
                 MyLogger.Log("✅ Auth Services успешно зарегистрированы", MyLogger.LogCategory.Bootstrap);
             }
             catch (Exception ex)
@@ -187,7 +199,7 @@ namespace App.Develop.DI.Installers
                 throw;
             }
         }
-        
+
         /// <summary>
         /// Регистрирует сервисы Firebase Analytics
         /// </summary>
@@ -197,7 +209,7 @@ namespace App.Develop.DI.Installers
             {
                 var analyticsService = new FirebaseAnalyticsService();
                 container.RegisterAsSingle<IFirebaseAnalyticsService>(c => analyticsService).NonLazy();
-                
+
                 MyLogger.Log("✅ Analytics Service успешно зарегистрирован", MyLogger.LogCategory.Bootstrap);
             }
             catch (Exception ex)
@@ -206,7 +218,7 @@ namespace App.Develop.DI.Installers
                 throw;
             }
         }
-        
+
         /// <summary>
         /// Регистрирует сервисы Firebase Cloud Messaging
         /// </summary>
@@ -216,10 +228,10 @@ namespace App.Develop.DI.Installers
             {
                 var messagingService = new FirebaseMessagingService();
                 container.RegisterAsSingle<IFirebaseMessagingService>(c => messagingService).NonLazy();
-                
+
                 // Инициализируем сервис
                 messagingService.Initialize();
-                
+
                 MyLogger.Log("✅ Messaging Service успешно зарегистрирован", MyLogger.LogCategory.Bootstrap);
             }
             catch (Exception ex)
@@ -228,7 +240,7 @@ namespace App.Develop.DI.Installers
                 throw;
             }
         }
-        
+
         /// <summary>
         /// Регистрирует сервисы Firebase Remote Config
         /// </summary>
@@ -238,7 +250,7 @@ namespace App.Develop.DI.Installers
             {
                 var remoteConfigService = new FirebaseRemoteConfigService();
                 container.RegisterAsSingle<IFirebaseRemoteConfigService>(c => remoteConfigService).NonLazy();
-                
+
                 // Инициализируем сервис с значениями по умолчанию
                 var defaultValues = new Dictionary<string, object>
                 {
@@ -247,15 +259,16 @@ namespace App.Develop.DI.Installers
                     { "analytics_enabled", true },
                     { "debug_logging_enabled", false }
                 };
-                
+
                 remoteConfigService.Initialize(defaultValues);
-                
+
                 // Асинхронно загружаем конфигурацию после инициализации приложения
-                if (Application.isPlaying)
+                // Только если это не режим разработки или если явно разрешено
+                if (Application.isPlaying && ShouldFetchRemoteConfig())
                 {
                     remoteConfigService.FetchAndActivateAsync().ConfigureAwait(false);
                 }
-                
+
                 MyLogger.Log("✅ Remote Config Service успешно зарегистрирован", MyLogger.LogCategory.Bootstrap);
             }
             catch (Exception ex)
@@ -264,7 +277,27 @@ namespace App.Develop.DI.Installers
                 throw;
             }
         }
-        
+
+        /// <summary>
+        /// Определяет, следует ли загружать Remote Config
+        /// </summary>
+        private bool ShouldFetchRemoteConfig()
+        {
+            // В режиме разработки можно отключить Remote Config для ускорения запуска
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+            // Можно добавить дополнительную логику или настройки здесь
+            // Например, проверить PlayerPrefs или конфигурационный файл
+            bool disableRemoteConfigInDev = UnityEngine.PlayerPrefs.GetInt("DisableRemoteConfigInDev", 0) == 1;
+            if (disableRemoteConfigInDev)
+            {
+                MyLogger.Log("🔧 [RemoteConfig] Отключен в режиме разработки", MyLogger.LogCategory.Bootstrap);
+                return false;
+            }
+#endif
+
+            return true;
+        }
+
         /// <summary>
         /// Регистрирует главный фасад Firebase сервисов
         /// </summary>
@@ -282,7 +315,7 @@ namespace App.Develop.DI.Installers
                         c.Resolve<IFirebaseRemoteConfigService>()
                     )
                 ).NonLazy();
-                
+
                 MyLogger.Log("✅ Firebase Service Facade успешно зарегистрирован", MyLogger.LogCategory.Bootstrap);
             }
             catch (Exception ex)
@@ -292,4 +325,4 @@ namespace App.Develop.DI.Installers
             }
         }
     }
-} 
+}

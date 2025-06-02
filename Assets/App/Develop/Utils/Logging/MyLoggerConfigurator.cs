@@ -35,13 +35,13 @@ namespace App.Develop.Utils.Logging
         [Tooltip("Configure which log categories are enabled. Categories not listed here will retain their default state defined in MyLogger.")]
         [SerializeField] private List<CategorySettingEntry> _categorySettings = new List<CategorySettingEntry>
         {
-            new CategorySettingEntry { category = MyLogger.LogCategory.Firebase, enabled = false },
-            new CategorySettingEntry { category = MyLogger.LogCategory.Bootstrap, enabled = false },
-            new CategorySettingEntry { category = MyLogger.LogCategory.Sync, enabled = false },
-            new CategorySettingEntry { category = MyLogger.LogCategory.ClearHistory, enabled = false },
-            new CategorySettingEntry { category = MyLogger.LogCategory.UI, enabled = false },
-            new CategorySettingEntry { category = MyLogger.LogCategory.Emotion, enabled = false },
-            new CategorySettingEntry { category = MyLogger.LogCategory.Default, enabled = false }
+            new CategorySettingEntry { category = MyLogger.LogCategory.Firebase, enabled = true },
+            new CategorySettingEntry { category = MyLogger.LogCategory.Bootstrap, enabled = true },
+            new CategorySettingEntry { category = MyLogger.LogCategory.Sync, enabled = true },
+            new CategorySettingEntry { category = MyLogger.LogCategory.ClearHistory, enabled = true },
+            new CategorySettingEntry { category = MyLogger.LogCategory.UI, enabled = true },
+            new CategorySettingEntry { category = MyLogger.LogCategory.Emotion, enabled = true },
+            new CategorySettingEntry { category = MyLogger.LogCategory.Default, enabled = true }
         };
 
         void Awake()
@@ -62,7 +62,8 @@ namespace App.Develop.Utils.Logging
                 }
                 Debug.Log("[MyLoggerConfigurator] ВРЕМЕННО: Все логи принудительно включены для диагностики.");
 
-                ApplyLogSettings(); // Теперь применяем настройки из инспектора (они могут снова что-то отключить)
+                // Временно не применяем настройки из инспектора, чтобы не перетереть диагностическое логирование
+                // ApplyLogSettings(); // ЗАКОММЕНТИРОВАНО для диагностики
             }
             else
             {

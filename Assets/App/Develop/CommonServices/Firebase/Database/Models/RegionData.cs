@@ -10,8 +10,8 @@ namespace App.Develop.CommonServices.Firebase.Database.Models
         [JsonProperty("name")]
         public string Name { get; set; }
 
-        [JsonProperty("center")]
-        public GeoPoint Center { get; set; }
+        [JsonProperty("location")]
+        public GeoLocation Location { get; set; }
 
         [JsonProperty("radius")]
         public float Radius { get; set; }
@@ -21,7 +21,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Models
     }
 
     [Serializable]
-    public class GeoPoint
+    public class GeoLocation
     {
         [JsonProperty("latitude")]
         public double Latitude { get; set; }
@@ -29,7 +29,11 @@ namespace App.Develop.CommonServices.Firebase.Database.Models
         [JsonProperty("longitude")]
         public double Longitude { get; set; }
 
-        public GeoPoint(double latitude, double longitude)
+        public GeoLocation()
+        {
+        }
+
+        public GeoLocation(double latitude, double longitude)
         {
             Latitude = latitude;
             Longitude = longitude;

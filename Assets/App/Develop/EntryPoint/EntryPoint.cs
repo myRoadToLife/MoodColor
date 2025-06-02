@@ -34,6 +34,7 @@ using App.Develop.Scenes.PersonalAreaScene.Handlers;
 using App.Develop.Utils.Logging;
 using UnityEngine.AddressableAssets;
 using App.Develop.DI.Installers;
+using App.Develop.Configs;
 
 #if !DISABLE_AUTO_ADDRESSABLES_IMPORT
 using UnityEngine.AddressableAssets;
@@ -47,17 +48,16 @@ namespace App.Develop.EntryPoint
     public class EntryPoint : MonoBehaviour
     {
         [SerializeField] private Bootstrap _appBootstrap;
-        private const string DATABASE_URL = "https://moodcolor-3ac59-default-rtdb.firebaseio.com/";
-        private const string FIREBASE_APP_NAME = "MoodColorApp"; // Имя для кастомного экземпляра Firebase
-
+        [SerializeField] private ApplicationConfig _applicationConfig;
+        
         private DIContainer _projectContainer;
         private FirebaseApp _firebaseApp; // Храним ссылку на наш экземпляр Firebase
         private FirebaseDatabase _firebaseDatabase; // Храним ссылку на базу данных
 
         private void Awake()
         {
-            // MyLogger.Log("🚀 EntryPoint.Awake(, MyLogger.LogCategory.Bootstrap) вызван");
-            // DontDestroyOnLoad(gameObject); // ВРЕМЕННО ЗАКОММЕНТИРОВАТЬ
+            MyLogger.Log("🚀 EntryPoint.Awake() вызван", MyLogger.LogCategory.Bootstrap);
+            DontDestroyOnLoad(gameObject); // РАСКОММЕНТИРОВАНО для исправления
             InitializeApplication();
         }
 
@@ -68,29 +68,29 @@ namespace App.Develop.EntryPoint
         {
             try
             {
-                // MyLogger.Log("📦 Инициализация Addressables...", MyLogger.LogCategory.Bootstrap);
+                MyLogger.Log("📦 Инициализация Addressables...", MyLogger.LogCategory.Bootstrap);
                 await Addressables.InitializeAsync().Task;
                 
-                // MyLogger.Log("⚙️ Настройка приложения...", MyLogger.LogCategory.Bootstrap);
+                MyLogger.Log("⚙️ Настройка приложения...", MyLogger.LogCategory.Bootstrap);
                 SetupAppSettings();
                 _projectContainer = new DIContainer();
                 InitializeSecureStorage(_projectContainer);
                 
-                // MyLogger.Log("🔧 Регистрация основных сервисов...", MyLogger.LogCategory.Bootstrap);
+                MyLogger.Log("🔧 Регистрация основных сервисов...", MyLogger.LogCategory.Bootstrap);
                 await RegisterCoreServices(_projectContainer);
                 ShowInitialLoadingScreen();
 
-                // MyLogger.Log("🔥 Инициализация Firebase...", MyLogger.LogCategory.Bootstrap);
+                MyLogger.Log("🔥 Инициализация Firebase...", MyLogger.LogCategory.Bootstrap);
                 if (!await InitFirebaseAsync())
                 {
                     MyLogger.LogError("❌ Не удалось инициализировать Firebase", MyLogger.LogCategory.Bootstrap);
                     return;
                 }
 
-                // MyLogger.Log("🔥 Регистрация Firebase сервисов...", MyLogger.LogCategory.Bootstrap);
+                MyLogger.Log("🔥 Регистрация Firebase сервисов...", MyLogger.LogCategory.Bootstrap);
                 RegisterFirebaseServices();
 
-                // MyLogger.Log("🔄 Регистрация сервиса синхронизации с облаком...", MyLogger.LogCategory.Bootstrap);
+                MyLogger.Log("🔄 Регистрация сервиса синхронизации с облаком...", MyLogger.LogCategory.Bootstrap);
                 _projectContainer.RegisterAsSingle<ICloudSyncService>(c =>
                     new CloudSyncService(
                         c.Resolve<ISaveLoadService>(),
@@ -98,7 +98,7 @@ namespace App.Develop.EntryPoint
                     )
                 ).NonLazy();
 
-                // MyLogger.Log("👤 Регистрация PlayerDataProvider...", MyLogger.LogCategory.Bootstrap);
+                MyLogger.Log("👤 Регистрация PlayerDataProvider...", MyLogger.LogCategory.Bootstrap);
                 _projectContainer.RegisterAsSingle(c =>
                     new PlayerDataProvider(
                         c.Resolve<ISaveLoadService>(),
@@ -107,16 +107,16 @@ namespace App.Develop.EntryPoint
                     )
                 );
 
-                // MyLogger.Log("🎮 Регистрация игровой системы...", MyLogger.LogCategory.Bootstrap);
+                MyLogger.Log("🎮 Регистрация игровой системы...", MyLogger.LogCategory.Bootstrap);
                 RegisterGameSystem(_projectContainer);
                 
-                // MyLogger.Log("📊 Инициализация контейнера и загрузка данных...", MyLogger.LogCategory.Bootstrap);
+                MyLogger.Log("📊 Инициализация контейнера и загрузка данных...", MyLogger.LogCategory.Bootstrap);
                 await InitializeContainerAndLoadData();
                 
-                // MyLogger.Log("🚀 Запуск Bootstrap...", MyLogger.LogCategory.Bootstrap);
+                MyLogger.Log("🚀 Запуск Bootstrap...", MyLogger.LogCategory.Bootstrap);
                 StartBootstrapProcess();
                 
-                // MyLogger.Log("✅ Приложение инициализировано успешно", MyLogger.LogCategory.Bootstrap);
+                MyLogger.Log("✅ Приложение инициализировано успешно", MyLogger.LogCategory.Bootstrap);
             }
             catch (Exception ex)
             {
@@ -130,8 +130,20 @@ namespace App.Develop.EntryPoint
         /// </summary>
         private void SetupAppSettings()
         {
-            QualitySettings.vSyncCount = 0;
-            Application.targetFrameRate = 60;
+            if (_applicationConfig != null)
+            {
+                QualitySettings.vSyncCount = _applicationConfig.EnableVSync ? 1 : 0;
+                Application.targetFrameRate = _applicationConfig.TargetFrameRate;
+                
+                MyLogger.Log($"⚙️ Настройки приложения: FPS={_applicationConfig.TargetFrameRate}, VSync={_applicationConfig.EnableVSync}", MyLogger.LogCategory.Bootstrap);
+            }
+            else
+            {
+                // Fallback значения
+                QualitySettings.vSyncCount = 0;
+                Application.targetFrameRate = 60;
+                MyLogger.LogWarning("ApplicationConfig не назначен, используются значения по умолчанию", MyLogger.LogCategory.Bootstrap);
+            }
         }
 
         /// <summary>
@@ -150,10 +162,13 @@ namespace App.Develop.EntryPoint
         {
             try
             {
+                string databaseUrl = _applicationConfig?.DatabaseUrl ?? "https://moodcolor-3ac59-default-rtdb.firebaseio.com/";
+                string firebaseAppName = _applicationConfig?.FirebaseAppName ?? "MoodColorApp";
+                
                 // Удаляем все существующие экземпляры с нашим именем, если они есть
                 try
                 {
-                    var existingApp = FirebaseApp.GetInstance(FIREBASE_APP_NAME);
+                    var existingApp = FirebaseApp.GetInstance(firebaseAppName);
                     if (existingApp != null)
                     {
                         existingApp.Dispose();
@@ -179,15 +194,16 @@ namespace App.Develop.EntryPoint
                 // Создаем кастомный экземпляр Firebase с нашим URL
                 var options = new Firebase.AppOptions
                 {
-                    DatabaseUrl = new Uri(DATABASE_URL)
+                    DatabaseUrl = new Uri(databaseUrl)
                 };
 
-                _firebaseApp = FirebaseApp.Create(options, FIREBASE_APP_NAME);
+                _firebaseApp = FirebaseApp.Create(options, firebaseAppName);
 
                 // Создаем экземпляр базы данных с нашим Firebase App и URL
-                _firebaseDatabase = FirebaseDatabase.GetInstance(_firebaseApp, DATABASE_URL);
+                _firebaseDatabase = FirebaseDatabase.GetInstance(_firebaseApp, databaseUrl);
                 _firebaseDatabase.SetPersistenceEnabled(true);
 
+                MyLogger.Log($"✅ Firebase инициализирован: {databaseUrl}", MyLogger.LogCategory.Bootstrap);
                 return true;
             }
             catch (Exception ex)
@@ -398,64 +414,46 @@ namespace App.Develop.EntryPoint
         {
             try
             {
-                container.RegisterAsSingle<IAssetLoader>(c => new AddressablesLoader()).NonLazy();
-                container.RegisterAsSingle<ICoroutinePerformer>(c => CoroutinePerformerFactory.Create());
-
-                container.RegisterAsSingle<ILoadingScreen>(c =>
+                MyLogger.Log("🔧 Регистрация сервисов через installer'ы...", MyLogger.LogCategory.Bootstrap);
+                
+                // Создаем менеджер installer'ов
+                var installerManager = new ServiceInstallerManager();
+                
+                // Добавляем installer'ы в правильном порядке
+                installerManager.AddInstaller(new CoreServicesInstaller());
+                installerManager.AddInstaller(new UIServicesInstaller());
+                installerManager.AddInstaller(new NotificationInstaller());
+                installerManager.AddInstaller(new EventsInstaller());
+                // installerManager.AddInstaller(new PersonalAreaInstaller()); // Временно отключено
+                
+                // Добавляем ApplicationServicesInstaller если конфигурация доступна
+                if (_applicationConfig != null)
                 {
-                    var assetLoader = c.Resolve<IAssetLoader>();
-                    var go = new GameObject("LoadingScreenService");
-                    DontDestroyOnLoad(go);
-                    var loadingScreenComponent = go.AddComponent<LoadingScreen>();
-                    loadingScreenComponent.Initialize(assetLoader, AssetAddresses.LoadingScreen);
-                    go.SetActive(false);
-                    return loadingScreenComponent;
-                }).NonLazy();
-
-                container.RegisterAsSingle<ISceneLoader>(c => new SceneLoader());
-
-                container.RegisterAsSingle(c =>
-                    new SceneSwitcher(
-                        c.Resolve<ICoroutinePerformer>(),
-                        c.Resolve<ILoadingScreen>(),
-                        c.Resolve<ISceneLoader>(),
-                        c
-                    )
-                );
-
-                container.RegisterAsSingle<UIFactory>(c =>
-                    new UIFactory(
-                        c.Resolve<IAssetLoader>(),
-                        new MonoFactory(c)
-                    )
-                ).NonLazy();
-
-                container.RegisterAsSingle<ISaveLoadService>(c =>
-                    new SaveLoadService(new JsonSerializer(), new LocalDataRepository())
-                );
-
-                container.RegisterAsSingle<IConfigsProvider>(c =>
-                    new ConfigsProviderService(c.Resolve<IAssetLoader>())
-                ).NonLazy();
-
-                container.RegisterAsSingle<EmotionConfigService>(c =>
-                    new EmotionConfigService(c.Resolve<IAssetLoader>())
-                ).NonLazy();
-
-                container.RegisterAsSingle(c =>
-                    new PanelManager(
-                        c.Resolve<IAssetLoader>(),
-                        new MonoFactory(c)
-                    )
-                ).NonLazy();
-
-                RegisterNotificationSystem(container);
+                    installerManager.AddInstaller(new ApplicationServicesInstaller(_applicationConfig));
+                }
                 
-                // Регистрируем ConnectivityManager
-                container.RegisterAsSingle<ConnectivityManager>(c =>
-                    new ConnectivityManager(c.Resolve<ICoroutinePerformer>())
-                ).NonLazy();
+                // Регистрируем все сервисы
+                installerManager.RegisterAllServices(container);
                 
+                // Регистрируем дополнительные сервисы, которые пока не перенесены в installer'ы
+                RegisterAdditionalServices(container);
+                
+                MyLogger.Log("✅ Все основные сервисы зарегистрированы", MyLogger.LogCategory.Bootstrap);
+            }
+            catch (Exception ex)
+            {
+                MyLogger.LogError($"❌ Ошибка регистрации базовых сервисов: {ex}", MyLogger.LogCategory.Bootstrap);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Регистрирует дополнительные сервисы, которые пока не перенесены в installer'ы
+        /// </summary>
+        private void RegisterAdditionalServices(DIContainer container)
+        {
+            try
+            {
                 // Регистрируем EmotionSyncService как GameObject компонент
                 container.RegisterAsSingle<EmotionSyncService>(c =>
                 {
@@ -464,10 +462,12 @@ namespace App.Develop.EntryPoint
                     var syncService = syncServiceObject.AddComponent<EmotionSyncService>();
                     return syncService;
                 }).NonLazy();
+                
+                MyLogger.Log("✅ Дополнительные сервисы зарегистрированы", MyLogger.LogCategory.Bootstrap);
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"❌ Ошибка регистрации базовых сервисов: {ex}", MyLogger.LogCategory.Bootstrap);
+                MyLogger.LogError($"❌ Ошибка регистрации дополнительных сервисов: {ex.Message}", MyLogger.LogCategory.Bootstrap);
                 throw;
             }
         }

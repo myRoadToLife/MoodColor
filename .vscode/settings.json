@@ -16,5 +16,11 @@
         "**/*.meta": true
     },
     "dotnet.preferCSharpExtension": true,
-    "dotnet.defaultSolution": "MoodColor.sln"
+    "dotnet.defaultSolution": "MoodColor.sln",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit",
+        "source.fixAll": "explicit"
+    },
+    "editor.formatOnPaste": true
 }

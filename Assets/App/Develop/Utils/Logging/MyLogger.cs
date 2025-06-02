@@ -24,6 +24,7 @@ namespace App.Develop.Utils.Logging
             Bootstrap,
             Emotion,
             ClearHistory, // Специальная категория для отладки очистки истории
+            Regional, // Категория для региональной статистики
             // ... добавляй свои
         }
 
@@ -39,6 +40,7 @@ namespace App.Develop.Utils.Logging
             { LogCategory.Bootstrap, true },    // Включено для отладки сессий
             { LogCategory.Emotion, false },     // Отключено
             { LogCategory.ClearHistory, false }, // Отключено - убираем шум
+            { LogCategory.Regional, true },     // Включено для отладки региональной статистики
         };
 
         public static void SetCategoryEnabled(LogCategory category, bool enabled)

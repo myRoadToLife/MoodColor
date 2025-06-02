@@ -22,6 +22,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         private readonly SessionManagementService _sessionService;
         private readonly BackupDatabaseService _backupService;
         private readonly EmotionDatabaseService _emotionService;
+        private readonly RegionalDatabaseService _regionalService;
         private bool _isUpdatingChildServices = false; // Флаг для предотвращения рекурсии
         #endregion
 
@@ -38,6 +39,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         /// <param name="sessionService">Сервис управления сессиями</param>
         /// <param name="backupService">Сервис резервных копий</param>
         /// <param name="emotionService">Сервис эмоций</param>
+        /// <param name="regionalService">Сервис региональных данных</param>
         public DatabaseServiceFacade(
             DatabaseReference database,
             FirebaseCacheManager cacheManager,
@@ -47,7 +49,8 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             GameDataDatabaseService gameDataService,
             SessionManagementService sessionService,
             BackupDatabaseService backupService,
-            EmotionDatabaseService emotionService)
+            EmotionDatabaseService emotionService,
+            RegionalDatabaseService regionalService)
             : base(database, cacheManager, validationService)
         {
             _profileService = profileService ?? throw new ArgumentNullException(nameof(profileService));
@@ -56,6 +59,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             _sessionService = sessionService ?? throw new ArgumentNullException(nameof(sessionService));
             _backupService = backupService ?? throw new ArgumentNullException(nameof(backupService));
             _emotionService = emotionService ?? throw new ArgumentNullException(nameof(emotionService));
+            _regionalService = regionalService ?? throw new ArgumentNullException(nameof(regionalService));
             
             // Отключаем взаимные подписки от дочерних сервисов, чтобы предотвратить циклические вызовы
             _profileService.UserIdChanged -= UpdateChildServicesUserId;
@@ -64,6 +68,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
             _sessionService.UserIdChanged -= UpdateChildServicesUserId;
             _backupService.UserIdChanged -= UpdateChildServicesUserId;
             _emotionService.UserIdChanged -= UpdateChildServicesUserId;
+            _regionalService.UserIdChanged -= UpdateChildServicesUserId;
             
             // Передаем событие изменения ID пользователя всем сервисам
             UserIdChanged += UpdateChildServicesUserId;
@@ -99,6 +104,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 _sessionService.UpdateUserId(userId);
                 _backupService.UpdateUserId(userId);
                 _emotionService.UpdateUserId(userId);
+                _regionalService.UpdateUserId(userId);
                 
                 MyLogger.Log($"✅ UserId обновлен во всех дочерних сервисах: {(string.IsNullOrEmpty(userId) ? "null" : userId.Substring(0, Math.Min(8, userId.Length)) + "...")}", MyLogger.LogCategory.Firebase);
             }
@@ -348,6 +354,43 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
         }
         #endregion
 
+        #region RegionalDatabaseService Methods
+        public async Task<Dictionary<string, RegionData>> GetAllRegionData()
+        {
+            return await _regionalService.GetAllRegionData();
+        }
+
+        public async Task<RegionData> GetRegionData(string regionName)
+        {
+            return await _regionalService.GetRegionData(regionName);
+        }
+
+        public async Task<bool> SaveRegionData(string regionName, RegionData regionData)
+        {
+            return await _regionalService.SaveRegionData(regionName, regionData);
+        }
+
+        public async Task<bool> UpdateRegionEmotionStats(string regionName, string emotionType, int count)
+        {
+            return await _regionalService.UpdateRegionEmotionStats(regionName, emotionType, count);
+        }
+
+        public async Task<bool> IncrementRegionEmotionCount(string regionName, string emotionType, int increment = 1)
+        {
+            return await _regionalService.IncrementRegionEmotionCount(regionName, emotionType, increment);
+        }
+
+        public async Task<bool> DeleteRegionData(string regionName)
+        {
+            return await _regionalService.DeleteRegionData(regionName);
+        }
+
+        public async Task<List<string>> GetAvailableRegions()
+        {
+            return await _regionalService.GetAvailableRegions();
+        }
+        #endregion
+
         #endregion
 
         #region Other methods
@@ -457,6 +500,7 @@ namespace App.Develop.CommonServices.Firebase.Database.Services
                 _sessionService?.Dispose();
                 _backupService?.Dispose();
                 _emotionService?.Dispose();
+                _regionalService?.Dispose();
                 
                 MyLogger.Log("✅ DatabaseServiceFacade: все ресурсы освобождены.", MyLogger.LogCategory.Firebase);
             }

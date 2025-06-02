@@ -54,22 +54,41 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI.Components
 
         protected override void ValidateReferences()
         {
-            if (_joyJarFill == null) throw new InvalidOperationException("Joy jar is not assigned in the inspector");
-            if (_sadnessJarFill == null) throw new InvalidOperationException("Sadness jar is not assigned in the inspector");
-            if (_angerJarFill == null) throw new InvalidOperationException("Anger jar is not assigned in the inspector");
-            if (_fearJarFill == null) throw new InvalidOperationException("Fear jar is not assigned in the inspector");
-            if (_disgustJarFill == null) throw new InvalidOperationException("Disgust jar is not assigned in the inspector");
-            if (_trustJarFill == null) throw new InvalidOperationException("Trust jar is not assigned in the inspector");
-            if (_anticipationJarFill == null) throw new InvalidOperationException("Anticipation jar is not assigned in the inspector");
-            if (_surpriseJarFill == null) throw new InvalidOperationException("Surprise jar is not assigned in the inspector");
-            if (_loveJarFill == null) throw new InvalidOperationException("Love jar is not assigned in the inspector");
-            if (_anxietyJarFill == null) throw new InvalidOperationException("Anxiety jar is not assigned in the inspector");
-            if (_neutralJarFill == null) throw new InvalidOperationException("Neutral jar is not assigned in the inspector");
-            
-            // Проверяем компоненты для пузырей
-            if (_bubblesContainer == null) throw new InvalidOperationException("Bubbles container is not assigned");
-            if (_bubblePrefab == null) throw new InvalidOperationException("Bubble prefab is not assigned");
+#if UNITY_EDITOR
+            // Проверяем обязательные компоненты для пузырей
+            if (_bubblesContainer == null) 
+            {
+                LogWarning("Bubbles container is not assigned in the inspector");
+            }
+            if (_bubblePrefab == null) 
+            {
+                LogWarning("Bubble prefab is not assigned in the inspector");
+            }
+
+            // Проверяем jar'ы - делаем их опциональными
+            ValidateJarReference(_joyJarFill, "Joy jar");
+            ValidateJarReference(_sadnessJarFill, "Sadness jar");
+            ValidateJarReference(_angerJarFill, "Anger jar");
+            ValidateJarReference(_fearJarFill, "Fear jar");
+            ValidateJarReference(_disgustJarFill, "Disgust jar");
+            ValidateJarReference(_trustJarFill, "Trust jar");
+            ValidateJarReference(_anticipationJarFill, "Anticipation jar");
+            ValidateJarReference(_surpriseJarFill, "Surprise jar");
+            ValidateJarReference(_loveJarFill, "Love jar");
+            ValidateJarReference(_anxietyJarFill, "Anxiety jar");
+            ValidateJarReference(_neutralJarFill, "Neutral jar");
+#endif
         }
+
+#if UNITY_EDITOR
+        private void ValidateJarReference(Image jarFill, string jarName)
+        {
+            if (jarFill == null) 
+            {
+                LogWarning($"{jarName} is not assigned in the inspector. This jar will be ignored.");
+            }
+        }
+#endif
         #endregion
 
         #region Public Methods

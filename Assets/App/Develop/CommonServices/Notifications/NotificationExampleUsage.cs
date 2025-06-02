@@ -3,11 +3,13 @@ using System.Collections;
 using UnityEngine;
 using System.IO;
 using App.Develop.Utils.Logging;
+using App.Develop.DI;
 
 namespace App.Develop.CommonServices.Notifications
 {
     /// <summary>
     /// Пример использования системы уведомлений в приложении
+    /// Обновлен для работы с новой архитектурой NotificationCoordinator
     /// </summary>
     public class NotificationExampleUsage : MonoBehaviour
     {
@@ -17,7 +19,7 @@ namespace App.Develop.CommonServices.Notifications
         [SerializeField] private Texture2D _smallIcon;
         [SerializeField] private Texture2D _largeIcon;
         
-        private NotificationManager _notificationManager;
+        private INotificationManager _notificationManager;
         
         private void Start()
         {
@@ -28,19 +30,60 @@ namespace App.Develop.CommonServices.Notifications
         }
         
         /// <summary>
-        /// Инициализирует систему уведомлений
+        /// Инициализирует систему уведомлений через DI контейнер
         /// </summary>
         public void Initialize()
         {
-            // Создаем или получаем существующий NotificationManager
-            _notificationManager = NotificationManager.CreateInstance();
+            // Получаем NotificationManager из DI контейнера
+            try
+            {
+                // Предполагаем, что DI контейнер доступен глобально
+                // В реальном проекте лучше инжектировать зависимости через конструктор или метод
+                var container = FindObjectOfType<MonoBehaviour>().GetComponent<DIContainer>();
+                if (container == null)
+                {
+                    // Альтернативный способ получения контейнера
+                    // Можно использовать ServiceLocator или другой механизм доступа к DI
+                    MyLogger.LogError("DI Container not found. Cannot initialize NotificationExampleUsage.", MyLogger.LogCategory.Default);
+                    return;
+                }
+                
+                _notificationManager = container.Resolve<INotificationManager>();
+                
+                if (_notificationManager == null)
+                {
+                    MyLogger.LogError("INotificationManager not found in DI container", MyLogger.LogCategory.Default);
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                MyLogger.LogError($"Failed to resolve INotificationManager: {ex.Message}", MyLogger.LogCategory.Default);
+                return;
+            }
             
             // Проверяем и генерируем иконки, если они нужны
             #if UNITY_ANDROID
             CreateNotificationIcons();
             #endif
             
-            MyLogger.Log("NotificationExampleUsage initialized successfully", MyLogger.LogCategory.Default);
+            MyLogger.Log("NotificationExampleUsage initialized successfully with new architecture", MyLogger.LogCategory.Default);
+        }
+        
+        /// <summary>
+        /// Альтернативный метод инициализации с прямой инъекцией зависимости
+        /// Предпочтительный способ для использования в архитектуре с DI
+        /// </summary>
+        public void Initialize(INotificationManager notificationManager)
+        {
+            _notificationManager = notificationManager ?? throw new ArgumentNullException(nameof(notificationManager));
+            
+            // Проверяем и генерируем иконки, если они нужны
+            #if UNITY_ANDROID
+            CreateNotificationIcons();
+            #endif
+            
+            MyLogger.Log("NotificationExampleUsage initialized with injected dependency", MyLogger.LogCategory.Default);
         }
         
         /// <summary>

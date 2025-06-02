@@ -391,6 +391,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _appBootstrap: {fileID: 1400566287}
+  _applicationConfig: {fileID: 11400000, guid: 03cfba0a8c18d9a43ad02a01a156cc35, type: 2}
 --- !u!4 &2143890723
 Transform:
   m_ObjectHideFlags: 0

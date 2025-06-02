@@ -118,6 +118,13 @@ namespace App.Develop.CommonServices.Firebase.RemoteConfig.Services
                 MyLogger.LogWarning("⚠️ [RemoteConfig] Попытка загрузить конфигурацию до инициализации сервиса", MyLogger.LogCategory.Firebase);
                 return false;
             }
+
+            // Проверяем доступность сети
+            if (Application.internetReachability == NetworkReachability.NotReachable)
+            {
+                MyLogger.Log("📶 [RemoteConfig] Отсутствует интернет соединение, используем кэшированные данные", MyLogger.LogCategory.Firebase);
+                return false;
+            }
             
             try
             {
@@ -139,14 +146,30 @@ namespace App.Develop.CommonServices.Firebase.RemoteConfig.Services
                 }
                 else
                 {
-                    MyLogger.LogError("❌ [RemoteConfig] Ошибка при активации конфигурации", MyLogger.LogCategory.Firebase);
+                    // Используем Warning вместо Error для менее агрессивного логирования
+                    MyLogger.LogWarning("⚠️ [RemoteConfig] Не удалось активировать конфигурацию, используем кэшированные данные", MyLogger.LogCategory.Firebase);
                 }
                 
                 return success;
             }
+            catch (System.Net.WebException webEx)
+            {
+                // Специальная обработка сетевых ошибок - это ожидаемое поведение
+                MyLogger.Log($"📶 [RemoteConfig] Проблема с сетью при загрузке конфигурации: {webEx.Message}", MyLogger.LogCategory.Firebase);
+                return false;
+            }
             catch (Exception ex)
             {
-                MyLogger.LogError($"❌ [RemoteConfig] Ошибка при загрузке и активации конфигурации: {ex.Message}", MyLogger.LogCategory.Firebase);
+                // Для ожидаемых ошибок соединения используем более мягкое логирование
+                if (ex.Message.Contains("UNAVAILABLE") || ex.Message.Contains("network") || ex.Message.Contains("connection"))
+                {
+                    MyLogger.Log($"📶 [RemoteConfig] Проблема с соединением: {ex.Message}", MyLogger.LogCategory.Firebase);
+                }
+                else
+                {
+                    // Только неожиданные ошибки логируем как Error
+                    MyLogger.LogError($"❌ [RemoteConfig] Неожиданная ошибка при загрузке конфигурации: {ex.Message}", MyLogger.LogCategory.Firebase);
+                }
                 return false;
             }
         }
