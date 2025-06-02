@@ -24,6 +24,11 @@ MonoBehaviour:
     - Prefab
     - UI
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 03c7d5eb1d3b7424c9a451539acbe613
+    m_Address: UICanvas_PersonalArea
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 077fff943b9f4b542a0c42ccfeab7fe4
     m_Address: UIPanel_Friends
     m_ReadOnly: 0
@@ -82,13 +87,6 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 8e8fc7e443d099c42809d7099ac6f5a3
     m_Address: UIPanel_FriendSearch
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - Prefab
-    - UI
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 95502f995780f7344bef1b55fbfa2bae
-    m_Address: UICanvas_PersonalArea
     m_ReadOnly: 0
     m_SerializedLabels:
     - Prefab
