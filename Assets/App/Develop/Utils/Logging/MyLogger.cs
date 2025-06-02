@@ -1,17 +1,14 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace App.Develop.Utils.Logging
 {
     /// <summary>
-    /// Утилита для логирования с возможностью отключения логов в продакшене
+    /// Простая система логирования с контролем категорий
+    /// Используйте MyLogger.Log(message, LogCategory.UI) для логирования
     /// </summary>
     public static class MyLogger
     {
-        // Приватные поля для свойств
-        private static bool _isDebugLoggingEnabled = true;
-        private static bool _isWarningLoggingEnabled = true;
-        private static bool _isErrorLoggingEnabled = true;
-
         public enum LogCategory
         {
             Default,
@@ -23,192 +20,316 @@ namespace App.Develop.Utils.Logging
             Gameplay,
             Bootstrap,
             Emotion,
-            ClearHistory, // Специальная категория для отладки очистки истории
-            Regional, // Категория для региональной статистики
-            // ... добавляй свои
+            ClearHistory,
+            Regional,
+            Session
         }
 
-        private static System.Collections.Generic.Dictionary<LogCategory, bool> _categoryEnabled = new System.Collections.Generic.Dictionary<LogCategory, bool>
+        #region Настройки логирования
+
+        /// <summary>
+        /// Включить/отключить Debug.Log сообщения
+        /// </summary>
+        public static bool IsDebugLoggingEnabled = true;
+
+        /// <summary>
+        /// Включить/отключить Debug.LogWarning сообщения
+        /// </summary>
+        public static bool IsWarningLoggingEnabled = true;
+
+        /// <summary>
+        /// Включить/отключить Debug.LogError сообщения
+        /// </summary>
+        public static bool IsErrorLoggingEnabled = true;
+
+        /// <summary>
+        /// Словарь для включения/отключения конкретных категорий
+        /// </summary>
+        private static readonly Dictionary<LogCategory, bool> _categoryEnabled = new Dictionary<LogCategory, bool>
         {
-            { LogCategory.Default, false },     // Отключено
-            { LogCategory.Sync, false },        // Отключено - убираем шум
-            { LogCategory.UI, false },          // Отключено
-            { LogCategory.Network, false },     // Отключено
-            { LogCategory.Firebase, true },     // Включено для отладки сессий
-            { LogCategory.Editor, false },      // Отключено
-            { LogCategory.Gameplay, false },    // Отключено
-            { LogCategory.Bootstrap, true },    // Включено для отладки сессий
-            { LogCategory.Emotion, false },     // Отключено
-            { LogCategory.ClearHistory, false }, // Отключено - убираем шум
-            { LogCategory.Regional, true },     // Включено для отладки региональной статистики
+            { LogCategory.Default, true },
+            { LogCategory.Sync, false },
+            { LogCategory.UI, false },
+            { LogCategory.Network, false },
+            { LogCategory.Firebase, true },
+            { LogCategory.Editor, true },
+            { LogCategory.Gameplay, false },
+            { LogCategory.Bootstrap, true },
+            { LogCategory.Emotion, false },
+            { LogCategory.ClearHistory, false },
+            { LogCategory.Regional, true },
+            { LogCategory.Session, false }
         };
 
+        #endregion
+
+        #region Основные методы логирования
+
+        /// <summary>
+        /// Логирует информационное сообщение
+        /// </summary>
+        public static void Log(string message, LogCategory category = LogCategory.Default)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (IsDebugLoggingEnabled && IsCategoryEnabled(category))
+                Debug.Log($"[{category}] {message}");
+#endif
+        }
+
+        /// <summary>
+        /// Логирует информационное сообщение с контекстом
+        /// </summary>
+        public static void Log(string message, Object context, LogCategory category = LogCategory.Default)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (IsDebugLoggingEnabled && IsCategoryEnabled(category))
+                Debug.Log($"[{category}] {message}", context);
+#endif
+        }
+
+        /// <summary>
+        /// Логирует предупреждение
+        /// </summary>
+        public static void LogWarning(string message, LogCategory category = LogCategory.Default)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (IsWarningLoggingEnabled && IsCategoryEnabled(category))
+                Debug.LogWarning($"[{category}] {message}");
+#endif
+        }
+
+        /// <summary>
+        /// Логирует предупреждение с контекстом
+        /// </summary>
+        public static void LogWarning(string message, Object context, LogCategory category = LogCategory.Default)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (IsWarningLoggingEnabled && IsCategoryEnabled(category))
+                Debug.LogWarning($"[{category}] {message}", context);
+#endif
+        }
+
+        /// <summary>
+        /// Логирует ошибку (всегда работает, даже в релизе)
+        /// </summary>
+        public static void LogError(string message, LogCategory category = LogCategory.Default)
+        {
+            if (IsErrorLoggingEnabled && IsCategoryEnabled(category))
+                Debug.LogError($"[{category}] {message}");
+        }
+
+        /// <summary>
+        /// Логирует ошибку с контекстом (всегда работает, даже в релизе)
+        /// </summary>
+        public static void LogError(string message, Object context, LogCategory category = LogCategory.Default)
+        {
+            if (IsErrorLoggingEnabled && IsCategoryEnabled(category))
+                Debug.LogError($"[{category}] {message}", context);
+        }
+
+        /// <summary>
+        /// Логирует исключение (всегда работает, даже в релизе)
+        /// </summary>
+        public static void LogException(System.Exception exception, LogCategory category = LogCategory.Default)
+        {
+            if (IsErrorLoggingEnabled && IsCategoryEnabled(category))
+                Debug.LogException(exception);
+        }
+
+        #endregion
+
+        #region Управление категориями
+
+        /// <summary>
+        /// Включить/отключить конкретную категорию логирования
+        /// </summary>
         public static void SetCategoryEnabled(LogCategory category, bool enabled)
         {
             _categoryEnabled[category] = enabled;
         }
 
+        /// <summary>
+        /// Проверить, включена ли категория
+        /// </summary>
         public static bool IsCategoryEnabled(LogCategory category)
         {
             return _categoryEnabled.TryGetValue(category, out var enabled) && enabled;
         }
 
         /// <summary>
-        /// Логирует информационное сообщение (только в режиме разработки или в development build)
+        /// Включить все категории
         /// </summary>
-        public static void Log(string message, LogCategory category = LogCategory.Default)
+        public static void EnableAllCategories()
         {
-            if (_isDebugLoggingEnabled && IsCategoryEnabled(category))
-                Debug.Log($"[{category}] {message}");
+            var keys = new List<LogCategory>(_categoryEnabled.Keys);
+            foreach (var category in keys)
+            {
+                _categoryEnabled[category] = true;
+            }
         }
 
         /// <summary>
-        /// Логирует информационное сообщение с указанием контекста (только в режиме разработки или в development build)
+        /// Отключить все категории
         /// </summary>
-        public static void Log(string message, Object context, LogCategory category = LogCategory.Default)
+        public static void DisableAllCategories()
         {
-            if (_isDebugLoggingEnabled && IsCategoryEnabled(category))
-                Debug.Log($"[{category}] {message}", context);
+            var keys = new List<LogCategory>(_categoryEnabled.Keys);
+            foreach (var category in keys)
+            {
+                _categoryEnabled[category] = false;
+            }
+        }
+
+        #endregion
+
+        #region Быстрые профили
+
+        /// <summary>
+        /// Продакшн режим: только ошибки, минимум категорий
+        /// </summary>
+        public static void SetProductionMode()
+        {
+            IsDebugLoggingEnabled = false;
+            IsWarningLoggingEnabled = true;
+            IsErrorLoggingEnabled = true;
+
+            DisableAllCategories();
+            // Оставляем только критически важные категории
+            SetCategoryEnabled(LogCategory.Bootstrap, true);
         }
 
         /// <summary>
-        /// Логирует предупреждение (только в режиме разработки или в development build)
+        /// Режим разработки: основные категории для отладки
         /// </summary>
-        public static void LogWarning(string message, LogCategory category = LogCategory.Default)
+        public static void SetDevelopmentMode()
         {
-            if (_isWarningLoggingEnabled && IsCategoryEnabled(category))
-                Debug.LogWarning($"[{category}] {message}");
+            IsDebugLoggingEnabled = true;
+            IsWarningLoggingEnabled = true;
+            IsErrorLoggingEnabled = true;
+
+            DisableAllCategories();
+            // Включаем полезные для разработки категории
+            SetCategoryEnabled(LogCategory.Bootstrap, true);
+            SetCategoryEnabled(LogCategory.Firebase, true);
+            SetCategoryEnabled(LogCategory.Regional, true);
+            SetCategoryEnabled(LogCategory.Editor, true);
+            SetCategoryEnabled(LogCategory.Session, true);
         }
 
         /// <summary>
-        /// Логирует предупреждение с указанием контекста (только в режиме разработки или в development build)
+        /// Отладочный режим: все логи включены
         /// </summary>
-        public static void LogWarning(string message, Object context, LogCategory category = LogCategory.Default)
+        public static void SetDebugMode()
         {
-            if (_isWarningLoggingEnabled && IsCategoryEnabled(category))
-                Debug.LogWarning($"[{category}] {message}", context);
+            IsDebugLoggingEnabled = true;
+            IsWarningLoggingEnabled = true;
+            IsErrorLoggingEnabled = true;
+
+            EnableAllCategories();
         }
 
         /// <summary>
-        /// Логирует ошибку (работает всегда, даже в релизных сборках)
-        /// </summary>
-        public static void LogError(string message, LogCategory category = LogCategory.Default)
-        {
-            if (_isErrorLoggingEnabled && IsCategoryEnabled(category))
-                Debug.LogError($"[{category}] {message}");
-        }
-
-        /// <summary>
-        /// Логирует ошибку с указанием контекста (работает всегда, даже в релизных сборках)
-        /// </summary>
-        public static void LogError(string message, Object context, LogCategory category = LogCategory.Default)
-        {
-            if (_isErrorLoggingEnabled && IsCategoryEnabled(category))
-                Debug.LogError($"[{category}] {message}", context);
-        }
-
-        /// <summary>
-        /// Логирует исключение 
-        /// </summary>
-        public static void LogException(System.Exception exception, LogCategory category = LogCategory.Default)
-        {
-            if (_isErrorLoggingEnabled && IsCategoryEnabled(category))
-                Debug.LogException(exception);
-        }
-
-#if UNITY_EDITOR
-        public static void EditorLog(string message)
-        {
-            Debug.Log(message);
-        }
-
-        public static void EditorLog(string message, Object context)
-        {
-            Debug.Log(message, context);
-        }
-
-        public static void EditorLogWarning(string message)
-        {
-            Debug.LogWarning(message);
-        }
-
-        public static void EditorLogWarning(string message, Object context)
-        {
-            Debug.LogWarning(message, context);
-        }
-
-        public static void EditorLogError(string message)
-        {
-            Debug.LogError(message);
-        }
-
-        public static void EditorLogError(string message, Object context)
-        {
-            Debug.LogError(message, context);
-        }
-#endif
-
-        public static bool IsDebugLoggingEnabled
-        {
-            get => _isDebugLoggingEnabled;
-            set => _isDebugLoggingEnabled = value;
-        }
-
-        public static bool IsWarningLoggingEnabled
-        {
-            get => _isWarningLoggingEnabled;
-            set => _isWarningLoggingEnabled = value;
-        }
-
-        public static bool IsErrorLoggingEnabled
-        {
-            get => _isErrorLoggingEnabled;
-            set => _isErrorLoggingEnabled = value;
-        }
-
-        /// <summary>
-        /// Быстрое переключение в режим отладки Firebase/синхронизации
+        /// Режим отладки Firebase и синхронизации
         /// </summary>
         public static void EnableFirebaseDebugMode()
         {
+            IsDebugLoggingEnabled = true;
+            IsWarningLoggingEnabled = true;
+            IsErrorLoggingEnabled = true;
+
+            DisableAllCategories();
             SetCategoryEnabled(LogCategory.Firebase, true);
             SetCategoryEnabled(LogCategory.Sync, true);
-            SetCategoryEnabled(LogCategory.ClearHistory, true);
-            SetCategoryEnabled(LogCategory.UI, false);
-            SetCategoryEnabled(LogCategory.Emotion, false);
-            SetCategoryEnabled(LogCategory.Default, false);
-            SetCategoryEnabled(LogCategory.Network, false);
-            SetCategoryEnabled(LogCategory.Editor, false);
-            SetCategoryEnabled(LogCategory.Gameplay, false);
-            SetCategoryEnabled(LogCategory.Bootstrap, false);
+            SetCategoryEnabled(LogCategory.Bootstrap, true);
+            SetCategoryEnabled(LogCategory.Session, true);
         }
 
         /// <summary>
-        /// Быстрое переключение в режим отладки UI
+        /// Режим отладки UI
         /// </summary>
         public static void EnableUIDebugMode()
         {
+            IsDebugLoggingEnabled = true;
+            IsWarningLoggingEnabled = true;
+            IsErrorLoggingEnabled = true;
+
+            DisableAllCategories();
             SetCategoryEnabled(LogCategory.UI, true);
-            SetCategoryEnabled(LogCategory.Firebase, false);
-            SetCategoryEnabled(LogCategory.Sync, false);
-            SetCategoryEnabled(LogCategory.ClearHistory, false);
-            SetCategoryEnabled(LogCategory.Emotion, false);
-            SetCategoryEnabled(LogCategory.Default, false);
-            SetCategoryEnabled(LogCategory.Network, false);
-            SetCategoryEnabled(LogCategory.Editor, false);
-            SetCategoryEnabled(LogCategory.Gameplay, false);
-            SetCategoryEnabled(LogCategory.Bootstrap, false);
+            SetCategoryEnabled(LogCategory.Bootstrap, true);
         }
 
         /// <summary>
-        /// Отключить все логи кроме ошибок
+        /// Только операции с сессиями пользователя
         /// </summary>
-        public static void DisableAllDebugLogs()
+        public static void EnableSessionDebugMode()
         {
-            foreach (LogCategory category in System.Enum.GetValues(typeof(LogCategory)))
-            {
-                SetCategoryEnabled(category, false);
-            }
+            IsDebugLoggingEnabled = true;
+            IsWarningLoggingEnabled = true;
+            IsErrorLoggingEnabled = true;
+
+            DisableAllCategories();
+            SetCategoryEnabled(LogCategory.Session, true);
+            SetCategoryEnabled(LogCategory.Firebase, true);
+            SetCategoryEnabled(LogCategory.Bootstrap, true);
         }
+
+        #endregion
+
+#if UNITY_EDITOR
+        /// <summary>
+        /// Только для редактора - всегда логирует
+        /// </summary>
+        public static void EditorLog(string message)
+        {
+            Debug.Log($"[EDITOR] {message}");
+        }
+
+        /// <summary>
+        /// Только для редактора - всегда логирует с контекстом
+        /// </summary>
+        public static void EditorLog(string message, Object context)
+        {
+            Debug.Log($"[EDITOR] {message}", context);
+        }
+
+        /// <summary>
+        /// Только для редактора - всегда логирует предупреждение
+        /// </summary>
+        public static void EditorLogWarning(string message)
+        {
+            Debug.LogWarning($"[EDITOR] {message}");
+        }
+
+        /// <summary>
+        /// Только для редактора - всегда логирует ошибку
+        /// </summary>
+        public static void EditorLogError(string message)
+        {
+            Debug.LogError($"[EDITOR] {message}");
+        }
+#endif
+
+        #region Быстрая настройка при запуске
+
+        /// <summary>
+        /// Автоматическая настройка профиля при запуске игры
+        /// Вызывайте в Awake() вашего стартового скрипта
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void AutoSetupProfile()
+        {
+#if UNITY_EDITOR
+            SetDevelopmentMode();
+            Log("MyLogger: Development mode (Editor)", LogCategory.Bootstrap);
+#elif DEVELOPMENT_BUILD
+            SetDevelopmentMode();
+            Log("MyLogger: Development mode (Dev Build)", LogCategory.Bootstrap);
+#else
+            SetProductionMode();
+            Log("MyLogger: Production mode", LogCategory.Bootstrap);
+#endif
+        }
+
+        #endregion
     }
-} 
+}

@@ -49,7 +49,7 @@ namespace App.Develop.EntryPoint
     {
         [SerializeField] private Bootstrap _appBootstrap;
         [SerializeField] private ApplicationConfig _applicationConfig;
-        
+
         private DIContainer _projectContainer;
         private FirebaseApp _firebaseApp; // Храним ссылку на наш экземпляр Firebase
         private FirebaseDatabase _firebaseDatabase; // Храним ссылку на базу данных
@@ -70,12 +70,12 @@ namespace App.Develop.EntryPoint
             {
                 MyLogger.Log("📦 Инициализация Addressables...", MyLogger.LogCategory.Bootstrap);
                 await Addressables.InitializeAsync().Task;
-                
+
                 MyLogger.Log("⚙️ Настройка приложения...", MyLogger.LogCategory.Bootstrap);
                 SetupAppSettings();
                 _projectContainer = new DIContainer();
                 InitializeSecureStorage(_projectContainer);
-                
+
                 MyLogger.Log("🔧 Регистрация основных сервисов...", MyLogger.LogCategory.Bootstrap);
                 await RegisterCoreServices(_projectContainer);
                 ShowInitialLoadingScreen();
@@ -109,13 +109,13 @@ namespace App.Develop.EntryPoint
 
                 MyLogger.Log("🎮 Регистрация игровой системы...", MyLogger.LogCategory.Bootstrap);
                 RegisterGameSystem(_projectContainer);
-                
+
                 MyLogger.Log("📊 Инициализация контейнера и загрузка данных...", MyLogger.LogCategory.Bootstrap);
                 await InitializeContainerAndLoadData();
-                
+
                 MyLogger.Log("🚀 Запуск Bootstrap...", MyLogger.LogCategory.Bootstrap);
                 StartBootstrapProcess();
-                
+
                 MyLogger.Log("✅ Приложение инициализировано успешно", MyLogger.LogCategory.Bootstrap);
             }
             catch (Exception ex)
@@ -134,7 +134,7 @@ namespace App.Develop.EntryPoint
             {
                 QualitySettings.vSyncCount = _applicationConfig.EnableVSync ? 1 : 0;
                 Application.targetFrameRate = _applicationConfig.TargetFrameRate;
-                
+
                 MyLogger.Log($"⚙️ Настройки приложения: FPS={_applicationConfig.TargetFrameRate}, VSync={_applicationConfig.EnableVSync}", MyLogger.LogCategory.Bootstrap);
             }
             else
@@ -164,7 +164,7 @@ namespace App.Develop.EntryPoint
             {
                 string databaseUrl = _applicationConfig?.DatabaseUrl ?? "https://moodcolor-3ac59-default-rtdb.firebaseio.com/";
                 string firebaseAppName = _applicationConfig?.FirebaseAppName ?? "MoodColorApp";
-                
+
                 // Удаляем все существующие экземпляры с нашим именем, если они есть
                 try
                 {
@@ -309,12 +309,12 @@ namespace App.Develop.EntryPoint
                     c.Resolve<ILevelSystem>()
                 )
             ).NonLazy();
-            _projectContainer.RegisterAsSingle<EmotionService>(c => 
+            _projectContainer.RegisterAsSingle<EmotionService>(c =>
                 (EmotionService)c.Resolve<IEmotionService>() // Получаем уже созданный IEmotionService
             ).NonLazy();
 
-                            // MyLogger.Log("✅ EmotionService зарегистрирован (в InitializeContainerAndLoadData).", MyLogger.LogCategory.Bootstrap);
-            
+            // MyLogger.Log("✅ EmotionService зарегистрирован (в InitializeContainerAndLoadData).", MyLogger.LogCategory.Bootstrap);
+
             // Загружаем PointsService ПОСЛЕ EmotionService
             var pointsService = _projectContainer.Resolve<IPointsService>();
 
@@ -332,25 +332,25 @@ namespace App.Develop.EntryPoint
 
             // Инициализируем Firebase синхронизацию для EmotionService ПОСЛЕ регистрации всех сервисов
             MyLogger.Log("🔗 [EntryPoint] Начинаем инициализацию Firebase синхронизации для EmotionService...", MyLogger.LogCategory.ClearHistory);
-            
+
             var emotionService = _projectContainer.Resolve<EmotionService>();
             var databaseService = _projectContainer.Resolve<IDatabaseService>();
             var syncService = _projectContainer.Resolve<EmotionSyncService>();
             var connectivityManager = _projectContainer.Resolve<ConnectivityManager>();
-            
+
             MyLogger.Log($"🔍 [EntryPoint] Проверка сервисов: emotionService!=null={emotionService != null}, databaseService!=null={databaseService != null}, syncService!=null={syncService != null}, connectivityManager!=null={connectivityManager != null}", MyLogger.LogCategory.ClearHistory);
-            
+
             if (emotionService != null && databaseService != null && syncService != null && connectivityManager != null)
             {
                 MyLogger.Log("🔗 [EntryPoint] Все сервисы найдены, вызываем InitializeFirebaseSync...", MyLogger.LogCategory.ClearHistory);
                 emotionService.InitializeFirebaseSync(databaseService, syncService, connectivityManager);
-                
+
                 // Запускаем синхронизацию ТОЛЬКО если пользователь аутентифицирован
                 MyLogger.Log($"🔍 [EntryPoint] Проверка аутентификации: databaseService.IsAuthenticated={databaseService.IsAuthenticated}", MyLogger.LogCategory.ClearHistory);
                 if (databaseService.IsAuthenticated)
                 {
                     MyLogger.Log("🔗 [EntryPoint] Пользователь аутентифицирован, запускаем синхронизацию...", MyLogger.LogCategory.ClearHistory);
-                    
+
                     // Сначала загружаем историю из Firebase
                     MyLogger.Log("📥 [EntryPoint] Загружаем историю из Firebase...", MyLogger.LogCategory.ClearHistory);
                     try
@@ -369,7 +369,7 @@ namespace App.Develop.EntryPoint
                     {
                         MyLogger.LogError($"❌ [EntryPoint] Ошибка при загрузке истории из Firebase: {ex.Message}", MyLogger.LogCategory.ClearHistory);
                     }
-                    
+
                     // Затем запускаем обычную синхронизацию для отправки локальных изменений
                     emotionService.StartSync();
                     MyLogger.Log("✅ [EntryPoint] Firebase синхронизация для EmotionService инициализирована и запущена", MyLogger.LogCategory.ClearHistory);
@@ -415,29 +415,29 @@ namespace App.Develop.EntryPoint
             try
             {
                 MyLogger.Log("🔧 Регистрация сервисов через installer'ы...", MyLogger.LogCategory.Bootstrap);
-                
+
                 // Создаем менеджер installer'ов
                 var installerManager = new ServiceInstallerManager();
-                
+
                 // Добавляем installer'ы в правильном порядке
                 installerManager.AddInstaller(new CoreServicesInstaller());
                 installerManager.AddInstaller(new UIServicesInstaller());
                 installerManager.AddInstaller(new NotificationInstaller());
                 installerManager.AddInstaller(new EventsInstaller());
                 // installerManager.AddInstaller(new PersonalAreaInstaller()); // Временно отключено
-                
+
                 // Добавляем ApplicationServicesInstaller если конфигурация доступна
                 if (_applicationConfig != null)
                 {
                     installerManager.AddInstaller(new ApplicationServicesInstaller(_applicationConfig));
                 }
-                
+
                 // Регистрируем все сервисы
                 installerManager.RegisterAllServices(container);
-                
+
                 // Регистрируем дополнительные сервисы, которые пока не перенесены в installer'ы
                 RegisterAdditionalServices(container);
-                
+
                 MyLogger.Log("✅ Все основные сервисы зарегистрированы", MyLogger.LogCategory.Bootstrap);
             }
             catch (Exception ex)
@@ -462,7 +462,7 @@ namespace App.Develop.EntryPoint
                     var syncService = syncServiceObject.AddComponent<EmotionSyncService>();
                     return syncService;
                 }).NonLazy();
-                
+
                 MyLogger.Log("✅ Дополнительные сервисы зарегистрированы", MyLogger.LogCategory.Bootstrap);
             }
             catch (Exception ex)
@@ -706,9 +706,9 @@ namespace App.Develop.EntryPoint
 
                 // Регистрируем Firebase Database Reference
                 container.RegisterAsSingle<DatabaseReference>(c => _firebaseDatabase.RootReference).NonLazy();
-                
+
                 // Регистрируем кэш-менеджер
-                container.RegisterAsSingle<FirebaseCacheManager>(c => 
+                container.RegisterAsSingle<FirebaseCacheManager>(c =>
                     new FirebaseCacheManager(
                         c.Resolve<ISaveLoadService>()
                     )
@@ -718,11 +718,11 @@ namespace App.Develop.EntryPoint
                 container.RegisterAsSingle<DataValidationService>(c =>
                 {
                     var validationService = new DataValidationService();
-                    
+
                     // Регистрация валидаторов
                     validationService.RegisterValidator(new EmotionHistoryRecordValidator());
                     validationService.RegisterValidator(new UserDataValidator());
-                    
+
                     return validationService;
                 }).NonLazy();
 

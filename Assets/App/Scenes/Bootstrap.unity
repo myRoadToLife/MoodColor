@@ -122,64 +122,6 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &32790481
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 32790483}
-  - component: {fileID: 32790484}
-  m_Layer: 0
-  m_Name: LoggerSettings
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &32790483
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 32790481}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &32790484
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 32790481}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9c9042e68d1deb2479aa7978448b9864, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _enableDebugLogging: 0
-  _enableWarningLogging: 0
-  _enableErrorLogging: 0
-  _categorySettings:
-  - category: 9
-    enabled: 0
-  - category: 8
-    enabled: 0
-  - category: 0
-    enabled: 0
-  - category: 4
-    enabled: 0
-  - category: 7
-    enabled: 0
 --- !u!1 &1400566286
 GameObject:
   m_ObjectHideFlags: 0
@@ -216,6 +158,77 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1400566286}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1568411919
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1568411921}
+  - component: {fileID: 1568411920}
+  m_Layer: 0
+  m_Name: LoggerController
+  m_TagString: Untagged
+  m_Icon: {fileID: -7943110704522483240, guid: 0000000000000000d000000000000000, type: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1568411920
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1568411919}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed058c3092d901740b310a270e75b95f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _isDebugLoggingEnabled: 0
+  _isWarningLoggingEnabled: 0
+  _isErrorLoggingEnabled: 0
+  _defaultCategory: 1
+  _syncCategory: 0
+  _uiCategory: 0
+  _networkCategory: 0
+  _firebaseCategory: 1
+  _editorCategory: 1
+  _gameplayCategory: 0
+  _bootstrapCategory: 1
+  _emotionCategory: 0
+  _clearHistoryCategory: 0
+  _regionalCategory: 1
+  _sessionCategory: 0
+  _productionModeButton: 0
+  _developmentModeButton: 0
+  _debugModeButton: 0
+  _firebaseDebugButton: 0
+  _uiDebugButton: 0
+  _sessionDebugButton: 0
+  _runtimePanel: {fileID: 0}
+  _categoryToggles: []
+  _productionButton: {fileID: 0}
+  _developmentButton: {fileID: 0}
+  _debugButton: {fileID: 0}
+  _statusText: {fileID: 0}
+--- !u!4 &1568411921
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1568411919}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -414,4 +427,4 @@ SceneRoots:
   - {fileID: 1706048343}
   - {fileID: 2143890723}
   - {fileID: 1400566288}
-  - {fileID: 32790483}
+  - {fileID: 1568411921}

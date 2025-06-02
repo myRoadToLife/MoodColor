@@ -21,13 +21,13 @@ namespace App.Editor.Generators.UI.Core
             Canvas canvas = panelRoot.AddComponent<Canvas>();
             canvas.renderMode = renderMode;
             canvas.sortingOrder = sortingOrder;
-            
+
             CanvasScaler scaler = panelRoot.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = referenceResolution;
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
             scaler.matchWidthOrHeight = matchWidthOrHeight;
-            
+
             panelRoot.AddComponent<GraphicRaycaster>();
             panelRoot.AddComponent<CanvasGroup>(); // Для управления прозрачностью всей панели
 
@@ -41,9 +41,9 @@ namespace App.Editor.Generators.UI.Core
             return panelRoot;
         }
 
-        public static GameObject CreateBasePanelVisuals(GameObject panelRoot, string titleText, 
+        public static GameObject CreateBasePanelVisuals(GameObject panelRoot, string titleText,
                                                         TMP_FontAsset titleFont, Color titleTextColor, float titleFontSize,
-                                                        Color panelBackgroundColor, Color titleContainerColor, 
+                                                        Color panelBackgroundColor, Color titleContainerColor,
                                                         Sprite panelBackgroundSprite = null, Image.Type panelBackgroundType = Image.Type.Simple,
                                                         Sprite titleContainerSprite = null, Image.Type titleContainerType = Image.Type.Simple)
         {
@@ -52,9 +52,9 @@ namespace App.Editor.Generators.UI.Core
             background.transform.SetParent(panelRoot.transform, false);
             RectTransform backgroundRect = background.AddComponent<RectTransform>();
             Image backgroundImage = background.AddComponent<Image>();
-            backgroundRect.anchorMin = Vector2.zero; 
+            backgroundRect.anchorMin = Vector2.zero;
             backgroundRect.anchorMax = Vector2.one;
-            backgroundRect.pivot = new Vector2(0.5f, 0.5f); 
+            backgroundRect.pivot = new Vector2(0.5f, 0.5f);
             backgroundRect.sizeDelta = Vector2.zero;
             backgroundImage.color = panelBackgroundColor;
             if (panelBackgroundSprite != null)
@@ -68,9 +68,9 @@ namespace App.Editor.Generators.UI.Core
             titleContainer.transform.SetParent(panelRoot.transform, false);
             RectTransform titleContainerRect = titleContainer.AddComponent<RectTransform>();
             Image titleContainerImage = titleContainer.AddComponent<Image>();
-            titleContainerRect.anchorMin = new Vector2(0, 1); 
+            titleContainerRect.anchorMin = new Vector2(0, 1);
             titleContainerRect.anchorMax = new Vector2(1, 1);
-            titleContainerRect.pivot = new Vector2(0.5f, 1f); 
+            titleContainerRect.pivot = new Vector2(0.5f, 1f);
             titleContainerRect.sizeDelta = new Vector2(0, 60); // Increased height for better visual
             titleContainerImage.color = titleContainerColor;
             if (titleContainerSprite != null)
@@ -86,7 +86,7 @@ namespace App.Editor.Generators.UI.Core
             TextMeshProUGUI titleTextComponent = titleObject.AddComponent<TextMeshProUGUI>();
             titleRect.anchorMin = new Vector2(0.05f, 0); // Padding
             titleRect.anchorMax = new Vector2(0.95f, 1); // Padding
-            titleRect.pivot = new Vector2(0.5f, 0.5f); 
+            titleRect.pivot = new Vector2(0.5f, 0.5f);
             titleRect.sizeDelta = Vector2.zero;
             titleTextComponent.text = titleText;
             titleTextComponent.fontSize = titleFontSize;
@@ -96,23 +96,23 @@ namespace App.Editor.Generators.UI.Core
                 titleTextComponent.font = titleFont;
             }
             titleTextComponent.color = titleTextColor;
-            
+
 
             // Content Area
             GameObject content = new GameObject("Content");
             content.transform.SetParent(panelRoot.transform, false);
             RectTransform contentRect = content.AddComponent<RectTransform>();
-            contentRect.anchorMin = new Vector2(0, 0); 
+            contentRect.anchorMin = new Vector2(0, 0);
             contentRect.anchorMax = new Vector2(1, 1);
             contentRect.pivot = new Vector2(0.5f, 0.5f);
             // Adjust sizeDelta and anchoredPosition to fit below the title
             contentRect.offsetMin = new Vector2(10, 10); // Left, Bottom padding
             contentRect.offsetMax = new Vector2(-10, -titleContainerRect.sizeDelta.y - 10); // Right, Top padding (below title)
                                                                                             // Top padding = negative (title height + spacing)
-            
+
             // Ensure 'Content' is rendered above 'Background' but below 'TitleContainer' if they are direct children of panelRoot
             background.transform.SetAsFirstSibling();
-            content.transform.SetSiblingIndex(1); 
+            content.transform.SetSiblingIndex(1);
             titleContainer.transform.SetAsLastSibling();
 
 
@@ -150,9 +150,9 @@ namespace App.Editor.Generators.UI.Core
             {
                 // If no sprite, the ColorBlock.normalColor will be the visible color.
                 // Or, you could set a default fallback color here for buttonImage.color
-                buttonImage.color = colorBlock.normalColor; 
+                buttonImage.color = colorBlock.normalColor;
             }
-            
+
             buttonComponent.targetGraphic = buttonImage; // Important for color transitions
             buttonComponent.colors = colorBlock;
 
@@ -203,12 +203,12 @@ namespace App.Editor.Generators.UI.Core
         {
             GameObject toggleRoot = new GameObject(name);
             toggleRoot.transform.SetParent(parent, false);
-            
+
             // Using HorizontalLayoutGroup to arrange Label and Toggle visuals
             HorizontalLayoutGroup rootLayout = toggleRoot.AddComponent<HorizontalLayoutGroup>();
             rootLayout.spacing = 5;
             rootLayout.childAlignment = TextAnchor.MiddleLeft;
-            rootLayout.childControlWidth = false; 
+            rootLayout.childControlWidth = false;
             rootLayout.childControlHeight = false;
             rootLayout.childForceExpandWidth = false;
             rootLayout.childForceExpandHeight = false;
@@ -229,7 +229,7 @@ namespace App.Editor.Generators.UI.Core
             labelTMP.fontSize = labelFontSize;
             if (font != null) labelTMP.font = font;
             labelTMP.color = labelColor;
-            labelTMP.alignment = TextAlignmentOptions.Left; 
+            labelTMP.alignment = TextAlignmentOptions.Left;
 
             LayoutElement labelLayoutElement = labelGO.AddComponent<LayoutElement>();
             labelLayoutElement.preferredHeight = toggleSize.y; // Match height of toggle part
@@ -240,7 +240,7 @@ namespace App.Editor.Generators.UI.Core
             toggleVisualsGO.transform.SetParent(toggleRoot.transform, false);
             RectTransform toggleVisualsRect = toggleVisualsGO.AddComponent<RectTransform>();
             toggleVisualsRect.sizeDelta = toggleSize;
-            
+
             LayoutElement toggleVisualsLayoutElement = toggleVisualsGO.AddComponent<LayoutElement>();
             toggleVisualsLayoutElement.preferredWidth = toggleSize.x;
             toggleVisualsLayoutElement.preferredHeight = toggleSize.y;
@@ -251,8 +251,8 @@ namespace App.Editor.Generators.UI.Core
             GameObject bgGO = new GameObject("Background");
             bgGO.transform.SetParent(toggleVisualsGO.transform, false);
             RectTransform bgRect = bgGO.AddComponent<RectTransform>();
-            bgRect.anchorMin = Vector2.zero; 
-            bgRect.anchorMax = Vector2.one; 
+            bgRect.anchorMin = Vector2.zero;
+            bgRect.anchorMax = Vector2.one;
             bgRect.sizeDelta = Vector2.zero;
             Image bgImage = bgGO.AddComponent<Image>();
             if (backgroundSprite != null)
@@ -267,8 +267,8 @@ namespace App.Editor.Generators.UI.Core
             GameObject checkmarkGO = new GameObject("Checkmark");
             checkmarkGO.transform.SetParent(toggleVisualsGO.transform, false); // Child of ToggleVisuals
             RectTransform checkmarkRect = checkmarkGO.AddComponent<RectTransform>();
-            checkmarkRect.anchorMin = Vector2.zero; 
-            checkmarkRect.anchorMax = Vector2.one; 
+            checkmarkRect.anchorMin = Vector2.zero;
+            checkmarkRect.anchorMax = Vector2.one;
             checkmarkRect.sizeDelta = new Vector2(-toggleSize.x * 0.2f, -toggleSize.y * 0.2f); // Slightly smaller than bg
             Image checkmarkImage = checkmarkGO.AddComponent<Image>();
             if (checkmarkSprite != null)
@@ -277,7 +277,7 @@ namespace App.Editor.Generators.UI.Core
             }
             checkmarkImage.color = checkmarkColor;
             toggleComponent.graphic = checkmarkImage;
-            
+
             toggleComponent.isOn = true; // Default state
 
             return toggleRoot;
@@ -364,7 +364,7 @@ namespace App.Editor.Generators.UI.Core
             GameObject arrowGO = new GameObject("Arrow"); // TMP_Dropdown expects child "Arrow"
             arrowGO.transform.SetParent(dropdownGO.transform, false);
             RectTransform arrowRect = arrowGO.AddComponent<RectTransform>();
-            arrowRect.anchorMin = new Vector2(1, 0.5f); 
+            arrowRect.anchorMin = new Vector2(1, 0.5f);
             arrowRect.anchorMax = new Vector2(1, 0.5f);
             arrowRect.pivot = new Vector2(1, 0.5f);
             arrowRect.sizeDelta = new Vector2(Mathf.Min(20, dropdownSize.y * 0.8f), Mathf.Min(20, dropdownSize.y * 0.8f)); // Adaptive size
@@ -379,7 +379,7 @@ namespace App.Editor.Generators.UI.Core
             templateGO.transform.SetParent(dropdownGO.transform, false); // Should be child of DropdownComponent
             templateGO.SetActive(false);
             RectTransform templateRect = templateGO.AddComponent<RectTransform>();
-            templateRect.anchorMin = new Vector2(0, 0); 
+            templateRect.anchorMin = new Vector2(0, 0);
             templateRect.anchorMax = new Vector2(1, 0); // Anchor to bottom of main dropdown
             templateRect.pivot = new Vector2(0.5f, 1); // Pivot at top-center
             templateRect.anchoredPosition = new Vector2(0, 2); // Small offset below main
@@ -403,8 +403,8 @@ namespace App.Editor.Generators.UI.Core
             GameObject viewportGO = new GameObject("Viewport");
             viewportGO.transform.SetParent(templateGO.transform, false);
             RectTransform vpRect = viewportGO.AddComponent<RectTransform>();
-            vpRect.anchorMin = Vector2.zero; 
-            vpRect.anchorMax = Vector2.one; 
+            vpRect.anchorMin = Vector2.zero;
+            vpRect.anchorMax = Vector2.one;
             vpRect.pivot = new Vector2(0, 1); // Top-left pivot
             vpRect.sizeDelta = Vector2.zero; // No padding if no scrollbar visuals
             viewportGO.AddComponent<Mask>().showMaskGraphic = false;
@@ -414,16 +414,16 @@ namespace App.Editor.Generators.UI.Core
             GameObject contentGO = new GameObject("Content");
             contentGO.transform.SetParent(viewportGO.transform, false);
             RectTransform contentRect = contentGO.AddComponent<RectTransform>();
-            contentRect.anchorMin = new Vector2(0, 1); 
+            contentRect.anchorMin = new Vector2(0, 1);
             contentRect.anchorMax = new Vector2(1, 1); // Stretch width
             contentRect.pivot = new Vector2(0.5f, 1); // Top-center pivot
             contentRect.sizeDelta = new Vector2(0, 28); // Initial height for one item
 
             VerticalLayoutGroup contentLayout = contentGO.AddComponent<VerticalLayoutGroup>();
             contentLayout.padding = new RectOffset(2, 2, 2, 2); // Small padding
-            contentLayout.childControlHeight = true; 
+            contentLayout.childControlHeight = true;
             contentLayout.childControlWidth = true;
-            contentLayout.childForceExpandHeight = false; 
+            contentLayout.childForceExpandHeight = false;
             contentLayout.childForceExpandWidth = true;
             ContentSizeFitter contentFitter = contentGO.AddComponent<ContentSizeFitter>();
             contentFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
@@ -445,8 +445,8 @@ namespace App.Editor.Generators.UI.Core
             GameObject itemBackgroundGO = new GameObject("Item Background"); // Expected by Toggle
             itemBackgroundGO.transform.SetParent(itemGO.transform, false);
             RectTransform itemBgRect = itemBackgroundGO.AddComponent<RectTransform>();
-            itemBgRect.anchorMin = Vector2.zero; 
-            itemBgRect.anchorMax = Vector2.one; 
+            itemBgRect.anchorMin = Vector2.zero;
+            itemBgRect.anchorMax = Vector2.one;
             itemBgRect.sizeDelta = Vector2.zero;
             Image itemBgImage = itemBackgroundGO.AddComponent<Image>();
             if (itemBackgroundSprite != null)
@@ -560,61 +560,53 @@ namespace App.Editor.Generators.UI.Core
         }
 
         #endregion
-        
+
         #region Utility to save prefab (can be used by specific generators)
-        public static void SavePrefab(GameObject rootGameObject, string folderPath, string prefabName)
+        public static void SavePrefab(GameObject root, string folderPath, string prefabName)
         {
-            if (rootGameObject == null)
+            if (root == null)
             {
-                MyLogger.EditorLogError("[UIComponentGenerator] Root GameObject is null. Cannot save prefab.");
-                return;
+                throw new System.ArgumentNullException(nameof(root), "[UIComponentGenerator] Root GameObject is null. Cannot save prefab.");
             }
 
             if (string.IsNullOrEmpty(folderPath) || string.IsNullOrEmpty(prefabName))
             {
-                MyLogger.EditorLogError("[UIComponentGenerator] Folder path or prefab name is null or empty. Cannot save prefab.");
-                return;
+                throw new System.ArgumentException("[UIComponentGenerator] Folder path or prefab name is null or empty. Cannot save prefab.");
             }
 
-            // Создаем директорию, если она не существует
+            string fullPath = Path.Combine(folderPath, prefabName + ".prefab");
+
+            // Создаем папку, если её нет
             if (!Directory.Exists(folderPath))
             {
                 Directory.CreateDirectory(folderPath);
-                AssetDatabase.Refresh(); // Обновляем AssetDatabase, чтобы Unity "увидел" новую папку
-            }
-            
-            string fullPath = Path.Combine(folderPath, prefabName + ".prefab");
-            
-            // Check if prefab already exists to avoid unique name generation if not desired
-            // or to explicitly overwrite. For now, we'll allow overwriting.
-            // localPath = AssetDatabase.GenerateUniqueAssetPath(localPath); 
-
-            GameObject existingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(fullPath);
-            if (existingPrefab != null)
-            {
-                // Unpack if it's an instance of another prefab to avoid nesting issues,
-                // or if we want to fully replace it.
-                // PrefabUtility.UnpackPrefabInstance(rootGameObject, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-                // For replacing, just saving over it is usually fine.
-                MyLogger.EditorLogWarning($"[UIComponentGenerator] Prefab already exists at {fullPath}. It will be overwritten.");
             }
 
-            bool prefabSuccess;
-            // Using SaveAsPrefabAssetAndConnect might be an option if you want to keep the scene GO connected
-            // but for a generator that typically creates and then might destroy the scene GO, SaveAsPrefabAsset is simpler.
-            PrefabUtility.SaveAsPrefabAsset(rootGameObject, fullPath, out prefabSuccess);
-
-            if (prefabSuccess)
+            // Проверяем, существует ли уже префаб
+            if (File.Exists(fullPath))
             {
-                MyLogger.EditorLog($"[UIComponentGenerator] Prefab '{prefabName}' saved successfully to: {fullPath}");
-                // Optional: Add labels
-                // AssetDatabase.SetLabels(AssetDatabase.LoadAssetAtPath<GameObject>(localPath), new string[] { "GeneratedUI", "Component" });
+                UnityEngine.Debug.LogWarning($"[UIComponentGenerator] Prefab already exists at {fullPath}. It will be overwritten.");
             }
-            else
+
+            try
             {
-                MyLogger.EditorLogError($"[UIComponentGenerator] Failed to save prefab '{prefabName}' to {fullPath}. Check for errors in the console.");
+                // Сохраняем префаб
+                bool success = false;
+                PrefabUtility.SaveAsPrefabAsset(root, fullPath, out success);
+
+                if (!success)
+                {
+                    throw new System.InvalidOperationException($"[UIComponentGenerator] Failed to save prefab '{prefabName}' to {fullPath}. Check for errors in the console.");
+                }
+
+                AssetDatabase.Refresh();
+                MyLogger.EditorLog($"[UIComponentGenerator] Префаб {prefabName} сохранен: {fullPath}");
+            }
+            catch (System.Exception ex)
+            {
+                throw new System.InvalidOperationException($"[UIComponentGenerator] Exception while saving prefab '{prefabName}': {ex.Message}", ex);
             }
         }
         #endregion
     }
-} 
+}

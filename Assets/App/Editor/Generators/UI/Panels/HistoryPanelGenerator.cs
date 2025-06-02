@@ -66,7 +66,7 @@ namespace App.Editor.Generators.UI.Panels
                 _woodenPlankSprite = AssetDatabase.LoadAssetAtPath<Sprite>(Path.Combine(TexturesFolder, "WoodenPlank.png"));
 
             if (_woodenPlankSprite == null)
-                MyLogger.EditorLogWarning($"[HistoryPanelGenerator] Текстура WoodenPlank.png не найдена в {TexturesFolder}");
+                throw new System.IO.FileNotFoundException($"[HistoryPanelGenerator] Текстура WoodenPlank.png не найдена в {TexturesFolder}");
 
             if (_brushyFont == null)
             {
@@ -76,7 +76,7 @@ namespace App.Editor.Generators.UI.Panels
                     _brushyFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(Path.Combine(FontsFolder, "BrushyFont.ttf"));
 
                 if (_brushyFont == null)
-                    MyLogger.EditorLogWarning($"[HistoryPanelGenerator] TMP_FontAsset BrushyFont (.asset или .ttf) не найден в {FontsFolder}.");
+                    throw new System.IO.FileNotFoundException($"[HistoryPanelGenerator] TMP_FontAsset BrushyFont (.asset или .ttf) не найден в {FontsFolder}.");
             }
         }
 
@@ -204,35 +204,35 @@ namespace App.Editor.Generators.UI.Panels
                 if (indicator != null)
                     serializedItemView.FindProperty("_emotionIndicator").objectReferenceValue = indicator;
                 else
-                    MyLogger.EditorLogWarning($"[HistoryPanelGenerator] Не удалось найти Image на {emotionIconGO.name} для HistoryItemView._emotionIndicator");
+                    throw new System.InvalidOperationException($"[HistoryPanelGenerator] Не удалось найти Image на {emotionIconGO.name} для HistoryItemView._emotionIndicator");
 
                 TextMeshProUGUI dateTMP = dateTextGO.GetComponent<TextMeshProUGUI>();
 
                 if (dateTMP != null)
                     serializedItemView.FindProperty("_dateText").objectReferenceValue = dateTMP;
                 else
-                    MyLogger.EditorLogWarning($"[HistoryPanelGenerator] Не удалось найти TextMeshProUGUI на {dateTextGO.name} для HistoryItemView._dateText");
+                    throw new System.InvalidOperationException($"[HistoryPanelGenerator] Не удалось найти TextMeshProUGUI на {dateTextGO.name} для HistoryItemView._dateText");
 
                 TextMeshProUGUI timeTMP = timeTextGO.GetComponent<TextMeshProUGUI>();
 
                 if (timeTMP != null)
                     serializedItemView.FindProperty("_timeText").objectReferenceValue = timeTMP;
                 else
-                    MyLogger.EditorLogWarning($"[HistoryPanelGenerator] Не удалось найти TextMeshProUGUI на {timeTextGO.name} для HistoryItemView._timeText");
+                    throw new System.InvalidOperationException($"[HistoryPanelGenerator] Не удалось найти TextMeshProUGUI на {timeTextGO.name} для HistoryItemView._timeText");
 
                 TextMeshProUGUI emotionNameTMP = emotionNameTextGO.GetComponent<TextMeshProUGUI>();
 
                 if (emotionNameTMP != null)
                     serializedItemView.FindProperty("_emotionNameText").objectReferenceValue = emotionNameTMP;
                 else
-                    MyLogger.EditorLogWarning(
+                    throw new System.InvalidOperationException(
                         $"[HistoryPanelGenerator] Не удалось найти TextMeshProUGUI на {emotionNameTextGO.name} для HistoryItemView._emotionNameText");
 
                 serializedItemView.ApplyModifiedPropertiesWithoutUndo();
             }
             else
             {
-                MyLogger.EditorLogError($"[HistoryPanelGenerator] Не удалось добавить компонент HistoryItemView к {itemRoot.name}. " +
+                throw new System.InvalidOperationException($"[HistoryPanelGenerator] Не удалось добавить компонент HistoryItemView к {itemRoot.name}. " +
                                $"Убедитесь, что скрипт HistoryItemView.cs существует в проекте и не содержит ошибок компиляции.");
             }
 
@@ -409,7 +409,7 @@ namespace App.Editor.Generators.UI.Panels
             }
             else
             {
-                MyLogger.EditorLogWarning($"[HistoryPanelGenerator] Префаб {HistoryItemPrefabName} не найден или не создан по пути {itemPrefabFullPath}. " +
+                throw new System.InvalidOperationException($"[HistoryPanelGenerator] Префаб {HistoryItemPrefabName} не найден или не создан по пути {itemPrefabFullPath}. " +
                                  $"Назначьте его вручную в HistoryPanelController после генерации.");
             }
 

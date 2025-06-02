@@ -42,7 +42,7 @@ public class SettingsPanelPrefabCreator
         scaler.matchWidthOrHeight = 0.5f;
 
         root.AddComponent<GraphicRaycaster>();
-        
+
         // Add Controller
         var controller = root.AddComponent<SettingsPanelController>();
 
@@ -51,7 +51,7 @@ public class SettingsPanelPrefabCreator
 
         // Main Container
         GameObject container = CreateContainer(root.transform);
-        
+
         // Header
         GameObject header = CreateHeader("Настройки", container.transform);
 
@@ -75,7 +75,7 @@ public class SettingsPanelPrefabCreator
 
         // Assign references to controller
         SerializedObject serializedController = new SerializedObject(controller);
-        
+
         AssignFieldToController(serializedController, "_notificationsToggle", notificationsToggle.GetComponent<Toggle>());
         AssignFieldToController(serializedController, "_soundToggle", soundToggle.GetComponent<Toggle>());
         AssignFieldToController(serializedController, "_themeDropdown", themeDropdown.GetComponent<TMP_Dropdown>());
@@ -84,11 +84,11 @@ public class SettingsPanelPrefabCreator
         AssignFieldToController(serializedController, "_resetButton", resetButton.GetComponent<Button>());
         AssignFieldToController(serializedController, "_deleteAccountButton", deleteButton.GetComponent<Button>());
         AssignFieldToController(serializedController, "_deletionConfirmationPanel", deletionConfirmation);
-        AssignFieldToController(serializedController, "_confirmDeletionButton", 
+        AssignFieldToController(serializedController, "_confirmDeletionButton",
             deletionConfirmation.transform.Find("ButtonsContainer/ConfirmButton").GetComponent<Button>());
-        AssignFieldToController(serializedController, "_cancelDeletionButton", 
+        AssignFieldToController(serializedController, "_cancelDeletionButton",
             deletionConfirmation.transform.Find("ButtonsContainer/CancelButton").GetComponent<Button>());
-        AssignFieldToController(serializedController, "_logoutButton", 
+        AssignFieldToController(serializedController, "_logoutButton",
             deletionConfirmation.transform.Find("ButtonsContainer/LogoutButton").GetComponent<Button>());
 
         serializedController.ApplyModifiedProperties();
@@ -102,10 +102,10 @@ public class SettingsPanelPrefabCreator
     {
         GameObject background = new GameObject("Background");
         background.transform.SetParent(parent);
-        
+
         Image image = background.AddComponent<Image>();
         image.color = new Color(0, 0, 0, 0.95f);
-        
+
         RectTransform rect = background.GetComponent<RectTransform>();
         rect.anchorMin = Vector2.zero;
         rect.anchorMax = Vector2.one;
@@ -119,7 +119,7 @@ public class SettingsPanelPrefabCreator
     {
         GameObject container = new GameObject("Container");
         container.transform.SetParent(parent);
-        
+
         RectTransform rect = container.AddComponent<RectTransform>();
         rect.anchorMin = new Vector2(0, 0);
         rect.anchorMax = new Vector2(1, 1);
@@ -141,13 +141,13 @@ public class SettingsPanelPrefabCreator
     {
         GameObject header = new GameObject("Header");
         header.transform.SetParent(parent);
-        
+
         RectTransform rect = header.AddComponent<RectTransform>();
         rect.sizeDelta = new Vector2(0, HEADER_HEIGHT);
 
         GameObject textObj = new GameObject("Title");
         textObj.transform.SetParent(header.transform);
-        
+
         TMP_Text text = textObj.AddComponent<TextMeshProUGUI>();
         text.text = title;
         text.fontSize = 48;
@@ -167,7 +167,7 @@ public class SettingsPanelPrefabCreator
     {
         GameObject group = new GameObject("SettingsGroup");
         group.transform.SetParent(parent);
-        
+
         RectTransform rect = group.AddComponent<RectTransform>();
         rect.sizeDelta = new Vector2(0, 500); // Высота будет регулироваться содержимым
 
@@ -186,19 +186,19 @@ public class SettingsPanelPrefabCreator
     {
         GameObject toggleObj = new GameObject(name);
         toggleObj.transform.SetParent(parent);
-        
+
         RectTransform rect = toggleObj.AddComponent<RectTransform>();
         rect.sizeDelta = new Vector2(0, TOGGLE_HEIGHT);
 
         Toggle toggle = toggleObj.AddComponent<Toggle>();
-        
+
         // Background
         GameObject background = new GameObject("Background");
         background.transform.SetParent(toggleObj.transform);
-        
+
         Image bgImage = background.AddComponent<Image>();
         bgImage.color = new Color(1, 1, 1, 0.1f);
-        
+
         RectTransform bgRect = background.GetComponent<RectTransform>();
         bgRect.anchorMin = Vector2.zero;
         bgRect.anchorMax = Vector2.one;
@@ -208,12 +208,12 @@ public class SettingsPanelPrefabCreator
         // Label
         GameObject labelObj = new GameObject("Label");
         labelObj.transform.SetParent(toggleObj.transform);
-        
+
         TMP_Text labelText = labelObj.AddComponent<TextMeshProUGUI>();
         labelText.text = label;
         labelText.fontSize = 36;
         labelText.color = Color.white;
-        
+
         RectTransform labelRect = labelObj.GetComponent<RectTransform>();
         labelRect.anchorMin = new Vector2(0, 0);
         labelRect.anchorMax = new Vector2(0.8f, 1);
@@ -223,10 +223,10 @@ public class SettingsPanelPrefabCreator
         // Checkmark
         GameObject checkmark = new GameObject("Checkmark");
         checkmark.transform.SetParent(toggleObj.transform);
-        
+
         Image checkmarkImage = checkmark.AddComponent<Image>();
         checkmarkImage.color = new Color(0.2f, 0.8f, 0.2f);
-        
+
         RectTransform checkmarkRect = checkmark.GetComponent<RectTransform>();
         checkmarkRect.anchorMin = new Vector2(0.9f, 0.5f);
         checkmarkRect.anchorMax = new Vector2(0.95f, 0.5f);
@@ -243,7 +243,7 @@ public class SettingsPanelPrefabCreator
     {
         GameObject dropdownObj = new GameObject(name);
         dropdownObj.transform.SetParent(parent);
-        
+
         RectTransform rect = dropdownObj.AddComponent<RectTransform>();
         rect.sizeDelta = new Vector2(0, DROPDOWN_HEIGHT);
 
@@ -258,12 +258,12 @@ public class SettingsPanelPrefabCreator
         // Label
         GameObject labelObj = new GameObject("Label");
         labelObj.transform.SetParent(dropdownObj.transform);
-        
+
         TMP_Text labelText = labelObj.AddComponent<TextMeshProUGUI>();
         labelText.text = label;
         labelText.fontSize = 36;
         labelText.color = Color.white;
-        
+
         RectTransform labelRect = labelObj.GetComponent<RectTransform>();
         labelRect.anchorMin = new Vector2(0, 0);
         labelRect.anchorMax = new Vector2(0.4f, 1);
@@ -273,13 +273,13 @@ public class SettingsPanelPrefabCreator
         // Value Text
         GameObject valueObj = new GameObject("Value");
         valueObj.transform.SetParent(dropdownObj.transform);
-        
+
         TMP_Text valueText = valueObj.AddComponent<TextMeshProUGUI>();
         valueText.text = "Выберите...";
         valueText.fontSize = 36;
         valueText.color = Color.white;
         valueText.alignment = TextAlignmentOptions.Right;
-        
+
         RectTransform valueRect = valueObj.GetComponent<RectTransform>();
         valueRect.anchorMin = new Vector2(0.4f, 0);
         valueRect.anchorMax = new Vector2(0.95f, 1);
@@ -295,7 +295,7 @@ public class SettingsPanelPrefabCreator
     {
         GameObject group = new GameObject("ButtonsGroup");
         group.transform.SetParent(parent);
-        
+
         RectTransform rect = group.AddComponent<RectTransform>();
         rect.sizeDelta = new Vector2(0, BUTTON_HEIGHT * 3 + SPACING * 2);
 
@@ -314,25 +314,25 @@ public class SettingsPanelPrefabCreator
     {
         GameObject buttonObj = new GameObject(name);
         buttonObj.transform.SetParent(parent);
-        
+
         RectTransform rect = buttonObj.AddComponent<RectTransform>();
         rect.sizeDelta = new Vector2(0, BUTTON_HEIGHT);
 
         Button button = buttonObj.AddComponent<Button>();
-        
+
         Image image = buttonObj.AddComponent<Image>();
         image.color = color;
         button.targetGraphic = image;
 
         GameObject textObj = new GameObject("Text");
         textObj.transform.SetParent(buttonObj.transform);
-        
+
         TMP_Text text = textObj.AddComponent<TextMeshProUGUI>();
         text.text = label;
         text.fontSize = 36;
         text.color = Color.white;
         text.alignment = TextAlignmentOptions.Center;
-        
+
         RectTransform textRect = textObj.GetComponent<RectTransform>();
         textRect.anchorMin = Vector2.zero;
         textRect.anchorMax = Vector2.one;
@@ -358,10 +358,10 @@ public class SettingsPanelPrefabCreator
         // Затемненный фон
         GameObject overlay = new GameObject("Overlay");
         overlay.transform.SetParent(panel.transform);
-        
+
         Image overlayImage = overlay.AddComponent<Image>();
         overlayImage.color = new Color(0, 0, 0, 0.95f);
-        
+
         RectTransform overlayRect = overlay.GetComponent<RectTransform>();
         overlayRect.anchorMin = Vector2.zero;
         overlayRect.anchorMax = Vector2.one;
@@ -371,10 +371,10 @@ public class SettingsPanelPrefabCreator
         // Контейнер окна подтверждения
         GameObject container = new GameObject("Container");
         container.transform.SetParent(panel.transform);
-        
+
         Image containerImage = container.AddComponent<Image>();
         containerImage.color = new Color(0.2f, 0.2f, 0.2f, 1f);
-        
+
         RectTransform containerRect = container.GetComponent<RectTransform>();
         containerRect.anchorMin = new Vector2(0.5f, 0.5f);
         containerRect.anchorMax = new Vector2(0.5f, 0.5f);
@@ -390,8 +390,8 @@ public class SettingsPanelPrefabCreator
         titleRect.offsetMax = new Vector2(-20, -20);
 
         // Текст сообщения
-        GameObject message = CreatePopupText("Message", 
-            "Вы уверены, что хотите удалить свой аккаунт?\nЭто действие необратимо.", 
+        GameObject message = CreatePopupText("Message",
+            "Вы уверены, что хотите удалить свой аккаунт?\nЭто действие необратимо.",
             36, container.transform);
         RectTransform messageRect = message.GetComponent<RectTransform>();
         messageRect.anchorMin = new Vector2(0, 0.4f);
@@ -402,7 +402,7 @@ public class SettingsPanelPrefabCreator
         // Контейнер для кнопок
         GameObject buttonsContainer = new GameObject("ButtonsContainer");
         buttonsContainer.transform.SetParent(container.transform);
-        
+
         RectTransform buttonsRect = buttonsContainer.AddComponent<RectTransform>();
         buttonsRect.anchorMin = new Vector2(0, 0);
         buttonsRect.anchorMax = new Vector2(1, 0.4f);
@@ -418,11 +418,11 @@ public class SettingsPanelPrefabCreator
         buttonsLayout.childForceExpandHeight = false;
 
         // Кнопки
-        CreatePopupButton("CancelButton", "Отмена", 
+        CreatePopupButton("CancelButton", "Отмена",
             new Color(0.7f, 0.7f, 0.7f), buttonsContainer.transform);
-        CreatePopupButton("LogoutButton", "Выйти", 
+        CreatePopupButton("LogoutButton", "Выйти",
             new Color(0.3f, 0.6f, 0.9f), buttonsContainer.transform);
-        CreatePopupButton("ConfirmButton", "Удалить аккаунт", 
+        CreatePopupButton("ConfirmButton", "Удалить аккаунт",
             new Color(0.9f, 0.3f, 0.3f), buttonsContainer.transform);
 
         return panel;
@@ -432,13 +432,13 @@ public class SettingsPanelPrefabCreator
     {
         GameObject textObj = new GameObject(name);
         textObj.transform.SetParent(parent);
-        
+
         TMP_Text tmpText = textObj.AddComponent<TextMeshProUGUI>();
         tmpText.text = text;
         tmpText.fontSize = fontSize;
         tmpText.color = Color.white;
         tmpText.alignment = TextAlignmentOptions.Center;
-        
+
         RectTransform rect = textObj.GetComponent<RectTransform>();
         rect.anchorMin = Vector2.zero;
         rect.anchorMax = Vector2.one;
@@ -452,25 +452,25 @@ public class SettingsPanelPrefabCreator
     {
         GameObject buttonObj = new GameObject(name);
         buttonObj.transform.SetParent(parent);
-        
+
         RectTransform rect = buttonObj.AddComponent<RectTransform>();
         rect.sizeDelta = new Vector2(POPUP_BUTTON_WIDTH, POPUP_BUTTON_HEIGHT);
 
         Button button = buttonObj.AddComponent<Button>();
-        
+
         Image image = buttonObj.AddComponent<Image>();
         image.color = color;
         button.targetGraphic = image;
 
         GameObject textObj = new GameObject("Text");
         textObj.transform.SetParent(buttonObj.transform);
-        
+
         TMP_Text text = textObj.AddComponent<TextMeshProUGUI>();
         text.text = label;
         text.fontSize = 32;
         text.color = Color.white;
         text.alignment = TextAlignmentOptions.Center;
-        
+
         RectTransform textRect = textObj.GetComponent<RectTransform>();
         textRect.anchorMin = Vector2.zero;
         textRect.anchorMax = Vector2.one;
@@ -489,7 +489,7 @@ public class SettingsPanelPrefabCreator
         }
         else
         {
-            MyLogger.EditorLogError($"Field {fieldName} not found in SettingsPanelController");
+            throw new System.ArgumentException($"Field {fieldName} not found in SettingsPanelController");
         }
     }
 
@@ -509,7 +509,7 @@ public class SettingsPanelPrefabCreator
         }
         else
         {
-            MyLogger.EditorLogError($"Failed to create prefab at: {path}");
+            throw new System.InvalidOperationException($"Failed to create prefab at: {path}");
         }
 
         GameObject.DestroyImmediate(root);

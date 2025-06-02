@@ -17,10 +17,10 @@ namespace App.Editor.Generators.UI.Panels
 
         private static Sprite _woodenPlankSprite;
         private static TMP_FontAsset _brushyFont;
-        
+
         private static Color _panelBackgroundColor = new Color(0.95f, 0.95f, 0.95f, 1f);
         private static Color _titleContainerColor = new Color(0.85f, 0.85f, 0.85f, 1f);
-        private static Color _titleTextColor = new Color(0.2f, 0.1f, 0.05f, 1f); 
+        private static Color _titleTextColor = new Color(0.2f, 0.1f, 0.05f, 1f);
         private static float _titleFontSize = 24f;
 
         // Стили для кнопок и попапа (адаптировано из LogEmotionPanelGenerator)
@@ -50,16 +50,16 @@ namespace App.Editor.Generators.UI.Panels
         {
             if (_woodenPlankSprite == null)
                 _woodenPlankSprite = AssetDatabase.LoadAssetAtPath<Sprite>(Path.Combine(TexturesFolder, "WoodenPlank.png"));
-            if (_woodenPlankSprite == null) 
-                MyLogger.EditorLogWarning($"[WorkshopPanelGenerator] Текстура WoodenPlank.png не найдена в {TexturesFolder}");
+            if (_woodenPlankSprite == null)
+                throw new System.IO.FileNotFoundException($"[WorkshopPanelGenerator] Текстура WoodenPlank.png не найдена в {TexturesFolder}");
 
             if (_brushyFont == null)
             {
                 _brushyFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(Path.Combine(FontsFolder, "BrushyFont.asset"));
-                if (_brushyFont == null) 
+                if (_brushyFont == null)
                     _brushyFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(Path.Combine(FontsFolder, "BrushyFont.ttf"));
-                if (_brushyFont == null) 
-                    MyLogger.EditorLogWarning($"[WorkshopPanelGenerator] TMP_FontAsset BrushyFont (.asset или .ttf) не найден в {FontsFolder}.");
+                if (_brushyFont == null)
+                    throw new System.IO.FileNotFoundException($"[WorkshopPanelGenerator] TMP_FontAsset BrushyFont (.asset или .ttf) не найден в {FontsFolder}.");
             }
         }
 
@@ -75,7 +75,7 @@ namespace App.Editor.Generators.UI.Panels
 
             Transform contentContainer = UIComponentGenerator.CreateBasePanelVisuals(
                 panelRoot, title, _brushyFont, _titleTextColor, _titleFontSize,
-                _panelBackgroundColor, _titleContainerColor, 
+                _panelBackgroundColor, _titleContainerColor,
                 null, Image.Type.Simple, // panelBackgroundSprite
                 null, Image.Type.Simple  // titleContainerSprite
             ).transform;
@@ -84,14 +84,14 @@ namespace App.Editor.Generators.UI.Panels
             GameObject placeholderContent = new GameObject("PlaceholderWorkshopContent");
             placeholderContent.transform.SetParent(contentContainer, false);
             RectTransform placeholderRect = placeholderContent.AddComponent<RectTransform>();
-            placeholderRect.anchorMin = new Vector2(0.1f, 0.1f); 
+            placeholderRect.anchorMin = new Vector2(0.1f, 0.1f);
             placeholderRect.anchorMax = new Vector2(0.9f, 0.9f);
-            placeholderRect.pivot = new Vector2(0.5f, 0.5f); 
+            placeholderRect.pivot = new Vector2(0.5f, 0.5f);
             placeholderRect.sizeDelta = Vector2.zero;
             TextMeshProUGUI placeholderText = placeholderContent.AddComponent<TextMeshProUGUI>();
             placeholderText.text = "Содержимое Мастерской будет здесь.";
             placeholderText.alignment = TextAlignmentOptions.Center;
-            if(_brushyFont != null) placeholderText.font = _brushyFont;
+            if (_brushyFont != null) placeholderText.font = _brushyFont;
             placeholderText.fontSize = 20f;
             placeholderText.color = _titleTextColor;
 
@@ -111,8 +111,8 @@ namespace App.Editor.Generators.UI.Panels
             // Создаем Popup Panel
             GameObject popupPanel = UIComponentGenerator.CreatePopupPanel(
                 panelRoot.transform,
-                "Сообщение по умолчанию", 
-                _brushyFont, _popupTextColor, _popupFontSize, 
+                "Сообщение по умолчанию",
+                _brushyFont, _popupTextColor, _popupFontSize,
                 _popupBgColor
             );
             if (popupPanel) popupPanel.SetActive(false); // Скрываем по умолчанию
@@ -120,30 +120,30 @@ namespace App.Editor.Generators.UI.Panels
             // Добавляем и настраиваем контроллер
             WorkshopPanelController controller = panelRoot.AddComponent<WorkshopPanelController>();
             SerializedObject serializedController = new SerializedObject(controller);
-            
+
             Button closeBtnComp = null;
             if (closeButton) closeButton.TryGetComponent(out closeBtnComp);
             serializedController.FindProperty("_closeButton").objectReferenceValue = closeBtnComp;
-            
+
             serializedController.FindProperty("_popupPanel").objectReferenceValue = popupPanel;
             TMP_Text popupTextComp = null;
-            if (popupPanel) 
+            if (popupPanel)
             {
                 Transform popupTextTransform = popupPanel.transform.Find("PopupText");
-                if (popupTextTransform) popupTextTransform.TryGetComponent(out popupTextComp);                    
+                if (popupTextTransform) popupTextTransform.TryGetComponent(out popupTextComp);
             }
             serializedController.FindProperty("_popupText").objectReferenceValue = popupTextComp;
-            
+
             serializedController.ApplyModifiedPropertiesWithoutUndo();
 
             UIComponentGenerator.SavePrefab(panelRoot, PrefabSaveFolderPath, panelName);
-            
+
             if (!Application.isPlaying)
             {
-                 GameObject.DestroyImmediate(panelRoot);
+                GameObject.DestroyImmediate(panelRoot);
             }
 
             MyLogger.EditorLog($"[WorkshopPanelGenerator] Префаб {panelName} создан в {Path.Combine(PrefabSaveFolderPath, panelName + ".prefab")}");
         }
     }
-} 
+}

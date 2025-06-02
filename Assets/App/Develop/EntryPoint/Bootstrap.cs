@@ -24,11 +24,10 @@ namespace App.Develop.EntryPoint
             var auth = container.Resolve<FirebaseAuth>();
             var databaseService = container.Resolve<IDatabaseService>();
 
-            Debug.Log("🚀 [BOOTSTRAP-FORCE] Запуск Bootstrap...");
             MyLogger.Log("🚀 Запуск Bootstrap...", MyLogger.LogCategory.Bootstrap);
 
-            Debug.Log($"🚀 [BOOTSTRAP-FORCE] Проверяем CurrentUser: {(auth.CurrentUser != null ? "ЕСТЬ" : "НЕТ")}");
-            
+            MyLogger.Log($"🚀 Проверяем CurrentUser: {(auth.CurrentUser != null ? "ЕСТЬ" : "НЕТ")}", MyLogger.LogCategory.Bootstrap);
+
             if (auth.CurrentUser != null)
             {
                 // Проверяем флаг явного выхода - если пользователь сам вышел из системы,
@@ -40,7 +39,7 @@ namespace App.Develop.EntryPoint
                     // Сбрасываем флаг
                     SecurePlayerPrefs.SetBool("explicit_logout", false);
                     SecurePlayerPrefs.Save();
-                    
+
                     auth.SignOut();
                     sceneSwitcher.ProcessSwitchSceneFor(new OutputBootstrapArgs(new AuthSceneInputArgs()));
                     yield break;
@@ -83,17 +82,15 @@ namespace App.Develop.EntryPoint
                     yield break;
                 }
 
-                                // Обновляем ID пользователя в сервисе базы данных
+                // Обновляем ID пользователя в сервисе базы данных
                 databaseService.UpdateUserId(user.UserId);
-                
+
                 // Проверяем активные сессии - предотвращаем одновременный вход с разных устройств
-                Debug.Log("🔍 [BOOTSTRAP-FORCE] Проверяем активные сессии для предотвращения одновременного входа...");
                 MyLogger.Log("🔍 Проверяем активные сессии для предотвращения одновременного входа...", MyLogger.LogCategory.Bootstrap);
-                
+
                 string currentDeviceId = ActiveSessionData.GetCurrentDeviceId();
-                Debug.Log($"🔍 [BOOTSTRAP-FORCE] Текущий Device ID: {currentDeviceId}");
                 MyLogger.Log($"🔍 Текущий Device ID: {currentDeviceId}", MyLogger.LogCategory.Bootstrap);
-                
+
                 if (string.IsNullOrEmpty(currentDeviceId))
                 {
                     MyLogger.LogError("❌ Не удалось получить уникальный идентификатор устройства", MyLogger.LogCategory.Bootstrap);
@@ -101,23 +98,21 @@ namespace App.Develop.EntryPoint
                     sceneSwitcher.ProcessSwitchSceneFor(new OutputBootstrapArgs(new AuthSceneInputArgs()));
                     yield break;
                 }
-                
+
                 // Проверяем существование активной сессии с другого устройства
                 var sessionCheckTask = databaseService.CheckActiveSessionExists(currentDeviceId);
                 while (!sessionCheckTask.IsCompleted)
                 {
                     yield return null;
                 }
-                
+
                 if (sessionCheckTask.IsFaulted)
                 {
-                    Debug.Log($"❌ [BOOTSTRAP-FORCE] Ошибка при проверке активных сессий: {sessionCheckTask.Exception?.Message}");
                     MyLogger.LogError($"❌ Ошибка при проверке активных сессий: {sessionCheckTask.Exception?.Message}", MyLogger.LogCategory.Bootstrap);
                     // Продолжаем выполнение, так как это не критическая ошибка
                 }
                 else if (sessionCheckTask.Result)
                 {
-                    Debug.Log("⚠️ [BOOTSTRAP-FORCE] Обнаружена активная сессия с другого устройства. Принудительный выход.");
                     MyLogger.Log("⚠️ Обнаружена активная сессия с другого устройства. Принудительный выход.", MyLogger.LogCategory.Bootstrap);
                     auth.SignOut();
                     databaseService.UpdateUserId(null);
@@ -126,34 +121,31 @@ namespace App.Develop.EntryPoint
                 }
                 else
                 {
-                    Debug.Log("✅ [BOOTSTRAP-FORCE] Других активных сессий не найдено. Продолжаем...");
+                    MyLogger.Log("✅ Других активных сессий не найдено. Продолжаем...", MyLogger.LogCategory.Bootstrap);
                 }
-                
+
                 // Регистрируем активную сессию для текущего устройства
-                Debug.Log("🔍 [BOOTSTRAP-FORCE] Регистрируем активную сессию для текущего устройства...");
                 MyLogger.Log("🔍 Регистрируем активную сессию для текущего устройства...", MyLogger.LogCategory.Bootstrap);
                 var sessionRegisterTask = databaseService.RegisterActiveSession();
                 while (!sessionRegisterTask.IsCompleted)
                 {
                     yield return null;
                 }
-                
+
                 if (sessionRegisterTask.IsFaulted)
                 {
-                    Debug.Log($"❌ [BOOTSTRAP-FORCE] Ошибка при регистрации активной сессии: {sessionRegisterTask.Exception?.Message}");
                     MyLogger.LogError($"❌ Ошибка при регистрации активной сессии: {sessionRegisterTask.Exception?.Message}", MyLogger.LogCategory.Bootstrap);
                     // Продолжаем выполнение, так как это не критическая ошибка
                 }
                 else if (sessionRegisterTask.Result)
                 {
-                    Debug.Log("✅ [BOOTSTRAP-FORCE] Активная сессия зарегистрирована");
                     MyLogger.Log("✅ Активная сессия зарегистрирована", MyLogger.LogCategory.Bootstrap);
                 }
                 else
                 {
-                    Debug.Log("❌ [BOOTSTRAP-FORCE] Не удалось зарегистрировать активную сессию (Result = false)");
+                    MyLogger.LogWarning("❌ Не удалось зарегистрировать активную сессию (Result = false)", MyLogger.LogCategory.Bootstrap);
                 }
-                
+
                 MyLogger.Log("✅ Пользователь аутентифицирован. Синхронизация истории будет выполняться при открытии панели истории.", MyLogger.LogCategory.Bootstrap);
 
                 // Проверяем верификацию email
@@ -216,10 +208,9 @@ namespace App.Develop.EntryPoint
             }
             else
             {
-                Debug.Log("🔐 [BOOTSTRAP-FORCE] Пользователь не авторизован. Переход в AuthScene.");
                 MyLogger.Log("🔐 Пользователь не авторизован. Переход в AuthScene.", MyLogger.LogCategory.Bootstrap);
                 sceneSwitcher.ProcessSwitchSceneFor(new OutputBootstrapArgs(new AuthSceneInputArgs()));
             }
         }
     }
-} 
+}
