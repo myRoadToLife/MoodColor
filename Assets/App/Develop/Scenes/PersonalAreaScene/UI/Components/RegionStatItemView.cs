@@ -1,10 +1,15 @@
+using App.App.Develop.Scenes.PersonalAreaScene.UI.Components;
 using App.Develop.CommonServices.Emotion;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections.Generic;
 
 namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Components
 {
+    /// <summary>
+    /// Компонент для отображения статистики по отдельному району
+    /// </summary>
     public class RegionStatItemView : MonoBehaviour
     {
         #region Constants
@@ -15,89 +20,118 @@ namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Components
         #endregion
 
         #region SerializeFields
-        [Header("UI References")]
+        [Header("UI Elements")]
         [SerializeField] private TMP_Text _regionNameText;
         [SerializeField] private TMP_Text _dominantEmotionText;
         [SerializeField] private TMP_Text _percentageText;
-        [SerializeField] private TMP_Text _totalCountText;
+        [SerializeField] private TMP_Text _totalEmotionsText;
         [SerializeField] private Image _emotionColorIndicator;
-        [SerializeField] private Image _backgroundImage;
+        [SerializeField] private Transform _emotionListContainer;
+        [SerializeField] private GameObject _emotionCountItemPrefab;
         #endregion
 
         #region Private Fields
         private RegionalEmotionStats _currentStats;
-        private string _regionName;
         #endregion
 
         #region Public Methods
+        /// <summary>
+        /// Настраивает отображение статистики для региона
+        /// </summary>
+        /// <param name="regionName">Название региона</param>
+        /// <param name="stats">Статистика по эмоциям</param>
         public void Setup(string regionName, RegionalEmotionStats stats)
         {
-            _regionName = regionName;
             _currentStats = stats;
-            
-            UpdateDisplay();
+
+            SetupRegionInfo(regionName);
+            SetupDominantEmotion();
+            SetupEmotionCounts();
         }
         #endregion
 
         #region Private Methods
-        private void UpdateDisplay()
-        {
-            if (_currentStats == null) return;
-            
-            SetRegionName(_regionName);
-            SetDominantEmotion(_currentStats.DominantEmotion);
-            SetPercentage(_currentStats.DominantEmotionPercentage);
-            SetTotalCount(_currentStats.TotalEmotions);
-            SetEmotionColor(_currentStats.DominantEmotion);
-        }
-
-        private void SetRegionName(string regionName)
+        private void SetupRegionInfo(string regionName)
         {
             if (_regionNameText != null)
             {
-                _regionNameText.text = string.Format(REGION_NAME_FORMAT, regionName);
+                _regionNameText.text = regionName;
+            }
+
+            if (_totalEmotionsText != null)
+            {
+                _totalEmotionsText.text = $"Всего: {_currentStats.TotalEmotions}";
             }
         }
 
-        private void SetDominantEmotion(EmotionTypes emotionType)
+        private void SetupDominantEmotion()
         {
             if (_dominantEmotionText != null)
             {
-                string emotionName = GetEmotionDisplayName(emotionType);
-                _dominantEmotionText.text = string.Format(DOMINANT_EMOTION_FORMAT, emotionName);
+                string emotionName = GetEmotionDisplayName(_currentStats.DominantEmotion);
+                _dominantEmotionText.text = $"Преобладает: {emotionName}";
             }
-        }
 
-        private void SetPercentage(float percentage)
-        {
             if (_percentageText != null)
             {
-                _percentageText.text = string.Format(PERCENTAGE_FORMAT, percentage);
+                _percentageText.text = $"{_currentStats.DominantEmotionPercentage:F1}%";
             }
-        }
 
-        private void SetTotalCount(int totalCount)
-        {
-            if (_totalCountText != null)
-            {
-                _totalCountText.text = string.Format(TOTAL_COUNT_FORMAT, totalCount);
-            }
-        }
-
-        private void SetEmotionColor(EmotionTypes emotionType)
-        {
-            Color emotionColor = GetEmotionColor(emotionType);
-            
             if (_emotionColorIndicator != null)
             {
-                _emotionColorIndicator.color = emotionColor;
+                _emotionColorIndicator.color = GetEmotionColor(_currentStats.DominantEmotion);
             }
-            
-            if (_backgroundImage != null)
+        }
+
+        private void SetupEmotionCounts()
+        {
+            if (_emotionListContainer == null || _emotionCountItemPrefab == null) return;
+
+            // Очищаем предыдущие элементы
+            foreach (Transform child in _emotionListContainer)
             {
-                Color backgroundColor = emotionColor;
-                backgroundColor.a = 0.1f; // Делаем фон полупрозрачным
-                _backgroundImage.color = backgroundColor;
+                if (child != null)
+                {
+                    DestroyImmediate(child.gameObject);
+                }
+            }
+
+            // Создаем элементы для каждой эмоции (показываем топ-3)
+            var sortedEmotions = new List<KeyValuePair<EmotionTypes, int>>();
+            foreach (var kvp in _currentStats.EmotionCounts)
+            {
+                sortedEmotions.Add(kvp);
+            }
+
+            sortedEmotions.Sort((a, b) => b.Value.CompareTo(a.Value));
+
+            int maxItems = Mathf.Min(3, sortedEmotions.Count);
+            for (int i = 0; i < maxItems; i++)
+            {
+                var emotionKvp = sortedEmotions[i];
+                CreateEmotionCountItem(emotionKvp.Key, emotionKvp.Value);
+            }
+        }
+
+        private void CreateEmotionCountItem(EmotionTypes emotionType, int count)
+        {
+            GameObject item = Instantiate(_emotionCountItemPrefab, _emotionListContainer);
+
+            TMP_Text textComponent = item.GetComponent<TMP_Text>();
+            if (textComponent != null)
+            {
+                string emotionName = GetEmotionDisplayName(emotionType);
+                float percentage = _currentStats.TotalEmotions > 0 ?
+                    (count * 100f) / _currentStats.TotalEmotions : 0f;
+
+                textComponent.text = $"{emotionName}: {count} ({percentage:F1}%)";
+                textComponent.color = GetEmotionColor(emotionType);
+            }
+
+            Image imageComponent = item.GetComponent<Image>();
+            if (imageComponent != null)
+            {
+                imageComponent.color = GetEmotionColor(emotionType);
             }
         }
 
@@ -124,20 +158,20 @@ namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Components
         {
             return emotionType switch
             {
-                EmotionTypes.Joy => new Color(1f, 0.85f, 0.1f),
-                EmotionTypes.Sadness => new Color(0.15f, 0.3f, 0.8f),
-                EmotionTypes.Anger => new Color(0.9f, 0.1f, 0.1f),
-                EmotionTypes.Fear => new Color(0.5f, 0.1f, 0.6f),
-                EmotionTypes.Disgust => new Color(0.1f, 0.6f, 0.2f),
-                EmotionTypes.Trust => new Color(0f, 0.6f, 0.9f),
-                EmotionTypes.Anticipation => new Color(1f, 0.5f, 0f),
-                EmotionTypes.Surprise => new Color(0.8f, 0.4f, 0.9f),
-                EmotionTypes.Love => new Color(0.95f, 0.3f, 0.6f),
-                EmotionTypes.Anxiety => new Color(0.7f, 0.7f, 0.7f),
-                EmotionTypes.Neutral => Color.white,
+                EmotionTypes.Joy => new Color(1f, 0.85f, 0.1f),      // Жёлтый
+                EmotionTypes.Sadness => new Color(0.15f, 0.3f, 0.8f), // Синий
+                EmotionTypes.Anger => new Color(0.9f, 0.1f, 0.1f),    // Красный
+                EmotionTypes.Fear => new Color(0.5f, 0.1f, 0.6f),     // Фиолетовый
+                EmotionTypes.Disgust => new Color(0.1f, 0.6f, 0.2f),  // Зелёный
+                EmotionTypes.Trust => new Color(0f, 0.6f, 0.9f),      // Голубой
+                EmotionTypes.Anticipation => new Color(1f, 0.5f, 0f), // Оранжевый
+                EmotionTypes.Surprise => new Color(0.8f, 0.4f, 0.9f), // Розовый
+                EmotionTypes.Love => new Color(0.95f, 0.3f, 0.6f),    // Малиновый
+                EmotionTypes.Anxiety => new Color(0.7f, 0.7f, 0.7f),  // Серый
+                EmotionTypes.Neutral => Color.white,                   // Белый
                 _ => Color.white
             };
         }
         #endregion
     }
-} 
+}

@@ -9,6 +9,7 @@ using App.Develop.CommonServices.Firebase.Messaging.Services;
 using App.Develop.CommonServices.Firebase.RemoteConfig.Services;
 using App.Develop.CommonServices.Firebase;
 using App.Develop.CommonServices.Firebase.Auth;
+using App.Develop.CommonServices.Regional;
 using App.Develop.DI;
 using App.Develop.DI.Installers;
 using Firebase.Auth;
@@ -116,6 +117,13 @@ namespace App.Develop.DI.Installers
                         c.Resolve<DatabaseReference>(),
                         c.Resolve<FirebaseCacheManager>(),
                         c.Resolve<DataValidationService>()
+                    )
+                ).NonLazy();
+
+                // Регистрируем RegionalStatsService
+                container.RegisterAsSingle<IRegionalStatsService>(c =>
+                    new RegionalStatsService(
+                        c.Resolve<IRegionalDatabaseService>()
                     )
                 ).NonLazy();
 

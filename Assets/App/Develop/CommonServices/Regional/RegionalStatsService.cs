@@ -33,7 +33,7 @@ namespace App.Develop.CommonServices.Regional
         public void Initialize()
         {
             if (_isInitialized) return;
-            
+
             MyLogger.Log("Инициализация RegionalStatsService", MyLogger.LogCategory.Regional);
             _isInitialized = true;
         }
@@ -87,7 +87,7 @@ namespace App.Develop.CommonServices.Regional
             {
                 // Обновляем кэш
                 _cachedStats[regionName] = stats;
-                
+
                 // Сохраняем в Firebase (если доступен)
                 if (_databaseService != null)
                 {
@@ -115,7 +115,7 @@ namespace App.Develop.CommonServices.Regional
         #region Private Methods
         private bool IsCacheValid()
         {
-            return _cachedStats.Count > 0 && 
+            return _cachedStats.Count > 0 &&
                    (DateTime.Now - _lastCacheUpdate).TotalMinutes < CACHE_EXPIRY_MINUTES;
         }
 
@@ -134,7 +134,7 @@ namespace App.Develop.CommonServices.Regional
             try
             {
                 Dictionary<string, RegionData> regionDataDict = await _databaseService.GetAllRegionData();
-                
+
                 if (regionDataDict == null || regionDataDict.Count == 0)
                 {
                     MyLogger.Log("Нет данных о регионах в Firebase, создаем тестовые данные", MyLogger.LogCategory.Regional);
@@ -218,6 +218,20 @@ namespace App.Develop.CommonServices.Regional
                     { EmotionTypes.Anxiety, 153 }
                 }
             };
+
+            _cachedStats["Западный"] = new RegionalEmotionStats
+            {
+                DominantEmotion = EmotionTypes.Trust,
+                DominantEmotionPercentage = 41.3f,
+                TotalEmotions = 980,
+                EmotionCounts = new Dictionary<EmotionTypes, int>
+                {
+                    { EmotionTypes.Trust, 405 },
+                    { EmotionTypes.Joy, 294 },
+                    { EmotionTypes.Love, 147 },
+                    { EmotionTypes.Surprise, 134 }
+                }
+            };
         }
 
         private RegionalEmotionStats ConvertFromRegionData(RegionData regionData)
@@ -274,4 +288,4 @@ namespace App.Develop.CommonServices.Regional
         }
         #endregion
     }
-} 
+}

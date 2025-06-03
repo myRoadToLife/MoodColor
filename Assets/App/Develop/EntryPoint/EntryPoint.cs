@@ -35,6 +35,7 @@ using App.Develop.Utils.Logging;
 using UnityEngine.AddressableAssets;
 using App.Develop.DI.Installers;
 using App.Develop.Configs;
+using App.App.Develop.Scenes.PersonalAreaScene.UI.Components; // Добавляем импорт для RegionalStatisticsController
 
 #if !DISABLE_AUTO_ADDRESSABLES_IMPORT
 using UnityEngine.AddressableAssets;
@@ -622,6 +623,20 @@ namespace App.Develop.EntryPoint
 
                     return tempJarView;
                 });
+
+                // Регистрируем RegionalStatisticsController для управления региональной статистикой
+                container.RegisterAsSingle<RegionalStatisticsController>(c =>
+                {
+                    var controller = FindObjectOfType<RegionalStatisticsController>();
+                    if (controller == null)
+                    {
+                        var go = new GameObject("RegionalStatisticsController");
+                        controller = go.AddComponent<RegionalStatisticsController>();
+                        DontDestroyOnLoad(go);
+                    }
+                    controller.Inject(c);
+                    return controller;
+                }).NonLazy();
             }
             catch (Exception ex)
             {

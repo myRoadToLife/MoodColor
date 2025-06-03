@@ -11,7 +11,7 @@ using UnityEngine;
 namespace App.Develop.Scenes.PersonalAreaScene.Settings
 {
     #region Enums and Models
-    
+
     public enum ThemeType
     {
         Default,
@@ -26,6 +26,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         public bool sound = true;
         public ThemeType theme = ThemeType.Default;
         public string language = "ru";
+        public string selectedRegion = "Центральный";
     }
     #endregion
 
@@ -51,12 +52,12 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         public void Inject(DIContainer container)
         {
             if (container == null) throw new ArgumentNullException(nameof(container));
-            
+
             try
             {
                 _auth = container.Resolve<FirebaseAuth>();
                 _database = container.Resolve<DatabaseReference>();
-                
+
                 LoadSettings();
                 MyLogger.Log("✅ SettingsManager успешно инициализирован");
             }
@@ -96,6 +97,14 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         {
             if (_currentSettings.language == language) return;
             _currentSettings.language = language;
+            OnSettingsChanged?.Invoke(_currentSettings);
+            SaveSettings();
+        }
+
+        public void SetSelectedRegion(string regionName)
+        {
+            if (_currentSettings.selectedRegion == regionName) return;
+            _currentSettings.selectedRegion = regionName;
             OnSettingsChanged?.Invoke(_currentSettings);
             SaveSettings();
         }
@@ -167,7 +176,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
                 {
                     var json = snapshot.GetRawJsonValue();
                     var settings = JsonUtility.FromJson<SettingsData>(json);
-                    
+
                     if (settings != null)
                     {
                         _currentSettings = settings;
@@ -194,7 +203,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         private SettingsData LoadLocalSettings()
         {
             var json = PlayerPrefs.GetString(SETTINGS_KEY, string.Empty);
-            
+
             if (string.IsNullOrEmpty(json))
             {
                 return new SettingsData();
@@ -218,4 +227,4 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         }
         #endregion
     }
-} 
+}

@@ -20,7 +20,7 @@ namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Components
         [Header("Statistics")]
         [SerializeField] private TMP_Text _pointsText;
         [SerializeField] private TMP_Text _entriesText;
-        
+
         [Header("Regional Statistics")]
         [SerializeField] private Transform _regionalStatsContainer;
         [SerializeField] private GameObject _regionStatItemPrefab;
@@ -73,15 +73,15 @@ namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Components
         public void SetRegionalStats(Dictionary<string, RegionalEmotionStats> regionalStats)
         {
             ClearRegionalStats();
-            
+
             if (regionalStats == null || regionalStats.Count == 0)
             {
                 ShowNoRegionalData();
                 return;
             }
-            
+
             HideNoRegionalData();
-            
+
             foreach (KeyValuePair<string, RegionalEmotionStats> kvp in regionalStats)
             {
                 CreateRegionStatItem(kvp.Key, kvp.Value);
@@ -96,7 +96,7 @@ namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Components
             {
                 _regionalStatsTitle.text = "Эмоции по районам";
             }
-            
+
             ShowNoRegionalData();
         }
 
@@ -115,10 +115,10 @@ namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Components
         private void CreateRegionStatItem(string regionName, RegionalEmotionStats stats)
         {
             if (_regionStatItemPrefab == null || _regionalStatsContainer == null) return;
-            
+
             GameObject item = Instantiate(_regionStatItemPrefab, _regionalStatsContainer);
             _regionStatItems.Add(item);
-            
+
             RegionStatItemView regionView = item.GetComponent<RegionStatItemView>();
             if (regionView != null)
             {
@@ -209,4 +209,4 @@ namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Components
         }
     }
     #endregion
-} 
+}

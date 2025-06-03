@@ -15,13 +15,16 @@ using App.Develop.CommonServices.Firebase.Database.Models;
 using App.Develop.Utils.Logging;
 using App.Develop.Utils.Reactive;
 using App.Develop.CommonServices.DataManagement.DataProviders;
+using App.Develop.CommonServices.Regional;
+using System.Collections.Generic;
+using App.App.Develop.Scenes.PersonalAreaScene.UI.Components;
 
 namespace App.Develop.Scenes.PersonalAreaScene.UI
 {
     public class PersonalAreaManager : MonoBehaviour
     {
         private const string DEFAULT_USERNAME = "Username";
-     
+
         [SerializeField] private PersonalAreaUIController _ui;
 
         private IPersonalAreaService _service;
@@ -30,6 +33,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         private PanelManager _panelManager;
         private IPointsService _pointsService;
         private IDatabaseService _databaseService;
+        private IRegionalStatsService _regionalStatsService;
         private bool _isInitialized;
 
         // Поля для хранения делегатов событий
@@ -51,7 +55,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             _factory = factory;
             _panelManager = container.Resolve<PanelManager>();
             _pointsService = container.Resolve<IPointsService>();
-            
+
             // Пытаемся получить DatabaseService для доступа к профилю пользователя
             try
             {
@@ -60,6 +64,16 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             catch (Exception)
             {
                 // LogWarning was here, removed. Nickname will not be loaded if service is unavailable.
+            }
+
+            // Пытаемся получить RegionalStatsService для статистики эмоций города
+            try
+            {
+                _regionalStatsService = container.Resolve<IRegionalStatsService>();
+            }
+            catch (Exception)
+            {
+                MyLogger.LogWarning("RegionalStatsService недоступен. Региональная статистика не будет отображаться.", MyLogger.LogCategory.UI);
             }
 
             Initialize();
@@ -100,27 +114,27 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
 
             _onOpenSettingsHandler = async () => await ShowSettingsPanelAsync();
             _ui.OnOpenSettings += _onOpenSettingsHandler;
-            
+
             _onQuitApplicationHandler = HandleQuitApplication;
             _ui.OnQuitApplication += _onQuitApplicationHandler;
         }
 
-        private async Task HandleLogEmotionAsync() 
+        private async Task HandleLogEmotionAsync()
         {
             await ShowLogEmotionPanelAsync();
         }
-        
-        private async Task HandleOpenHistoryAsync() 
+
+        private async Task HandleOpenHistoryAsync()
         {
             await ShowHistoryPanelAsync();
         }
-        
-        private async Task HandleOpenFriendsAsync() 
+
+        private async Task HandleOpenFriendsAsync()
         {
             await ShowFriendsPanelAsync();
         }
-        
-        private async Task HandleOpenWorkshopAsync() 
+
+        private async Task HandleOpenWorkshopAsync()
         {
             await ShowWorkshopPanelAsync();
         }
@@ -177,18 +191,18 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             // Устанавливаем дефолтное имя, пока загружаем реальное
             _ui.SetUsername(DEFAULT_USERNAME);
             _ui.SetCurrentEmotion(null);
-            
+
             // Асинхронно загружаем профиль
             LoadUserProfileAsync();
         }
-        
+
         private async void LoadUserProfileAsync()
         {
             if (_databaseService == null)
             {
                 return;
             }
-            
+
             try
             {
                 // Проверяем, авторизован ли пользователь
@@ -196,10 +210,10 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
                 {
                     return;
                 }
-                
+
                 // Загружаем профиль пользователя
                 UserProfile userProfile = await _databaseService.GetUserProfile();
-                
+
                 if (userProfile != null && !string.IsNullOrEmpty(userProfile.Nickname))
                 {
                     // Устанавливаем никнейм пользователя
@@ -240,6 +254,18 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
 
         private async void SetupStatisticsAsync()
         {
+            // Настраиваем базовую статистику (очки и записи)
+            await SetupBasicStatisticsAsync();
+
+            // Настраиваем региональную статистику (эмоции города)
+            await SetupRegionalStatisticsAsync();
+        }
+
+        /// <summary>
+        /// Настраивает базовую статистику (очки и записи)
+        /// </summary>
+        private async Task SetupBasicStatisticsAsync()
+        {
             if (_pointsService == null)
             {
                 _ui.SetPoints(0);
@@ -252,13 +278,13 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
                 // Отображаем текущие данные сразу, чтобы избежать пустого UI
                 // Даже если это будут нулевые значения до загрузки
                 UpdateStatisticsView();
-                
+
                 // Подписываемся на обновления данных
                 _pointsService.OnPointsChanged += HandlePointsChanged;
-                
+
                 // Загружаем актуальные данные из Firebase
                 await _pointsService.InitializeAsync();
-                
+
                 // После завершения загрузки из Firebase обновляем представление
                 UpdateStatisticsView();
             }
@@ -266,7 +292,104 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             {
                 // Если произошла ошибка, все равно отображаем UI с доступными данными
                 UpdateStatisticsView();
-                throw new Exception($"Error loading statistics data from Firebase: {ex.Message}", ex);
+                MyLogger.LogError($"Ошибка загрузки базовой статистики: {ex.Message}", MyLogger.LogCategory.UI);
+            }
+        }
+
+        /// <summary>
+        /// Настраивает региональную статистику (эмоции города)
+        /// </summary>
+        private async Task SetupRegionalStatisticsAsync()
+        {
+            if (_regionalStatsService == null)
+            {
+                // Используем моковые данные, если сервис недоступен
+                SetMockRegionalStats();
+                return;
+            }
+
+            try
+            {
+                // Инициализируем сервис
+                _regionalStatsService.Initialize();
+
+                // Загружаем данные о региональной статистике
+                var regionalStats = await _regionalStatsService.GetAllRegionalStats();
+
+                if (regionalStats != null && regionalStats.Count > 0)
+                {
+                    _ui.SetRegionalStats(regionalStats);
+                    MyLogger.Log($"Загружена региональная статистика для {regionalStats.Count} регионов", MyLogger.LogCategory.UI);
+                }
+                else
+                {
+                    MyLogger.LogWarning("Нет данных о региональной статистике", MyLogger.LogCategory.UI);
+                    SetMockRegionalStats();
+                }
+            }
+            catch (Exception ex)
+            {
+                MyLogger.LogError($"Ошибка загрузки региональной статистики: {ex.Message}", MyLogger.LogCategory.UI);
+                SetMockRegionalStats();
+            }
+        }
+
+        /// <summary>
+        /// Устанавливает демонстрационные данные региональной статистики
+        /// </summary>
+        private void SetMockRegionalStats()
+        {
+            var mockStats = new Dictionary<string, RegionalEmotionStats>
+            {
+                ["Центральный"] = new RegionalEmotionStats
+                {
+                    DominantEmotion = EmotionTypes.Joy,
+                    DominantEmotionPercentage = 45.2f,
+                    TotalEmotions = 1250,
+                    EmotionCounts = new Dictionary<EmotionTypes, int>
+                    {
+                        { EmotionTypes.Joy, 565 },
+                        { EmotionTypes.Trust, 312 },
+                        { EmotionTypes.Love, 198 },
+                        { EmotionTypes.Neutral, 175 }
+                    }
+                },
+                ["Промышленный"] = new RegionalEmotionStats
+                {
+                    DominantEmotion = EmotionTypes.Sadness,
+                    DominantEmotionPercentage = 38.7f,
+                    TotalEmotions = 890,
+                    EmotionCounts = new Dictionary<EmotionTypes, int>
+                    {
+                        { EmotionTypes.Sadness, 344 },
+                        { EmotionTypes.Anxiety, 267 },
+                        { EmotionTypes.Fear, 156 },
+                        { EmotionTypes.Neutral, 123 }
+                    }
+                },
+                ["Жилой"] = new RegionalEmotionStats
+                {
+                    DominantEmotion = EmotionTypes.Love,
+                    DominantEmotionPercentage = 42.1f,
+                    TotalEmotions = 1100,
+                    EmotionCounts = new Dictionary<EmotionTypes, int>
+                    {
+                        { EmotionTypes.Love, 463 },
+                        { EmotionTypes.Joy, 341 },
+                        { EmotionTypes.Trust, 198 },
+                        { EmotionTypes.Surprise, 98 }
+                    }
+                }
+            };
+
+            try
+            {
+                _ui.SetRegionalStats(mockStats);
+                MyLogger.Log("Установлена демонстрационная региональная статистика", MyLogger.LogCategory.UI);
+            }
+            catch (Exception ex)
+            {
+                MyLogger.LogError($"Ошибка установки демонстрационной региональной статистики: {ex.Message}", MyLogger.LogCategory.UI);
             }
         }
 
@@ -290,13 +413,13 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         {
             StartCoroutine(ConfirmAndQuitApplication());
         }
-        
+
         private IEnumerator ConfirmAndQuitApplication()
         {
 #if UNITY_EDITOR
             if (UnityEditor.EditorUtility.DisplayDialog(
-                "Закрытие приложения", 
-                "Вы уверены, что хотите закрыть приложение?", 
+                "Закрытие приложения",
+                "Вы уверены, что хотите закрыть приложение?",
                 "Да", "Нет"))
             {
                 UnityEditor.EditorApplication.isPlaying = false;
@@ -304,7 +427,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
 #else
             Application.Quit();
 #endif
-            
+
             yield return null;
         }
 
@@ -327,4 +450,4 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
             }
         }
     }
-} 
+}

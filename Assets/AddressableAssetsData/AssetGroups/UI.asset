@@ -13,8 +13,6 @@ MonoBehaviour:
   m_Name: UI
   m_EditorClassIdentifier: 
   m_GroupName: UI
-  m_Data:
-    m_SerializedData: []
   m_GUID: 9a5a82789d88de44fa8acf6eaf3b2855
   m_SerializeEntries:
   - m_GUID: 0216bd6fa70743043ad6cb6cc477a7e0
@@ -23,11 +21,6 @@ MonoBehaviour:
     m_SerializedLabels:
     - Prefab
     - UI
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 03c7d5eb1d3b7424c9a451539acbe613
-    m_Address: UICanvas_PersonalArea
-    m_ReadOnly: 0
-    m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 077fff943b9f4b542a0c42ccfeab7fe4
     m_Address: UIPanel_Friends
@@ -98,6 +91,11 @@ MonoBehaviour:
     m_SerializedLabels:
     - Prefab
     - UI
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: defbe1ce4be489a4eb86e8467d01934c
+    m_Address: UICanvas_PersonalArea
+    m_ReadOnly: 0
+    m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: e4418978ebb99634ab35caf7b365d266
     m_Address: UIPanel_LogEmotion

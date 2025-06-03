@@ -3,6 +3,7 @@ using App.App.Develop.Scenes.PersonalAreaScene.UI.Components;
 using App.Develop.CommonServices.Emotion;
 using UnityEngine;
 using App.Develop.Scenes.PersonalAreaScene.UI.Components;
+using System.Collections.Generic;
 
 namespace App.Develop.Scenes.PersonalAreaScene.UI
 {
@@ -103,6 +104,18 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
                         throw new InvalidOperationException($"[PersonalAreaUIController] Error initializing EmotionJarView: {ex.Message}\n{ex.StackTrace}", ex);
                     }
                 }
+
+                if (_statistics != null)
+                {
+                    try
+                    {
+                        _statistics.Initialize();
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidOperationException($"[PersonalAreaUIController] Error initializing StatisticsView: {ex.Message}", ex);
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -168,6 +181,27 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         }
 
         /// <summary>
+        /// Устанавливает региональную статистику эмоций города
+        /// </summary>
+        /// <param name="regionalStats">Словарь с региональной статистикой</param>
+        public void SetRegionalStats(Dictionary<string, RegionalEmotionStats> regionalStats)
+        {
+            if (_statistics == null)
+            {
+                throw new InvalidOperationException("[PersonalAreaUIController] Cannot set regional stats: StatisticsComponent is missing");
+            }
+
+            try
+            {
+                _statistics.SetRegionalStats(regionalStats);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"[PersonalAreaUIController] Error setting regional stats: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
         /// Возвращает компонент EmotionJarView
         /// </summary>
         public EmotionJarView GetEmotionJarView()
@@ -178,6 +212,14 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         public NavigationComponent GetNavigationComponent()
         {
             return _navigation;
+        }
+
+        /// <summary>
+        /// Возвращает компонент StatisticsView
+        /// </summary>
+        public StatisticsView GetStatisticsView()
+        {
+            return _statistics;
         }
 
         public void ClearAll()

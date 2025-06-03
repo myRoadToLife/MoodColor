@@ -26,6 +26,13 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         public string DisplayName;
         public string Value;
     }
+
+    [Serializable]
+    public class RegionOption
+    {
+        public string DisplayName;
+        public string Value;
+    }
     #endregion
 
     public class SettingsPanelController : MonoBehaviour, IInjectable
@@ -36,20 +43,34 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         [SerializeField] private Toggle _soundToggle;
         [SerializeField] private TMP_Dropdown _themeDropdown;
         [SerializeField] private TMP_Dropdown _languageDropdown;
-        
+        [SerializeField] private TMP_Dropdown _regionDropdown;
+
         [Header("Темы")]
-        [SerializeField] private List<ThemeOption> _themeOptions = new List<ThemeOption>
+        [SerializeField]
+        private List<ThemeOption> _themeOptions = new List<ThemeOption>
         {
             new ThemeOption { DisplayName = "По умолчанию", Value = ThemeType.Default },
             new ThemeOption { DisplayName = "Светлая", Value = ThemeType.Light },
             new ThemeOption { DisplayName = "Тёмная", Value = ThemeType.Dark }
         };
-        
+
         [Header("Языки")]
-        [SerializeField] private List<LanguageOption> _languageOptions = new List<LanguageOption>
+        [SerializeField]
+        private List<LanguageOption> _languageOptions = new List<LanguageOption>
         {
             new LanguageOption { DisplayName = "Русский", Value = "ru" },
             new LanguageOption { DisplayName = "English", Value = "en" }
+        };
+
+        [Header("Районы")]
+        [SerializeField]
+        private List<RegionOption> _regionOptions = new List<RegionOption>
+        {
+            new RegionOption { DisplayName = "Центральный", Value = "Центральный" },
+            new RegionOption { DisplayName = "Северный", Value = "Северный" },
+            new RegionOption { DisplayName = "Южный", Value = "Южный" },
+            new RegionOption { DisplayName = "Восточный", Value = "Восточный" },
+            new RegionOption { DisplayName = "Западный", Value = "Западный" }
         };
 
         [Header("Кнопки")]
@@ -57,7 +78,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         [SerializeField] private Button _resetButton;
         [SerializeField] private Button _deleteAccountButton;
         [SerializeField] private Button _closeButton;
-        
+
         [Header("Сообщения")]
         [SerializeField] private GameObject _popupPanel;
         [SerializeField] private TMP_Text _popupText;
@@ -79,7 +100,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
                 LoadCurrentSettings();
             }
         }
-        
+
         private void OnDestroy()
         {
             UnsubscribeEvents();
@@ -97,83 +118,92 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             InitializeControls();
             SubscribeEvents();
             LoadCurrentSettings();
-            
+
             _isInitialized = true;
         }
 
         private void InitializeControls()
         {
-            // Инициализация выпадающего списка тем
-            _themeDropdown.ClearOptions();
-            List<TMP_Dropdown.OptionData> themeOptionData = new List<TMP_Dropdown.OptionData>();
-            foreach (var theme in _themeOptions)
+            // Настройка тем
+            if (_themeDropdown != null)
             {
-                themeOptionData.Add(new TMP_Dropdown.OptionData(theme.DisplayName));
+                _themeDropdown.ClearOptions();
+                _themeDropdown.AddOptions(_themeOptions.ConvertAll(t => t.DisplayName));
             }
-            _themeDropdown.AddOptions(themeOptionData);
 
-            // Инициализация выпадающего списка языков
-            _languageDropdown.ClearOptions();
-            List<TMP_Dropdown.OptionData> languageOptionData = new List<TMP_Dropdown.OptionData>();
-            foreach (var language in _languageOptions)
+            // Настройка языков
+            if (_languageDropdown != null)
             {
-                languageOptionData.Add(new TMP_Dropdown.OptionData(language.DisplayName));
+                _languageDropdown.ClearOptions();
+                _languageDropdown.AddOptions(_languageOptions.ConvertAll(l => l.DisplayName));
             }
-            _languageDropdown.AddOptions(languageOptionData);
+
+            // Настройка районов
+            if (_regionDropdown != null)
+            {
+                _regionDropdown.ClearOptions();
+                _regionDropdown.AddOptions(_regionOptions.ConvertAll(r => r.DisplayName));
+            }
         }
 
         private void SubscribeEvents()
         {
             if (_saveButton != null)
                 _saveButton.onClick.AddListener(SaveSettings);
-            
+
             if (_resetButton != null)
                 _resetButton.onClick.AddListener(ResetSettings);
-            
+
             if (_deleteAccountButton != null)
                 _deleteAccountButton.onClick.AddListener(ShowDeleteAccountPanel);
-                
+
             if (_closeButton != null)
                 _closeButton.onClick.AddListener(ClosePanel);
-                
+
             if (_notificationsToggle != null)
                 _notificationsToggle.onValueChanged.AddListener(OnNotificationsChanged);
-                
+
             if (_soundToggle != null)
                 _soundToggle.onValueChanged.AddListener(OnSoundChanged);
-                
+
             if (_themeDropdown != null)
                 _themeDropdown.onValueChanged.AddListener(OnThemeChanged);
-                
+
             if (_languageDropdown != null)
                 _languageDropdown.onValueChanged.AddListener(OnLanguageChanged);
+
+            if (_regionDropdown != null)
+                _regionDropdown.onValueChanged.AddListener(OnRegionChanged);
         }
 
         private void UnsubscribeEvents()
         {
             if (_saveButton != null)
                 _saveButton.onClick.RemoveListener(SaveSettings);
-            
+
             if (_resetButton != null)
                 _resetButton.onClick.RemoveListener(ResetSettings);
-            
+
             if (_deleteAccountButton != null)
                 _deleteAccountButton.onClick.RemoveListener(ShowDeleteAccountPanel);
-                
+
             if (_closeButton != null)
                 _closeButton.onClick.RemoveListener(ClosePanel);
-                
+
             if (_notificationsToggle != null)
                 _notificationsToggle.onValueChanged.RemoveListener(OnNotificationsChanged);
-                
+
             if (_soundToggle != null)
                 _soundToggle.onValueChanged.RemoveListener(OnSoundChanged);
-                
+
             if (_themeDropdown != null)
                 _themeDropdown.onValueChanged.RemoveListener(OnThemeChanged);
-                
+
             if (_languageDropdown != null)
                 _languageDropdown.onValueChanged.RemoveListener(OnLanguageChanged);
+
+            if (_regionDropdown != null)
+                _regionDropdown.onValueChanged.RemoveListener(OnRegionChanged);
         }
         #endregion
 
@@ -203,69 +233,43 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
                 _settingsManager.SetLanguage(_languageOptions[index].Value);
             }
         }
+
+        private void OnRegionChanged(int index)
+        {
+            if (index >= 0 && index < _regionOptions.Count)
+            {
+                _settingsManager.SetSelectedRegion(_regionOptions[index].Value);
+            }
+        }
         #endregion
 
         #region Settings Management
         private void LoadCurrentSettings()
         {
-            if (_settingsManager == null)
+            var settings = _settingsManager.GetCurrentSettings();
+
+            if (_notificationsToggle != null)
+                _notificationsToggle.isOn = settings.notifications;
+
+            if (_soundToggle != null)
+                _soundToggle.isOn = settings.sound;
+
+            if (_themeDropdown != null)
             {
-                MyLogger.LogError("SettingsManager не инициализирован!");
-                return;
+                int themeIndex = _themeOptions.FindIndex(t => t.Value == settings.theme);
+                _themeDropdown.value = themeIndex >= 0 ? themeIndex : 0;
             }
 
-            SettingsData settings = _settingsManager.GetCurrentSettings();
-            
-            // Проверяем все UI элементы перед использованием
-            if (_notificationsToggle == null)
+            if (_languageDropdown != null)
             {
-                MyLogger.LogError("_notificationsToggle не назначен в инспекторе!");
-                return;
-            }
-            
-            if (_soundToggle == null)
-            {
-                MyLogger.LogError("_soundToggle не назначен в инспекторе!");
-                return;
-            }
-            
-            if (_themeDropdown == null)
-            {
-                MyLogger.LogError("_themeDropdown не назначен в инспекторе!");
-                return;
-            }
-            
-            if (_languageDropdown == null)
-            {
-                MyLogger.LogError("_languageDropdown не назначен в инспекторе!");
-                return;
-            }
-            
-            if (_themeOptions == null || _themeOptions.Count == 0)
-            {
-                MyLogger.LogError("_themeOptions не настроен!");
-                return;
-            }
-            
-            if (_languageOptions == null || _languageOptions.Count == 0)
-            {
-                MyLogger.LogError("_languageOptions не настроен!");
-                return;
+                int languageIndex = _languageOptions.FindIndex(l => l.Value == settings.language);
+                _languageDropdown.value = languageIndex >= 0 ? languageIndex : 0;
             }
 
-            _notificationsToggle.isOn = settings.notifications;
-            _soundToggle.isOn = settings.sound;
-
-            int themeIndex = _themeOptions.FindIndex(t => t.Value == settings.theme);
-            if (themeIndex != -1)
+            if (_regionDropdown != null)
             {
-                _themeDropdown.value = themeIndex;
-            }
-
-            int languageIndex = _languageOptions.FindIndex(l => l.Value == settings.language);
-            if (languageIndex != -1)
-            {
-                _languageDropdown.value = languageIndex;
+                int regionIndex = _regionOptions.FindIndex(r => r.Value == settings.selectedRegion);
+                _regionDropdown.value = regionIndex >= 0 ? regionIndex : 0;
             }
         }
 
@@ -293,12 +297,12 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
             {
                 MyLogger.LogError("❌ Пользователь не авторизован при попытке показать панель удаления");
                 ShowPopup("Для удаления аккаунта необходимо войти в систему.");
-                
+
                 // Перенаправляем на экран входа с небольшой задержкой
                 Invoke(nameof(RedirectToAuth), 2f);
                 return;
             }
-            
+
             MyLogger.Log($"✅ Показ панели удаления для пользователя: {_authStateService.CurrentUser.Email}");
             _ = _panelManager.TogglePanelAsync<AccountDeletionManager>(AssetAddresses.DeletionAccountPanel);
         }
@@ -307,7 +311,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         {
             _sceneSwitcher.ProcessSwitchSceneFor(new OutputPersonalAreaScreenArgs(new AuthSceneInputArgs()));
         }
-        
+
         private void ClosePanel()
         {
             if (_panelManager != null)
@@ -321,7 +325,7 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         private void ShowPopup(string message)
         {
             if (_popupPanel == null || _popupText == null) return;
-            
+
             _popupText.text = message;
             _popupPanel.SetActive(true);
             CancelInvoke(nameof(HidePopup));
@@ -335,4 +339,4 @@ namespace App.Develop.Scenes.PersonalAreaScene.Settings
         }
         #endregion
     }
-} 
+}
