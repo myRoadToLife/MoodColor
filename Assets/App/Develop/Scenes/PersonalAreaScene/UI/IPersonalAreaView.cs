@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using App.Develop.CommonServices.Emotion;
+using App.App.Develop.Scenes.PersonalAreaScene.UI.Components;
 using UnityEngine;
 
 namespace App.Develop.Scenes.PersonalAreaScene.UI
@@ -68,6 +70,11 @@ namespace App.Develop.Scenes.PersonalAreaScene.UI
         /// Устанавливает количество записей
         /// </summary>
         void SetEntries(int entries);
+
+        /// <summary>
+        /// Устанавливает региональную статистику эмоций города
+        /// </summary>
+        void SetRegionalStats(Dictionary<string, RegionalEmotionStats> regionalStats);
         #endregion
 
         #region Методы управления UI

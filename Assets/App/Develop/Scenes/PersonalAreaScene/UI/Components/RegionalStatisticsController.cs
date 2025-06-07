@@ -33,11 +33,11 @@ namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Components
         #endregion
 
         #region Unity Lifecycle
-        private void Start()
+        private async void Start()
         {
             if (_isInitialized)
             {
-                LoadRegionalData();
+                await LoadRegionalData();
             }
         }
 
@@ -76,7 +76,7 @@ namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Components
         /// <summary>
         /// Обновляет отображаемую региональную статистику
         /// </summary>
-        public async void RefreshRegionalStats()
+        public async Task RefreshRegionalStats()
         {
             if (!_isInitialized) return;
 
@@ -87,7 +87,7 @@ namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Components
         /// Показывает статистику для конкретного региона
         /// </summary>
         /// <param name="regionName">Название региона</param>
-        public async void ShowRegionStats(string regionName)
+        public async Task ShowRegionStats(string regionName)
         {
             if (string.IsNullOrEmpty(regionName) || !_isInitialized) return;
 
@@ -98,7 +98,7 @@ namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Components
         /// <summary>
         /// Показывает статистику всех регионов
         /// </summary>
-        public async void ShowAllRegionsStats()
+        public async Task ShowAllRegionsStats()
         {
             if (!_isInitialized) return;
 
@@ -136,12 +136,12 @@ namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Components
             }
         }
 
-        private void OnSettingsChanged(SettingsData settings)
+        private async void OnSettingsChanged(SettingsData settings)
         {
             if (settings.selectedRegion != _currentSelectedRegion)
             {
                 _currentSelectedRegion = settings.selectedRegion;
-                LoadRegionalData();
+                await LoadRegionalData();
                 OnRegionChanged?.Invoke(_currentSelectedRegion);
             }
         }

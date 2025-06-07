@@ -9,6 +9,8 @@ using App.Develop.AppServices.Auth;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.DI;
 using App.Develop.Utils.Logging;
+using App.Develop.Scenes.PersonalAreaScene;
+using Firebase.Auth;
 
 namespace App.Develop.CommonServices.Firebase.Auth
 {
@@ -68,6 +70,9 @@ namespace App.Develop.CommonServices.Firebase.Auth
 
             _uiController = uiController;
             _uiController.Initialize(this);
+            
+            // Показываем панель авторизации для ручного входа
+            // Автоматический вход теперь обрабатывается в Bootstrap для улучшения UX
             _uiController.ShowAuthPanel();
 
             var email = _credentialStorage.GetSavedEmail();

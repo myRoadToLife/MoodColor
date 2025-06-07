@@ -25,6 +25,7 @@ using App.Develop.CommonServices.Firebase.Auth;
 using App.Develop.CommonServices.Firebase.Common.Cache;
 using App.Develop.CommonServices.Firebase.Database.Models;
 using App.Develop.CommonServices.LoadingScreen;
+using App.Develop.CommonServices.Location;
 using App.Develop.CommonServices.Networking;
 using App.Develop.CommonServices.SceneManagement;
 using App.Develop.CommonServices.Social;
@@ -36,7 +37,9 @@ using App.Develop.Utils.Logging;
 using UnityEngine.AddressableAssets;
 using App.Develop.DI.Installers;
 using App.Develop.Configs;
-using App.App.Develop.Scenes.PersonalAreaScene.UI.Components; // Добавляем импорт для RegionalStatisticsController
+using App.App.Develop.Scenes.PersonalAreaScene.UI.Components;
+using App.Develop.CommonServices.Regional;
+using LocationService = App.Develop.CommonServices.Location.LocationService; // Добавляем импорт для RegionalStatisticsController
 
 #if !DISABLE_AUTO_ADDRESSABLES_IMPORT
 using UnityEngine.AddressableAssets;
@@ -110,6 +113,13 @@ namespace App.Develop.EntryPoint
 
                 MyLogger.Log("🎮 Регистрация игровой системы...", MyLogger.LogCategory.Bootstrap);
                 RegisterGameSystem(_projectContainer);
+
+                MyLogger.Log("🗺️ Регистрация LocationService...", MyLogger.LogCategory.Bootstrap);
+                RegisterLocationService(_projectContainer);
+
+                // TODO: Добавить регистрацию PrivacyService после создания UI панели
+                // MyLogger.Log("🔒 Регистрация PrivacyService...", MyLogger.LogCategory.Bootstrap);
+                // RegisterPrivacyService(_projectContainer);
 
                 MyLogger.Log("📊 Инициализация контейнера и загрузка данных...", MyLogger.LogCategory.Bootstrap);
                 await InitializeContainerAndLoadData();
@@ -294,7 +304,8 @@ namespace App.Develop.EntryPoint
                     c.Resolve<EmotionConfigService>(),
                     c.Resolve<EmotionHistoryCache>(),
                     c.Resolve<IPointsService>(),
-                    c.Resolve<ILevelSystem>()
+                    c.Resolve<ILevelSystem>(),
+                    c.Resolve<IRegionalStatsService>()
                 )
             ).NonLazy();
             _projectContainer.RegisterAsSingle<EmotionService>(c =>
@@ -332,6 +343,14 @@ namespace App.Develop.EntryPoint
             {
                 MyLogger.Log("🔗 [EntryPoint] Все сервисы найдены, вызываем InitializeFirebaseSync...", MyLogger.LogCategory.ClearHistory);
                 emotionService.InitializeFirebaseSync(databaseService, syncService, connectivityManager);
+                
+                // Устанавливаем LocationService
+                var locationService = _projectContainer.Resolve<ILocationService>();
+                if (locationService != null)
+                {
+                    emotionService.SetLocationService(locationService);
+                    MyLogger.Log("🗺️ [EntryPoint] LocationService установлен в EmotionService", MyLogger.LogCategory.Location);
+                }
 
                 // Запускаем синхронизацию ТОЛЬКО если пользователь аутентифицирован
                 MyLogger.Log($"🔍 [EntryPoint] Проверка аутентификации: databaseService.IsAuthenticated={databaseService.IsAuthenticated}", MyLogger.LogCategory.ClearHistory);
@@ -696,6 +715,37 @@ namespace App.Develop.EntryPoint
                 )
             ).NonLazy();
         }
+
+        /// <summary>
+        /// Регистрирует сервис геолокации
+        /// </summary>
+        private void RegisterLocationService(DIContainer container)
+        {
+            try
+            {
+                MyLogger.Log("🗺️ Регистрация LocationService...", MyLogger.LogCategory.Bootstrap);
+                
+                // Создаем GameObject для LocationService
+                var locationServiceObject = new GameObject("LocationService");
+                DontDestroyOnLoad(locationServiceObject);
+                
+                // Добавляем компонент LocationService
+                var locationService = locationServiceObject.AddComponent<LocationService>();
+                
+                // Регистрируем как синглтон
+                container.RegisterAsSingle<ILocationService>(c => locationService).NonLazy();
+                
+                MyLogger.Log("✅ LocationService зарегистрирован успешно", MyLogger.LogCategory.Bootstrap);
+            }
+            catch (Exception ex)
+            {
+                MyLogger.LogError($"❌ Ошибка регистрации LocationService: {ex.Message}", MyLogger.LogCategory.Bootstrap);
+                throw;
+            }
+        }
+
+        // TODO: Добавить метод RegisterPrivacyService после создания UI панели
+        // private void RegisterPrivacyService(DIContainer container) { ... }
 
         /// <summary>
         /// Регистрирует сервисы Firebase в контейнере (обновленная версия)

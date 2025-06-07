@@ -6,6 +6,7 @@ using App.Develop.CommonServices.DataManagement.DataProviders;
 using App.Develop.CommonServices.Emotion;
 using App.Develop.CommonServices.GameSystem;
 using App.Develop.CommonServices.SceneManagement;
+using App.Develop.CommonServices.LoadingScreen;
 using App.Develop.DI;
 using App.Develop.Scenes.PersonalAreaScene.Handlers;
 using App.Develop.Scenes.PersonalAreaScene.UI;
@@ -114,6 +115,24 @@ namespace App.Develop.Scenes.PersonalAreaScene.Infrastructure
                 catch (Exception e)
                 {
                     MyLogger.LogError($"❌ [PersonalAreaBootstrap] Ошибка инициализации компонентов: {e.Message}\n{e.StackTrace}", MyLogger.LogCategory.Bootstrap);
+                }
+
+                // ВАЖНО: Скрываем загрузочный экран только после полной инициализации PersonalArea
+                MyLogger.Log("🎯 [PersonalAreaBootstrap] PersonalArea полностью загружена, скрываем загрузочный экран...", MyLogger.LogCategory.Bootstrap);
+                try
+                {
+                    var loadingScreen = _container.Resolve<ILoadingScreen>();
+                    if (loadingScreen != null)
+                    {
+                        // Добавляем небольшую задержку для плавности
+                        await Task.Delay(300); 
+                        loadingScreen.Hide();
+                        MyLogger.Log("✅ [PersonalAreaBootstrap] Загрузочный экран скрыт", MyLogger.LogCategory.Bootstrap);
+                    }
+                }
+                catch (Exception e)
+                {
+                    MyLogger.LogWarning($"⚠️ [PersonalAreaBootstrap] Не удалось скрыть загрузочный экран: {e.Message}", MyLogger.LogCategory.Bootstrap);
                 }
             }
             catch (Exception e)

@@ -36,6 +36,11 @@ MonoBehaviour:
     - Prefab
     - UI
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1887144a732160c4191df2786cd1a2de
+    m_Address: UIPanel_Settings
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 1a1f4fa490345ab4fa26342b5bf7625e
     m_Address: UIComponent_HistoryItemEntry
     m_ReadOnly: 0
@@ -66,13 +71,6 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 6f4368fb280452349a5ca0705d0f6278
     m_Address: UIComponent_InGameNotification
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - Prefab
-    - UI
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 79174e9e04872b2409eed4a8a0cb382f
-    m_Address: UIPanel_Settings
     m_ReadOnly: 0
     m_SerializedLabels:
     - Prefab

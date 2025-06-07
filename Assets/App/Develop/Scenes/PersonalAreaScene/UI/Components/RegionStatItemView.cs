@@ -32,6 +32,7 @@ namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Components
 
         #region Private Fields
         private RegionalEmotionStats _currentStats;
+        private UIObjectPool<Transform> _emotionItemPool;
         #endregion
 
         #region Public Methods
@@ -44,6 +45,7 @@ namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Components
         {
             _currentStats = stats;
 
+            InitializeEmotionPool();
             SetupRegionInfo(regionName);
             SetupDominantEmotion();
             SetupEmotionCounts();
@@ -51,6 +53,14 @@ namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Components
         #endregion
 
         #region Private Methods
+        private void InitializeEmotionPool()
+        {
+            if (_emotionCountItemPrefab != null && _emotionListContainer != null && _emotionItemPool == null)
+            {
+                _emotionItemPool = new UIObjectPool<Transform>(_emotionCountItemPrefab, _emotionListContainer, 3);
+            }
+        }
+
         private void SetupRegionInfo(string regionName)
         {
             if (_regionNameText != null)
@@ -88,11 +98,26 @@ namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Components
             if (_emotionListContainer == null || _emotionCountItemPrefab == null) return;
 
             // Очищаем предыдущие элементы
-            foreach (Transform child in _emotionListContainer)
+            if (_emotionItemPool != null)
             {
-                if (child != null)
+                _emotionItemPool.ReturnAll();
+            }
+            else
+            {
+                // Fallback для случаев, когда пул не инициализирован
+                foreach (Transform child in _emotionListContainer)
                 {
-                    DestroyImmediate(child.gameObject);
+                    if (child != null)
+                    {
+                        if (Application.isPlaying)
+                        {
+                            Destroy(child.gameObject);
+                        }
+                        else
+                        {
+                            DestroyImmediate(child.gameObject);
+                        }
+                    }
                 }
             }
 
@@ -115,23 +140,38 @@ namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Components
 
         private void CreateEmotionCountItem(EmotionTypes emotionType, int count)
         {
-            GameObject item = Instantiate(_emotionCountItemPrefab, _emotionListContainer);
+            Transform item = null;
 
-            TMP_Text textComponent = item.GetComponent<TMP_Text>();
-            if (textComponent != null)
+            // Используем пул, если он инициализирован
+            if (_emotionItemPool != null)
             {
-                string emotionName = GetEmotionDisplayName(emotionType);
-                float percentage = _currentStats.TotalEmotions > 0 ?
-                    (count * 100f) / _currentStats.TotalEmotions : 0f;
-
-                textComponent.text = $"{emotionName}: {count} ({percentage:F1}%)";
-                textComponent.color = GetEmotionColor(emotionType);
+                item = _emotionItemPool.Get();
+            }
+            else
+            {
+                // Fallback: создаем объект напрямую
+                GameObject gameObject = Instantiate(_emotionCountItemPrefab, _emotionListContainer);
+                item = gameObject.transform;
             }
 
-            Image imageComponent = item.GetComponent<Image>();
-            if (imageComponent != null)
+            if (item != null)
             {
-                imageComponent.color = GetEmotionColor(emotionType);
+                TMP_Text textComponent = item.GetComponent<TMP_Text>();
+                if (textComponent != null)
+                {
+                    string emotionName = GetEmotionDisplayName(emotionType);
+                    float percentage = _currentStats.TotalEmotions > 0 ?
+                        (count * 100f) / _currentStats.TotalEmotions : 0f;
+
+                    textComponent.text = $"{emotionName}: {count} ({percentage:F1}%)";
+                    textComponent.color = GetEmotionColor(emotionType);
+                }
+
+                Image imageComponent = item.GetComponent<Image>();
+                if (imageComponent != null)
+                {
+                    imageComponent.color = GetEmotionColor(emotionType);
+                }
             }
         }
 

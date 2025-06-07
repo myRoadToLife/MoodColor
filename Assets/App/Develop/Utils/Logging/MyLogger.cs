@@ -22,7 +22,8 @@ namespace App.Develop.Utils.Logging
             Emotion,
             ClearHistory,
             Regional,
-            Session
+            Session,
+            Location
         }
 
         #region Настройки логирования
@@ -58,7 +59,8 @@ namespace App.Develop.Utils.Logging
             { LogCategory.Emotion, false },
             { LogCategory.ClearHistory, false },
             { LogCategory.Regional, true },
-            { LogCategory.Session, false }
+            { LogCategory.Session, false },
+            { LogCategory.Location, true }
         };
 
         #endregion

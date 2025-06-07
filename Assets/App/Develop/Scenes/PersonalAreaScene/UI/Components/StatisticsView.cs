@@ -30,6 +30,7 @@ namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Components
 
         #region Private Fields
         private List<GameObject> _regionStatItems = new List<GameObject>();
+        private UIObjectPool<RegionStatItemView> _regionStatItemPool;
         #endregion
 
         #region Unity Methods
@@ -47,6 +48,7 @@ namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Components
         #region Public Methods
         public void Initialize()
         {
+            InitializeObjectPools();
             Clear();
             InitializeRegionalStats();
         }
@@ -90,6 +92,14 @@ namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Components
         #endregion
 
         #region Private Methods
+        private void InitializeObjectPools()
+        {
+            if (_regionStatItemPrefab != null && _regionalStatsContainer != null)
+            {
+                _regionStatItemPool = new UIObjectPool<RegionStatItemView>(_regionStatItemPrefab, _regionalStatsContainer, 3);
+            }
+        }
+
         private void InitializeRegionalStats()
         {
             if (_regionalStatsTitle != null)
@@ -102,11 +112,26 @@ namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Components
 
         private void ClearRegionalStats()
         {
-            foreach (GameObject item in _regionStatItems)
+            if (_regionStatItemPool != null)
             {
-                if (item != null)
+                _regionStatItemPool.ReturnAll();
+            }
+            else
+            {
+                // Fallback для случаев, когда пул не инициализирован
+                foreach (GameObject item in _regionStatItems)
                 {
-                    DestroyImmediate(item);
+                    if (item != null)
+                    {
+                        if (Application.isPlaying)
+                        {
+                            Destroy(item);
+                        }
+                        else
+                        {
+                            DestroyImmediate(item);
+                        }
+                    }
                 }
             }
             _regionStatItems.Clear();
@@ -116,17 +141,31 @@ namespace App.App.Develop.Scenes.PersonalAreaScene.UI.Components
         {
             if (_regionStatItemPrefab == null || _regionalStatsContainer == null) return;
 
-            GameObject item = Instantiate(_regionStatItemPrefab, _regionalStatsContainer);
-            _regionStatItems.Add(item);
+            RegionStatItemView regionView = null;
 
-            RegionStatItemView regionView = item.GetComponent<RegionStatItemView>();
+            // Используем пул, если он инициализирован
+            if (_regionStatItemPool != null)
+            {
+                regionView = _regionStatItemPool.Get();
+            }
+            else
+            {
+                // Fallback: создаем объект напрямую
+                GameObject item = Instantiate(_regionStatItemPrefab, _regionalStatsContainer);
+                regionView = item.GetComponent<RegionStatItemView>();
+            }
+
             if (regionView != null)
             {
+                _regionStatItems.Add(regionView.gameObject);
                 regionView.Setup(regionName, stats);
             }
             else
             {
                 // Fallback: если нет компонента RegionStatItemView, используем простой текст
+                GameObject item = Instantiate(_regionStatItemPrefab, _regionalStatsContainer);
+                _regionStatItems.Add(item);
+                
                 TMP_Text textComponent = item.GetComponent<TMP_Text>();
                 if (textComponent != null)
                 {

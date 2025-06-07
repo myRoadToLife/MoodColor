@@ -118,7 +118,12 @@ namespace App.Develop.CommonServices.SceneManagement
         {
             MyLogger.Log("🧭 [SceneSwitcher] Загружаем сцену Auth по ключу Addressable", MyLogger.LogCategory.Default);
 
-            _loadingScreen.Show();
+            // Показываем загрузочный экран только если он еще не показан
+            if (!_loadingScreen.IsShowing)
+            {
+                _loadingScreen.Show();
+            }
+            
             _sceneContainer?.Dispose();
 
             yield return _sceneLoader.LoadAsync(AssetAddresses.EmptyScene);
@@ -136,6 +141,7 @@ namespace App.Develop.CommonServices.SceneManagement
             _sceneContainer = new DIContainer(_projectContainer);
             yield return bootstrap.Run(_sceneContainer, inputArgs);
 
+            // Скрываем загрузочный экран для AuthScene (это нормально, так как пользователь должен видеть форму входа)
             _loadingScreen.Hide();
         }
 
@@ -143,7 +149,13 @@ namespace App.Develop.CommonServices.SceneManagement
         private IEnumerator ProcessSwitchToPersonalAreaScene(PersonalAreaInputArgs personalAreaInputArgs)
         {
             MyLogger.Log("🧭 [SceneSwitcher] Загружаем сцену PersonalArea по ключу Addressable", MyLogger.LogCategory.Default);
-            _loadingScreen.Show();
+            
+            // Показываем загрузочный экран только если он еще не показан
+            // (при автоматическом входе он уже показан из Bootstrap)
+            if (!_loadingScreen.IsShowing)
+            {
+                _loadingScreen.Show();
+            }
 
             _sceneContainer?.Dispose();
 
@@ -162,7 +174,9 @@ namespace App.Develop.CommonServices.SceneManagement
             _sceneContainer = new DIContainer(_projectContainer);
             yield return personalAreaBootstrap.Run(_sceneContainer, personalAreaInputArgs);
 
-            _loadingScreen.Hide();
+            // НЕ скрываем загрузочный экран здесь - это теперь делает PersonalAreaBootstrap
+            // для обеспечения плавного перехода при автоматическом входе
+            MyLogger.Log("🎯 [SceneSwitcher] PersonalArea Bootstrap завершен, управление загрузочным экраном передано PersonalAreaBootstrap", MyLogger.LogCategory.Default);
         }
 
         // private IEnumerator ProcessSwitchToMainScreenScene(MainSceneInputArgs mainSceneInputArgs)

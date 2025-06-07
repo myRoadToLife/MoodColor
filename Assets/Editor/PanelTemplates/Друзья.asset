@@ -1,0 +1,125 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c6c4099f66667a04ca53ad5d063a405a, type: 3}
+  m_Name: "\u0414\u0440\u0443\u0437\u044C\u044F"
+  m_EditorClassIdentifier: 
+  panelName: "\u0414\u0440\u0443\u0437\u044C\u044F"
+  panelSize: {x: 400, y: 600}
+  panelBackgroundColor: {r: 0.9607844, g: 0.8705883, b: 0.7019608, a: 1}
+  panelBackgroundSprite: {fileID: 0}
+  includeHeader: 1
+  headerTitle: "\u0414\u0440\u0443\u0437\u044C\u044F"
+  headerHeight: 40
+  headerBackgroundColor: {r: 0.15, g: 0.15, b: 0.15, a: 0.9}
+  headerBackgroundSprite: {fileID: 0}
+  headerTextColor: {r: 1, g: 1, b: 1, a: 1}
+  headerFontSize: 24
+  includeCloseButton: 1
+  closeButtonSprite: {fileID: 0}
+  closeButtonColor: {r: 1, g: 0.2705882, b: 0, a: 1}
+  includeFooter: 1
+  footerHeight: 50
+  footerBackgroundColor: {r: 0.15, g: 0.15, b: 0.15, a: 0.9}
+  footerBackgroundSprite: {fileID: 0}
+  addOkCancelButtons: 1
+  saveAsPrefab: 1
+  prefabPath: Assets/Prefabs/UI/GeneratedPanels/
+  contentLayoutType: 0
+  layoutSpacing: {x: 5, y: 5}
+  layoutPadding:
+    m_Left: 10
+    m_Right: 10
+    m_Top: 10
+    m_Bottom: 10
+  gridColumns: 2
+  gridCellSize: {x: 100, y: 100}
+  uiElements:
+  - elementName: Button
+    elementType: 0
+    isActive: 1
+    anchorMin: {x: 0.5, y: 0.5}
+    anchorMax: {x: 0.5, y: 0.5}
+    anchoredPosition: {x: 0, y: 0}
+    sizeDelta: {x: 100, y: 30}
+    text: Button
+    fontSize: 14
+    textColor: {r: 0, g: 0, b: 0, a: 1}
+    textAlignment: 4
+    backgroundColor: {r: 1, g: 1, b: 1, a: 1}
+    backgroundSprite: {fileID: 0}
+    imageType: 0
+    interactable: 1
+    onClickMethodName: 
+    sliderValue: 0.5
+    sliderMinValue: 0
+    sliderMaxValue: 1
+    toggleValue: 0
+    dropdownOptions:
+    - Option 1
+    - Option 2
+    - Option 3
+    inputPlaceholder: Enter text...
+    inputContentType: 0
+  - elementName: Image
+    elementType: 3
+    isActive: 1
+    anchorMin: {x: 0.5, y: 0.5}
+    anchorMax: {x: 0.5, y: 0.5}
+    anchoredPosition: {x: 0, y: 0}
+    sizeDelta: {x: 100, y: 100}
+    text: 
+    fontSize: 14
+    textColor: {r: 0, g: 0, b: 0, a: 1}
+    textAlignment: 4
+    backgroundColor: {r: 1, g: 1, b: 1, a: 1}
+    backgroundSprite: {fileID: 0}
+    imageType: 0
+    interactable: 1
+    onClickMethodName: 
+    sliderValue: 0.5
+    sliderMinValue: 0
+    sliderMaxValue: 1
+    toggleValue: 0
+    dropdownOptions:
+    - Option 1
+    - Option 2
+    - Option 3
+    inputPlaceholder: Enter text...
+    inputContentType: 0
+  - elementName: ScrollView
+    elementType: 4
+    isActive: 1
+    anchorMin: {x: 0.5, y: 0.5}
+    anchorMax: {x: 0.5, y: 0.5}
+    anchoredPosition: {x: 0, y: 0}
+    sizeDelta: {x: 200, y: 200}
+    text: 
+    fontSize: 14
+    textColor: {r: 0, g: 0, b: 0, a: 1}
+    textAlignment: 4
+    backgroundColor: {r: 0.9, g: 0.9, b: 0.9, a: 1}
+    backgroundSprite: {fileID: 0}
+    imageType: 0
+    interactable: 1
+    onClickMethodName: 
+    sliderValue: 0.5
+    sliderMinValue: 0
+    sliderMaxValue: 1
+    toggleValue: 0
+    dropdownOptions:
+    - Option 1
+    - Option 2
+    - Option 3
+    inputPlaceholder: Enter text...
+    inputContentType: 0
+  description: "\u041E\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u0448\u0430\u0431\u043B\u043E\u043D\u0430
+    \u043F\u0430\u043D\u0435\u043B\u0438"
