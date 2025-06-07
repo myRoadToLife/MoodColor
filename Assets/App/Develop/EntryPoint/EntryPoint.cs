@@ -17,6 +17,7 @@ using App.Develop.CommonServices.Emotion;
 using App.Develop.CommonServices.Firebase.Database.Services;
 using App.Develop.CommonServices.Firebase.Database.Validators;
 using App.Develop.CommonServices.Firebase.Auth.Services;
+using App.Develop.CommonServices.Firebase.Common;
 using App.Develop.CommonServices.GameSystem;
 using App.Develop.CommonServices.CoroutinePerformer;
 using App.Develop.CommonServices.DataManagement;
@@ -52,8 +53,7 @@ namespace App.Develop.EntryPoint
         [SerializeField] private ApplicationConfig _applicationConfig;
 
         private DIContainer _projectContainer;
-        private FirebaseApp _firebaseApp; // Храним ссылку на наш экземпляр Firebase
-        private FirebaseDatabase _firebaseDatabase; // Храним ссылку на базу данных
+        // Удалены поля _firebaseApp и _firebaseDatabase - теперь используем default instances
 
         private void Awake()
         {
@@ -81,8 +81,8 @@ namespace App.Develop.EntryPoint
                 await RegisterCoreServices(_projectContainer);
                 ShowInitialLoadingScreen();
 
-                MyLogger.Log("🔥 Инициализация Firebase...", MyLogger.LogCategory.Bootstrap);
-                if (!await InitFirebaseAsync())
+                MyLogger.Log("🔥 Инициализация Firebase (новый подход)...", MyLogger.LogCategory.Bootstrap);
+                if (!await InitFirebaseWithNewApproachAsync())
                 {
                     MyLogger.LogError("❌ Не удалось инициализировать Firebase", MyLogger.LogCategory.Bootstrap);
                     return;
@@ -157,63 +157,50 @@ namespace App.Develop.EntryPoint
         }
 
         /// <summary>
-        /// Инициализирует Firebase и проверяет его доступность
+        /// Инициализирует Firebase с использованием нового подхода (FirebaseInitializer)
         /// </summary>
-        private async Task<bool> InitFirebaseAsync()
+        private async Task<bool> InitFirebaseWithNewApproachAsync()
         {
             try
             {
-                string databaseUrl = _applicationConfig?.DatabaseUrl ?? "https://moodcolor-3ac59-default-rtdb.firebaseio.com/";
-                string firebaseAppName = _applicationConfig?.FirebaseAppName ?? "MoodColorApp";
+                MyLogger.Log("🔍 Пытаемся разрезолвить Firebase компоненты...", MyLogger.LogCategory.Bootstrap);
 
-                // Удаляем все существующие экземпляры с нашим именем, если они есть
-                try
+                var firebaseInitializer = _projectContainer.Resolve<IFirebaseInitializer>();
+                var offlineManager = _projectContainer.Resolve<IOfflineManager>();
+
+                if (firebaseInitializer == null)
                 {
-                    var existingApp = FirebaseApp.GetInstance(firebaseAppName);
-                    if (existingApp != null)
-                    {
-                        existingApp.Dispose();
-                    }
-                }
-                catch (Exception)
-                {
-                    // Если приложение не найдено, это не ошибка
-                }
-
-                // Проверяем зависимости
-                var dependencyTask = FirebaseApp.CheckAndFixDependenciesAsync();
-                await dependencyTask;
-
-                var dependencyStatus = dependencyTask.Result;
-
-                if (dependencyStatus != DependencyStatus.Available)
-                {
-                    MyLogger.LogError($"❌ Firebase зависимости недоступны: {dependencyStatus}", MyLogger.LogCategory.Bootstrap);
+                    MyLogger.LogError("❌ IFirebaseInitializer разрезолвен как null", MyLogger.LogCategory.Bootstrap);
                     return false;
                 }
 
-                // Создаем кастомный экземпляр Firebase с нашим URL
-                var options = new Firebase.AppOptions
+                if (offlineManager == null)
                 {
-                    DatabaseUrl = new Uri(databaseUrl)
-                };
+                    MyLogger.LogError("❌ IOfflineManager разрезолвен как null", MyLogger.LogCategory.Bootstrap);
+                    return false;
+                }
 
-                _firebaseApp = FirebaseApp.Create(options, firebaseAppName);
+                // Связываем FirebaseInitializer с OfflineManager
+                if (firebaseInitializer is FirebaseInitializer concreteInitializer)
+                {
+                    concreteInitializer.SetOfflineManager(offlineManager);
+                    MyLogger.Log("🔗 FirebaseInitializer связан с OfflineManager", MyLogger.LogCategory.Bootstrap);
+                }
 
-                // Создаем экземпляр базы данных с нашим Firebase App и URL
-                _firebaseDatabase = FirebaseDatabase.GetInstance(_firebaseApp, databaseUrl);
-                _firebaseDatabase.SetPersistenceEnabled(true);
-
-                MyLogger.Log($"✅ Firebase инициализирован: {databaseUrl}", MyLogger.LogCategory.Bootstrap);
-                return true;
+                MyLogger.Log("✅ Firebase компоненты разрезолвены, начинаем инициализацию...", MyLogger.LogCategory.Bootstrap);
+                bool result = await firebaseInitializer.InitializeAsync();
+                MyLogger.Log($"🔍 Результат инициализации Firebase: {result}", MyLogger.LogCategory.Bootstrap);
+                return result;
             }
             catch (Exception ex)
             {
-                MyLogger.LogError($"❌ ОШИБКА Firebase инициализации: {ex.Message}", MyLogger.LogCategory.Bootstrap);
+                MyLogger.LogError($"❌ ОШИБКА Firebase инициализации (новый подход): {ex.Message}", MyLogger.LogCategory.Bootstrap);
                 MyLogger.LogError($"❌ Firebase Stack trace: {ex.StackTrace}", MyLogger.LogCategory.Bootstrap);
                 return false;
             }
         }
+
+
 
         /// <summary>
         /// Регистрирует сервисы, зависящие от Firebase
@@ -435,6 +422,23 @@ namespace App.Develop.EntryPoint
 
                 // Регистрируем все сервисы
                 installerManager.RegisterAllServices(container);
+
+                // ВАЖНО: Регистрируем Firebase компоненты ДО их использования
+                container.RegisterAsSingle<IOfflineManager>(c => new OfflineManager()).NonLazy();
+                container.RegisterAsSingle<IFirebaseErrorHandler>(c => new FirebaseErrorHandler()).NonLazy();
+                container.RegisterAsSingle<IFirebaseInitializer>(c => new FirebaseInitializer()).NonLazy();
+
+                // Регистрируем новые Firebase компоненты Этапа 3 (Performance & Batch)
+                container.RegisterAsSingle<IFirebasePerformanceMonitor>(c => new FirebasePerformanceMonitor()).NonLazy();
+                container.RegisterAsSingle<IFirebaseBatchOperations>(c =>
+                    new FirebaseBatchOperations(
+                        c.Resolve<DatabaseReference>(),
+                        c.Resolve<IFirebaseErrorHandler>(),
+                        c.Resolve<IFirebasePerformanceMonitor>()
+                    )
+                ).NonLazy();
+
+                MyLogger.Log("✅ Firebase компоненты зарегистрированы (включая Performance Monitor и Batch Operations)", MyLogger.LogCategory.Bootstrap);
 
                 // Регистрируем дополнительные сервисы, которые пока не перенесены в installer'ы
                 RegisterAdditionalServices(container);
@@ -694,33 +698,16 @@ namespace App.Develop.EntryPoint
         }
 
         /// <summary>
-        /// Регистрирует сервисы Firebase в контейнере
+        /// Регистрирует сервисы Firebase в контейнере (обновленная версия)
         /// </summary>
         private void RegisterFirebase(DIContainer container)
         {
             try
             {
-                if (_firebaseApp == null)
-                {
-                    throw new InvalidOperationException("Firebase не инициализирован");
-                }
-
-                if (_firebaseDatabase == null)
-                {
-                    throw new InvalidOperationException("База данных Firebase не инициализирована");
-                }
-
-                // Сервис аутентификации Firebase
-                container.RegisterAsSingle<FirebaseAuth>(container => FirebaseAuth.GetAuth(_firebaseApp)).NonLazy();
-
-                // Регистрируем наш экземпляр FirebaseApp
-                container.RegisterAsSingle<FirebaseApp>(container => _firebaseApp).NonLazy();
-
-                // Регистрируем экземпляр FirebaseDatabase
-                container.RegisterAsSingle<FirebaseDatabase>(container => _firebaseDatabase).NonLazy();
-
-                // Регистрируем Firebase Database Reference
-                container.RegisterAsSingle<DatabaseReference>(c => _firebaseDatabase.RootReference).NonLazy();
+                // Используем default instances (лучшая практика Firebase)
+                container.RegisterAsSingle<FirebaseAuth>(c => FirebaseAuth.DefaultInstance).NonLazy();
+                container.RegisterAsSingle<FirebaseDatabase>(c => FirebaseDatabase.DefaultInstance).NonLazy();
+                container.RegisterAsSingle<DatabaseReference>(c => FirebaseDatabase.DefaultInstance.RootReference).NonLazy();
 
                 // Регистрируем кэш-менеджер
                 container.RegisterAsSingle<FirebaseCacheManager>(c =>
@@ -744,6 +731,8 @@ namespace App.Develop.EntryPoint
                 // Используем FirebaseServiceInstaller для регистрации всех Firebase сервисов
                 var firebaseServiceInstaller = new FirebaseServiceInstaller();
                 firebaseServiceInstaller.RegisterServices(container);
+
+                MyLogger.Log("✅ Firebase сервисы зарегистрированы (новый подход с default instances)", MyLogger.LogCategory.Bootstrap);
             }
             catch (Exception ex)
             {

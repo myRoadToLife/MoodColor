@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using App.Develop.CommonServices.DataManagement.DataProviders;
 using App.Develop.CommonServices.Firebase.Auth.Services;
 using App.Develop.CommonServices.Firebase.Common.Cache;
+using App.Develop.CommonServices.Firebase.Common;
 using App.Develop.CommonServices.Firebase.Database.Services;
 using App.Develop.CommonServices.Firebase.Analytics.Services;
 using App.Develop.CommonServices.Firebase.Messaging.Services;
@@ -33,6 +34,10 @@ namespace App.Develop.DI.Installers
             try
             {
                 MyLogger.Log("🔧 Регистрация Firebase Services...", MyLogger.LogCategory.Bootstrap);
+
+                // FirebaseInitializer и улучшенные компоненты уже зарегистрированы в EntryPoint
+                // RegisterFirebaseInitializer(container);
+                // RegisterEnhancedFirebaseComponents(container);
 
                 // Регистрируем сервисы базы данных
                 RegisterDatabaseServices(container);
@@ -304,6 +309,30 @@ namespace App.Develop.DI.Installers
 #endif
 
             return true;
+        }
+
+        /// <summary>
+        /// Регистрирует компоненты для улучшенной работы Firebase
+        /// </summary>
+        private void RegisterEnhancedFirebaseComponents(DIContainer container)
+        {
+            try
+            {
+                // Регистрируем OfflineManager
+                container.RegisterAsSingle<IOfflineManager>(c => new OfflineManager()).NonLazy();
+                MyLogger.Log("✅ Offline Manager зарегистрирован", MyLogger.LogCategory.Bootstrap);
+
+                // Регистрируем FirebaseErrorHandler
+                container.RegisterAsSingle<IFirebaseErrorHandler>(c => new FirebaseErrorHandler()).NonLazy();
+                MyLogger.Log("✅ Firebase Error Handler зарегистрирован", MyLogger.LogCategory.Bootstrap);
+
+                MyLogger.Log("✅ Enhanced Firebase Components успешно зарегистрированы", MyLogger.LogCategory.Bootstrap);
+            }
+            catch (Exception ex)
+            {
+                MyLogger.LogError($"❌ Ошибка при регистрации Enhanced Firebase Components: {ex.Message}", MyLogger.LogCategory.Bootstrap);
+                throw;
+            }
         }
 
         /// <summary>
