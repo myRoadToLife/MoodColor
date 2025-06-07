@@ -9,7 +9,6 @@ Library: F:\Unity\MoodColor\Temp\BurstOutput\tempburstlibs\armeabi-v7a\lib_burst
 --target-framework=NetFramework
 --generate-link-xml=Temp\burst.link.xml
 --temp-folder=F:\Unity\MoodColor\Temp\Burst
---debug=Full
 --key-folder=F:/UnityHub/6000.1.6f1/Editor/Data/PlaybackEngines/AndroidPlayer
 --decode-folder=F:\Unity\MoodColor\Library\Burst
 --output=F:\Unity\MoodColor\Temp\BurstOutput\tempburstlibs\armeabi-v7a\lib_burst_generated
@@ -36,7 +35,6 @@ Library: F:\Unity\MoodColor\Temp\BurstOutput\tempburstlibs\armeabi-v7a\lib_burst
 --float-mode=Fast
 --generate-link-xml=Temp\burst.link.xml
 --temp-folder=F:\Unity\MoodColor\Temp\Burst
---debug=Full
 --key-folder=F:/UnityHub/6000.1.6f1/Editor/Data/PlaybackEngines/AndroidPlayer
 --decode-folder=F:\Unity\MoodColor\Library\Burst
 --output=F:\Unity\MoodColor\Temp\BurstOutput\tempburstlibs\armeabi-v7a\lib_burst_generated
@@ -54,7 +52,6 @@ Library: F:\Unity\MoodColor\Temp\BurstOutput\tempburstlibs\armeabi-v7a\lib_burst
 --target-framework=NetFramework
 --generate-link-xml=Temp\burst.link.xml
 --temp-folder=F:\Unity\MoodColor\Temp\Burst
---debug=Full
 --key-folder=F:/UnityHub/6000.1.6f1/Editor/Data/PlaybackEngines/AndroidPlayer
 --decode-folder=F:\Unity\MoodColor\Library\Burst
 --output=F:\Unity\MoodColor\Temp\BurstOutput\tempburstlibs\armeabi-v7a\lib_burst_generated
